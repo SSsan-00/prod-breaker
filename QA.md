@@ -38,7 +38,8 @@ E2Eは`next build`の成果物を`next start`で起動して実行。Desktop Chr
 
 ## 公開・既知の制限
 
-- GitHubリポジトリはユーザーが空のPublicとして作成。既存コードがないことを確認して公開作業を継続。GitHub Actionsの結果は実行後に追記します。
+- GitHubリポジトリはユーザーが空のPublicとして作成。既存コードがないことを確認してmainへpush済み。
+- [GitHub Actions実行40326291587](https://github.com/SSsan-00/prod-breaker/actions/runs/40326291587)が成功（1分43秒）。lint・型検査・単体テスト・本番ビルド・本番サーバーのPC/スマホE2Eを確認。検証対象コミット: `93d5b71e5f4e344459feef08edaabe9ad3deac2d`。
 - Vercelは未認証。ユーザーの指示により今回はGitHub公開まで。本番URLの確認は未実施です。
 - iOS Safari / WebKit / Firefox / 実機性能 / 実音声の聴感評価 / ネイティブ共有シートは未検証。
 - PANICは緊急マージのみ、障害種別はfaultのみ。称号は結果に応じた3種類で、永続実績コレクションは未実装。
