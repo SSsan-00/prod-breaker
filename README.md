@@ -50,9 +50,7 @@ Next.js App Router / React / TypeScript strict / Tailwind CSS / Motion / Canvas 
 
 ## 公開
 
-GitHub公開先（未作成）: https://github.com/SSsan-00/prod-breaker
-
-GitHub認証は有効ですが、リポジトリ作成APIは`Resource not accessible by integration (createRepository)`で拒否されました。空のPublicリポジトリの作成と接続への権限付与が必要です。既存リポジトリの上書きはしていません。
+GitHub: https://github.com/SSsan-00/prod-breaker
 
 Vercel本番URL: **未デプロイ**。この環境のVercel CLIが未認証のため、ユーザーの指示でGitHub公開まで実施しています。
 
