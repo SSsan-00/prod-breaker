@@ -1,60 +1,61 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { motion, MotionConfig } from "motion/react";
 import {
-  cascade,
-  edges,
-  finished,
-  hand,
-  report,
-  topology,
-  uptime,
-  validTarget,
-  type Card,
-  type Log,
-  type NodeId,
-  type Server,
-} from "@/game/engine";
+  createWorld,
+  stepWorld,
+  chooseUpgrade,
+  upgrades,
+  wave,
+  survivorReport,
+  STEP,
+  RUN_SECONDS,
+  type World,
+  type Vec,
+  type UpgradeId,
+} from "@/game/survivor";
+import Arena, { type Stick } from "./Arena";
 import { read, write } from "@/lib/storage";
 import { sound, startMusic } from "@/effects/audio";
-import ParticleCanvas from "@/effects/ParticleCanvas";
-type Phase = "title" | "pick" | "countdown" | "cascade" | "round" | "result";
 type Settings = { mute: boolean; volume: number; reduced: boolean };
+type Screen = "title" | "run" | "result";
+type Modal = "settings" | "help" | "pause" | null;
 export default function Game() {
-  const [phase, setPhase] = useState<Phase>("title"),
-    [nodes, setNodes] = useState(topology),
-    [round, setRound] = useState(1),
-    [seed, setSeed] = useState(1),
-    [selected, setSelected] = useState<Card | null>(null),
-    [target, setTarget] = useState<NodeId | null>(null),
-    [acquired, setAcquired] = useState<Card[]>([]),
-    [total, setTotal] = useState(0),
-    [combo, setCombo] = useState(0),
-    [maxCombo, setMaxCombo] = useState(0),
-    [logs, setLogs] = useState<Log[]>([]),
-    [cursor, setCursor] = useState(0),
-    [panic, setPanic] = useState(false),
-    [fast, setFast] = useState(false),
-    [count, setCount] = useState(3),
-    [modal, setModal] = useState<"settings" | "help" | null>(null),
+  const [initialWorld] = useState(() => createWorld());
+  const world = useRef<World>(initialWorld),
+    input = useRef<Vec>({ x: 0, y: 0 }),
+    stick = useRef<Stick>({
+      active: false,
+      origin: { x: 0, y: 0 },
+      current: { x: 0, y: 0 },
+    }),
+    keys = useRef(new Set<string>()),
+    panicPending = useRef(false),
+    frameRef = useRef(0);
+  const [snapshot, setSnapshot] = useState<World>(initialWorld),
+    [screen, setScreen] = useState<Screen>("title"),
+    [modal, setModal] = useState<Modal>(null),
     [settings, setSettings] = useState<Settings>({
       mute: true,
       volume: 0.5,
       reduced: false,
     }),
     [high, setHigh] = useState(0),
-    [burst, setBurst] = useState<{ x: number; y: number; id: number } | null>(
-      null,
-    ),
-    [elapsed, setElapsed] = useState(0);
-  const startTime = useRef(0),
-    base = useRef<Server[]>([]),
-    run = useRef<ReturnType<typeof cascade> | null>(null),
-    panicLock = useRef(false),
-    timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+    [notice, setNotice] = useState("");
+  const settingsRef = useRef(settings);
+  const screenRef = useRef(screen);
+  const modalRef = useRef(modal);
   useEffect(() => {
-    const id = setTimeout(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+  useEffect(() => {
+    screenRef.current = screen;
+  }, [screen]);
+  useEffect(() => {
+    modalRef.current = modal;
+  }, [modal]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
       setSettings(
         read("pb-settings", {
           mute: true,
@@ -64,202 +65,290 @@ export default function Game() {
             matchMedia("(prefers-reduced-motion: reduce)").matches,
         }),
       );
-      setHigh(read("pb-high", 0));
+      setHigh(read("pb-survivor-high", 0));
     }, 0);
-    return () => clearTimeout(id);
-  }, []);
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
-  useEffect(() => {
-    if (phase === "title" || phase === "result" || settings.mute) return;
-    return startMusic(settings.volume);
-  }, [phase, settings.mute, settings.volume]);
-  const playSound = (kind: Parameters<typeof sound>[0]) => {
-    if (!settings.mute) sound(kind, settings.volume);
-  };
-  function start() {
-    timers.current.forEach(clearTimeout);
-    startTime.current = performance.now();
-    setSeed(Math.floor(Math.random() * 1000000));
-    setNodes(topology());
-    setRound(1);
-    setTotal(0);
-    setCombo(0);
-    setMaxCombo(0);
-    setAcquired([]);
-    setSelected(null);
-    setTarget(null);
-    setLogs([]);
-    setCursor(0);
-    setPanic(false);
-    setFast(false);
-    run.current = null;
-    setPhase("pick");
-    playSound("deploy");
-  }
-  function deploy() {
-    if (!selected || !target || phase !== "pick") return;
-    base.current = nodes.map((n) => ({ ...n }));
-    run.current = cascade({
-      nodes,
-      card: selected,
-      target,
-      acquired,
-      seed,
-      round,
-    });
-    setLogs(run.current.logs);
-    setCursor(0);
-    setCombo(0);
-    setPanic(false);
-    panicLock.current = false;
-    setCount(3);
-    setPhase("countdown");
-    playSound("deploy");
-    for (let i = 1; i <= 3; i++)
-      timers.current.push(
-        setTimeout(() => {
-          setCount(3 - i);
-          if (i === 3) setPhase("cascade");
-        }, i * 330),
-      );
-  }
-  useEffect(() => {
-    if (phase !== "cascade") return;
-    const timer = setTimeout(
-      () => {
-        if (cursor >= logs.length) {
-          const result = run.current;
-          if (result) {
-            setNodes(result.nodes);
-            setTotal((t) => t + result.score);
-            setMaxCombo((c) => Math.max(c, result.combo));
-            setAcquired((a) => (selected ? [...a, selected] : a));
-          }
-          setPhase("round");
-          return;
-        }
-        const e = logs[cursor];
-        setNodes((ns) =>
-          ns.map((n) =>
-            n.id === e.targetNodeId ? { ...n, hp: e.hp, status: e.status } : n,
-          ),
-        );
-        setCombo(e.combo);
-        const n = topology().find((n) => n.id === e.targetNodeId)!;
-        setBurst({
-          x: n.position[0],
-          y: n.position[1],
-          id: cursor + round * 200,
-        });
-        if (!settings.mute)
-          sound(e.hp === 0 ? "destroy" : "hit", settings.volume);
-        setCursor((c) => c + 1);
-      },
-      fast ? 65 : settings.reduced ? 180 : logs[cursor]?.hp === 0 ? 650 : 480,
-    );
     return () => clearTimeout(timer);
-  }, [phase, cursor, logs, fast, settings, selected, round]);
-  function doPanic() {
-    if (phase !== "cascade" || panicLock.current || !selected || !target)
-      return;
-    panicLock.current = true;
-    setPanic(true);
-    playSound("panic");
-    const result = cascade({
-      nodes: base.current,
-      card: selected,
-      target,
-      acquired,
-      seed,
-      round,
-      panicAt: Math.max(0, cursor),
-    });
-    run.current = result;
-    setLogs(result.logs);
+  }, []);
+  useEffect(() => {
+    if (!modal && snapshot.phase !== "upgrade") return;
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    if (!dialog) return;
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const elements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), input:not(:disabled), [tabindex="0"]',
+        ),
+      );
+      const first = elements[0],
+        last = elements[elements.length - 1];
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last?.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", trap);
+    return () => document.removeEventListener("keydown", trap);
+  }, [modal, snapshot.phase]);
+  function clearInput() {
+    keys.current.clear();
+    input.current = { x: 0, y: 0 };
+    stick.current.active = false;
+    panicPending.current = false;
   }
-  function next() {
-    if (finished(round)) {
-      const seconds = Math.round(
-        (performance.now() - startTime.current) / 1000,
-      );
-      setElapsed(seconds);
-      const best = Math.max(high, total);
-      setHigh(best);
-      write("pb-high", best);
-      setPhase("result");
-    } else {
-      setNodes((ns) =>
-        ns.map((n) => ({
-          ...n,
-          hp: Math.max(45, n.hp),
-          status: n.hp < 45 ? "warning" : n.status,
-        })),
-      );
-      setRound((r) => r + 1);
-      setSelected(null);
-      setTarget(null);
-      setCombo(0);
-      setPanic(false);
-      setFast(false);
-      setPhase("pick");
+  useEffect(() => {
+    function down(e: KeyboardEvent) {
+      const key = e.key.toLowerCase();
+      if (modalRef.current && key === "escape") {
+        e.preventDefault();
+        clearInput();
+        setModal(null);
+        return;
+      }
+      if (screenRef.current !== "run" || modalRef.current) return;
+      if (
+        [
+          "w",
+          "a",
+          "s",
+          "d",
+          "arrowup",
+          "arrowdown",
+          "arrowleft",
+          "arrowright",
+          " ",
+          "escape",
+        ].includes(key)
+      )
+        e.preventDefault();
+      if (key === "escape") {
+        clearInput();
+        setModal((m) => (m ? null : "pause"));
+        return;
+      }
+      if (modalRef.current) return;
+      if (key === " " && !e.repeat) panicPending.current = true;
+      keys.current.add(key);
     }
-  }
+    function up(e: KeyboardEvent) {
+      keys.current.delete(e.key.toLowerCase());
+    }
+    function hide() {
+      clearInput();
+      if (document.hidden && screenRef.current === "run")
+        setModal((m) => m || "pause");
+    }
+    function blur() {
+      clearInput();
+      if (screenRef.current === "run") setModal((m) => m || "pause");
+    }
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    document.addEventListener("visibilitychange", hide);
+    window.addEventListener("blur", blur);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      document.removeEventListener("visibilitychange", hide);
+      window.removeEventListener("blur", blur);
+    };
+  }, []);
+  useEffect(() => {
+    if (screen !== "run" || modal) return;
+    let last = 0,
+      accumulator = 0,
+      lastUi = 0,
+      lastSound = 0;
+    let oldDestroyed = world.current.destroyed;
+    const frame = (now: number) => {
+      if (document.hidden) {
+        last = 0;
+        frameRef.current = requestAnimationFrame(frame);
+        return;
+      }
+      if (last) accumulator += Math.min(0.2, (now - last) / 1000);
+      last = now;
+      let changed = false;
+      while (accumulator >= STEP) {
+        accumulator -= STEP;
+        if (world.current.phase !== "playing") {
+          accumulator = 0;
+          break;
+        }
+        const k = keys.current;
+        const keyboard = {
+          x:
+            Number(k.has("d") || k.has("arrowright")) -
+            Number(k.has("a") || k.has("arrowleft")),
+          y:
+            Number(k.has("s") || k.has("arrowdown")) -
+            Number(k.has("w") || k.has("arrowup")),
+        };
+        const movement = keyboard.x || keyboard.y ? keyboard : input.current;
+        world.current = stepWorld(world.current, {
+          ...movement,
+          panic: panicPending.current,
+        });
+        panicPending.current = false;
+        changed = true;
+      }
+      const w = world.current;
+      if (w.destroyed > oldDestroyed && now - lastSound > 140) {
+        oldDestroyed = w.destroyed;
+        lastSound = now;
+        if (!settingsRef.current.mute)
+          sound("destroy", settingsRef.current.volume);
+      }
+      if (changed && (now - lastUi > 90 || w.phase !== "playing")) {
+        lastUi = now;
+        setSnapshot(w);
+      }
+      if (w.phase === "won" || w.phase === "lost") {
+        setSnapshot(w);
+        setHigh((previous) => {
+          const value = Math.max(previous, w.score);
+          write("pb-survivor-high", value);
+          return value;
+        });
+        setScreen("result");
+        return;
+      }
+      frameRef.current = requestAnimationFrame(frame);
+    };
+    frameRef.current = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [screen, modal]);
+  useEffect(() => {
+    if (
+      screen !== "run" ||
+      modal ||
+      snapshot.phase !== "playing" ||
+      settings.mute
+    )
+      return;
+    return startMusic(settings.volume);
+  }, [screen, modal, snapshot.phase, settings.mute, settings.volume]);
   function updateSettings(patch: Partial<Settings>) {
-    const value = { ...settings, ...patch };
-    setSettings(value);
-    write("pb-settings", value);
+    const next = { ...settings, ...patch };
+    setSettings(next);
+    write("pb-settings", next);
   }
-  const destroyed = nodes.filter((n) => n.hp === 0).length,
-    incident = report(total, destroyed),
-    currentHand = hand(seed, round),
-    last = logs[cursor - 1];
-  async function exportImage(share = false) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1080;
-    const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#090e12";
-    ctx.fillRect(0, 0, 1080, 1080);
-    ctx.fillStyle = "#d5fa4e";
-    ctx.font = "bold 90px monospace";
-    ctx.fillText("PROD BREAKER", 70, 160);
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 110px monospace";
-    ctx.fillText(`${total.toLocaleString()} BP`, 70, 330);
-    ctx.font = "34px sans-serif";
-    [
-      incident.title,
-      `MAX COMBO ${maxCombo} / DESTROYED ${destroyed}/7`,
-      `UPTIME ${uptime(nodes)}%`,
-      incident.summary,
-      `原因：${incident.cause}`,
-      "再発防止策：金曜日を廃止する。",
-      "架空のジョークゲーム / BUILD THE BUG.",
-    ].forEach((line, i) => ctx.fillText(line, 70, 440 + i * 75));
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve),
-    );
-    if (!blob) return;
-    const file = new File([blob], "prod-breaker.png", { type: "image/png" });
-    if (share && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: "PROD BREAKER" });
-      } catch {}
+  function start() {
+    clearInput();
+    const param = new URLSearchParams(location.search).get("seed");
+    const seed =
+      param !== null && Number.isFinite(Number(param))
+        ? Number(param) >>> 0
+        : Math.floor(Math.random() * 0xffffffff);
+    world.current = createWorld(seed);
+    setSnapshot(world.current);
+    setNotice("");
+    setModal(null);
+    setScreen("run");
+    if (!settings.mute) sound("deploy", settings.volume);
+  }
+  function select(id: UpgradeId) {
+    if (world.current.phase !== "upgrade") return;
+    world.current = chooseUpgrade(world.current, id);
+    clearInput();
+    setSnapshot(world.current);
+    if (!settings.mute) sound("deploy", settings.volume);
+  }
+  function panic() {
+    if (
+      screen !== "run" ||
+      modal ||
+      world.current.phase !== "playing" ||
+      world.current.panicCooldown > 0 ||
+      panicPending.current
+    )
       return;
+    panicPending.current = true;
+    if (!settings.mute) sound("panic", settings.volume);
+  }
+  const w = snapshot,
+    incident = survivorReport(w),
+    remaining = Math.ceil(RUN_SECONDS - w.time),
+    minutes = Math.floor(remaining / 60),
+    seconds = String(remaining % 60).padStart(2, "0");
+  async function exportImage(share = false) {
+    try {
+      const c = document.createElement("canvas");
+      c.width = 1080;
+      c.height = 1080;
+      const ctx = c.getContext("2d");
+      if (!ctx) throw new Error("canvas");
+      ctx.fillStyle = "#0a1013";
+      ctx.fillRect(0, 0, 1080, 1080);
+      ctx.fillStyle = "#d4fa53";
+      ctx.font = "bold 80px monospace";
+      ctx.fillText("PROD BREAKER", 65, 140);
+      ctx.font = "26px monospace";
+      ctx.fillText("SURVIVOR / BUILD THE BUG.", 65, 195);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 110px monospace";
+      ctx.fillText(`${w.score.toLocaleString()} BP`, 65, 360);
+      ctx.font = "34px sans-serif";
+      [
+        incident.title,
+        `${w.time.toFixed(1)}秒 / LV ${w.level} / ${w.destroyed}サーバー破壊`,
+        `MAX CHAIN ${w.maxCombo} / WAVE ${wave(w)}`,
+        `原因：${incident.cause}`,
+        "再発防止策：金曜日を廃止する。",
+        "架空のジョーク障害報告書です。",
+      ].forEach((s, i) => ctx.fillText(s, 65, 475 + i * 75));
+      const blob = await new Promise<Blob | null>((resolve) =>
+        c.toBlob(resolve),
+      );
+      if (!blob) throw new Error("blob");
+      const file = new File([blob], "prod-breaker-survivor.png", {
+        type: "image/png",
+      });
+      if (share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "PROD BREAKER" });
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = file.name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      setNotice("リザルト画像を保存しました。");
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError"))
+        setNotice("画像を保存できませんでした。別のブラウザでお試しください。");
     }
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = file.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   return (
     <MotionConfig reducedMotion={settings.reduced ? "always" : "user"}>
-      <main className={settings.reduced ? "app reduced" : "app"}>
+      <main className={`app survivor ${settings.reduced ? "reduced" : ""}`}>
         <header className="site-header">
-          <Link href="/" className="brand">
-            P<span>▰</span>B <small>PROD BREAKER</small>
-          </Link>
+          <button
+            className="brand"
+            onClick={() => {
+              if (screen === "run") {
+                clearInput();
+                setModal("pause");
+              } else setScreen("title");
+            }}
+            aria-label="PROD BREAKER ホーム"
+          >
+            P<span>▰</span>B{" "}
+            <small>
+              PROD BREAKER <em>SURVIVOR</em>
+            </small>
+          </button>
           <div className="header-right">
             <span className="sandbox">● SIMULATION ONLY</span>
             <button
@@ -268,14 +357,33 @@ export default function Game() {
             >
               {settings.mute ? "SOUND OFF" : "SOUND ON"}
             </button>
-            <button onClick={() => setModal("settings")} aria-label="設定">
+            {screen === "run" && (
+              <button
+                aria-label="一時停止"
+                onClick={() => {
+                  clearInput();
+                  setModal("pause");
+                }}
+              >
+                Ⅱ
+              </button>
+            )}
+            <button
+              aria-label="設定"
+              onClick={() => {
+                clearInput();
+                setModal("settings");
+              }}
+            >
               ⚙
             </button>
           </div>
         </header>
-        {phase === "title" ? (
+        {screen === "title" ? (
           <section className="title-screen">
-            <div className="eyebrow">INCIDENT SIMULATOR / V.1.0</div>
+            <div className="eyebrow">
+              90 SECOND RUN / AUTO ATTACK / ENDLESS BAD IDEAS
+            </div>
             <h1>
               PROD
               <br />
@@ -283,11 +391,14 @@ export default function Game() {
                 BREAKER<span className="logo-dot">_</span>
               </span>
             </h1>
+            <div className="edition">
+              SURVIVOR EDITION <span>↗ V2.0</span>
+            </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
-              そのデプロイが、すべての始まり。
+              逃げろ。育てろ。本番を連鎖爆破しろ。
               <br />
-              カードを仕込み、架空の本番を連鎖爆破せよ。
+              暴走バグとなって、復旧部隊の猛攻を90秒生き延びよう。
             </p>
             <button className="primary start" onClick={start}>
               GAME START <span>↗</span>
@@ -296,69 +407,272 @@ export default function Game() {
               HOW TO PLAY <span>→</span>
             </button>
             <div className="title-meta">
-              <span>03 ROUNDS</span>
-              <span>07 SERVICES</span>
-              <span>∞ BAD IDEAS</span>
+              <span>MOVE TO SURVIVE</span>
+              <span>AUTO FIRE</span>
+              <span>LEVEL UP & BREAK</span>
             </div>
-            <div className="rack" aria-hidden="true">
-              {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} className="rack-column">
-                  {Array.from({ length: 7 }, (_, j) => (
-                    <div key={j}>
-                      <b /> ▰ ▰ <i />
-                    </div>
-                  ))}
-                </div>
-              ))}
-              <div className="rack-label">
-                PRODUCTION / DO NOT TOUCH
+            <div className="hero-art" aria-hidden="true">
+              <div className="orbit orbit-one" />
+              <div className="orbit orbit-two" />
+              <div className="pixel-bug">
+                <i />
+                <i />
+                <b>••</b>
+                <span />
+              </div>
+              <div className="hero-server s1">
+                API<span>▰ ▰ ▰</span>
+              </div>
+              <div className="hero-server s2">
+                DB<span>▰ ▰ ▰</span>
+              </div>
+              <div className="hero-server s3">
+                WEB<span>▰ ▰ ▰</span>
+              </div>
+              <div className="hero-beam b1" />
+              <div className="hero-beam b2" />
+              <div className="hero-caption">
+                FAULT PROPAGATION ACTIVE
                 <br />
-                <strong>ALL SYSTEMS OPERATIONAL</strong>
+                <strong>THE BUG IS YOU.</strong>
               </div>
             </div>
-            <div className="floating-alert">
-              ⚠ &nbsp; DEPLOY ON FRIDAY?
-              <br />
-              <small>What could possibly go wrong.</small>
-            </div>
             <p className="high-score">
-              PERSONAL BEST <b>{high.toLocaleString()} BP</b>
+              SURVIVOR BEST <b>{high.toLocaleString()} BP</b>
             </p>
           </section>
-        ) : phase === "result" ? (
+        ) : screen === "run" ? (
+          <section className="game">
+            <div className="game-heading">
+              <div>
+                <div className="eyebrow">LIVE INCIDENT / YOU ARE THE BUG</div>
+                <h1>本番で、生き延びろ。</h1>
+              </div>
+              <span className="live">● AUTO ATTACK ONLINE</span>
+            </div>
+            <div className="hud">
+              <div>
+                WAVE
+                <b>
+                  0{wave(w)}
+                  <small> / 03</small>
+                </b>
+              </div>
+              <div>
+                TOTAL BP<b data-testid="score">{w.score.toLocaleString()}</b>
+              </div>
+              <div>
+                CHAIN
+                <b className="lime">
+                  {w.combo}
+                  <small> MAX {w.maxCombo}</small>
+                </b>
+              </div>
+              <div>
+                TIME LEFT
+                <b data-testid="timer">
+                  {minutes}:{seconds}
+                </b>
+              </div>
+            </div>
+            <div className="vitals">
+              <div className="health">
+                <span>
+                  BUG INTEGRITY{" "}
+                  <b data-testid="health">
+                    {w.player.hp} / {w.player.maxHp}
+                  </b>
+                </span>
+                <div>
+                  <i
+                    style={{
+                      width: `${(w.player.hp / w.player.maxHp) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="xp">
+                <span>
+                  LV <b data-testid="level">{w.level}</b>
+                  <small>
+                    障害ログ {w.xp} / {w.nextXp}
+                  </small>
+                </span>
+                <div>
+                  <i
+                    style={{
+                      width: `${Math.min(100, (w.xp / w.nextXp) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              className="arena-shell"
+              data-testid="arena"
+              data-phase={w.phase}
+              data-time={w.time.toFixed(2)}
+              data-player-x={w.player.x.toFixed(1)}
+              data-player-y={w.player.y.toFixed(1)}
+            >
+              <Arena
+                world={world}
+                input={input}
+                stick={stick}
+                reduced={settings.reduced}
+                onBlur={() => keys.current.clear()}
+              />
+              <div className="arena-topline">
+                <span>
+                  PROD / TOKYO{" "}
+                  {w.time >= 60
+                    ? "⚠ SRE CORE ONLINE"
+                    : w.time >= 30
+                      ? "⚠ REPAIR BOTS DEPLOYED"
+                      : "● FAULT SPREADING"}
+                </span>
+                <span>SEED {w.seed}</span>
+              </div>
+              {w.time < 5 && w.phase === "playing" && (
+                <div className="move-hint">
+                  WASD / 矢印キー / ドラッグで移動
+                  <span>攻撃は自動。青い障害ログを拾って強化。</span>
+                </div>
+              )}
+              {w.combo >= 5 && (
+                <div
+                  className={`chain-badge ${w.combo >= 20 ? "massive" : ""}`}
+                >
+                  <b>{w.combo}</b> CHAIN
+                  <span>
+                    {w.combo >= 20
+                      ? "ABSOLUTE CHAOS"
+                      : w.combo >= 10
+                        ? "CASCADE FAILURE"
+                        : "LOOKS GOOD TO ME"}
+                  </span>
+                </div>
+              )}
+              <div className="arena-bottomline">
+                <span>▰ {w.destroyed} SERVERS DOWN</span>
+                <span>✕ {w.kills} BOTS STOPPED</span>
+              </div>
+            </div>
+            <div className="run-controls">
+              <div>
+                <span className="eyebrow">
+                  {w.panicCooldown > 0
+                    ? "MERGE PIPELINE COOLING DOWN"
+                    : "WHEN IN DOUBT, MERGE IT."}
+                </span>
+                <p>移動だけに集中。攻撃はバグに任せよう。</p>
+              </div>
+              <button
+                className="panic"
+                disabled={
+                  w.panicCooldown > 0 || w.phase !== "playing" || !!modal
+                }
+                onClick={panic}
+              >
+                {w.panicCooldown > 0
+                  ? `PANIC / ${Math.ceil(w.panicCooldown)}s`
+                  : "PANIC / 緊急マージ"}
+                <small>周囲を爆破＋ログ全回収 / SPACE</small>
+              </button>
+            </div>
+            <div className="inventory">
+              <span>ACTIVE BUILD</span>
+              {w.build.length ? (
+                w.build.map((id, i) => (
+                  <span className="build-chip" key={i}>
+                    {upgrades.find((u) => u.id === id)!.name}
+                  </span>
+                ))
+              ) : (
+                <span>まだ素のバグです。青いログを回収しよう。</span>
+              )}
+            </div>
+            {w.phase === "upgrade" && !modal && (
+              <div className="modal-backdrop level-backdrop">
+                <section
+                  className="level-dialog"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="レベルアップ"
+                >
+                  <div className="eyebrow">DEPLOY ANOTHER BAD IDEA</div>
+                  <h2>
+                    LEVEL {w.level}
+                    <span>もっと、壊せる。</span>
+                  </h2>
+                  <p className="muted">
+                    強化を1つ選択。選択中はゲームが止まります。
+                  </p>
+                  <div className="upgrade-cards">
+                    {w.choices.map((id) => {
+                      const u = upgrades.find((u) => u.id === id)!;
+                      return (
+                        <motion.button
+                          autoFocus={id === w.choices[0]}
+                          whileTap={{ scale: 0.97 }}
+                          key={id}
+                          className="upgrade-card"
+                          onClick={() => select(id)}
+                        >
+                          <div className="card-top">
+                            <span className={u.type}>{u.type}</span>
+                            <small>STACKABLE</small>
+                          </div>
+                          <div className="card-art">{u.icon}</div>
+                          <h3>{u.name}</h3>
+                          <p>{u.description}</p>
+                          <span className="choose-label">
+                            INSTALL UPGRADE ↗
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            )}
+          </section>
+        ) : (
           <section className="result">
-            <div className="eyebrow">INCIDENT CLOSED / ROUND 03</div>
+            <div className="eyebrow">INCIDENT CLOSED / SURVIVOR RUN</div>
             <h1 className="result-title">
-              PRODUCTION
+              {w.phase === "won" ? "90 SECONDS." : "BUG TERMINATED."}
               <br />
-              <span>{uptime(nodes) <= 15 ? "DESTROYED" : "SURVIVED"}</span>
+              <span>
+                {w.phase === "won" ? "PROD IN RUINS." : "DEPLOY AGAIN."}
+              </span>
             </h1>
             <div className="result-score">
-              {total.toLocaleString()}
+              {w.score.toLocaleString()}
               <small> BP</small>
             </div>
             <div className="stats">
               <div>
-                MAX COMBO<b>{maxCombo}</b>
+                SURVIVED<b>{w.time.toFixed(1)}s</b>
               </div>
               <div>
-                DESTROYED<b>{destroyed}/7</b>
+                MAX CHAIN<b>{w.maxCombo}</b>
               </div>
               <div>
-                UPTIME<b>{uptime(nodes)}%</b>
+                SERVERS DOWN<b>{w.destroyed}</b>
               </div>
             </div>
             <article className="report">
-              <div className="eyebrow">POSTMORTEM # {seed}</div>
+              <div className="eyebrow">POSTMORTEM / SEED {w.seed}</div>
               <h2>{incident.title}</h2>
-              <p>障害概要：{incident.summary}</p>
+              <p>
+                障害概要：暴走バグが{w.destroyed}台の架空サーバーを破壊。復旧BOT{" "}
+                {w.kills}体停止。
+              </p>
               <p>発生原因：{incident.cause}</p>
               <p>
-                影響範囲：
-                {nodes
-                  .filter((n) => n.hp < 100)
-                  .map((n) => n.id)
-                  .join(" / ")}
+                影響範囲：WAVE {wave(w)} / LEVEL {w.level} / PANIC {w.panicUses}
+                回
               </p>
               <p>再発防止策：{incident.prevention}</p>
               <small>
@@ -372,324 +686,47 @@ export default function Game() {
               <button onClick={() => void exportImage()}>画像保存 ↓</button>
               <button onClick={() => void exportImage(true)}>共有 ↗</button>
             </div>
-            <p className="muted">
-              PLAY TIME {elapsed}s · BEST {high.toLocaleString()} BP
+            <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP</p>
+            <p role="status" className="muted">
+              {notice}
             </p>
-          </section>
-        ) : (
-          <section className="game">
-            <div className="game-heading">
-              <div>
-                <div className="eyebrow">LIVE INCIDENT / TOKYO REGION</div>
-                <h1>本番へ、ようこそ。</h1>
-              </div>
-              <span className="live">
-                ●{" "}
-                {phase === "cascade"
-                  ? "INCIDENT IN PROGRESS"
-                  : "AWAITING DEPLOY"}
-              </span>
-            </div>
-            <div className="hud">
-              <div>
-                ROUND
-                <b>
-                  0{round}
-                  <small> / 03</small>
-                </b>
-              </div>
-              <div>
-                TOTAL BP
-                <b>
-                  {(
-                    total +
-                    (phase === "cascade"
-                      ? logs.slice(0, cursor).reduce((s, e) => s + e.score, 0)
-                      : 0)
-                  ).toLocaleString()}
-                </b>
-              </div>
-              <div>
-                COMBO
-                <b className="lime">
-                  {combo}
-                  <small> CHAIN</small>
-                </b>
-              </div>
-              <div>
-                本番稼働率
-                <b className={uptime(nodes) < 40 ? "danger" : ""}>
-                  {uptime(nodes)}
-                  <small>%</small>
-                </b>
-                <div className="uptime">
-                  <i style={{ width: `${uptime(nodes)}%` }} />
-                </div>
-              </div>
-            </div>
-            <div
-              className={
-                "board " +
-                (phase === "cascade" && !settings.reduced && combo >= 10
-                  ? "shaking"
-                  : "")
-              }
-            >
-              <div className="board-label">
-                SERVICE TOPOLOGY <span>● {destroyed} OFFLINE</span>
-              </div>
-              <svg
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                className="connections"
-                aria-hidden="true"
-              >
-                {edges.map((e) => {
-                  const a = nodes.find((n) => n.id === e.from)!,
-                    b = nodes.find((n) => n.id === e.to)!;
-                  return (
-                    <line
-                      key={e.from + e.to}
-                      x1={a.position[0]}
-                      y1={a.position[1]}
-                      x2={b.position[0]}
-                      y2={b.position[1]}
-                      className={
-                        phase === "cascade" &&
-                        last?.sourceNodeId === e.from &&
-                        last?.targetNodeId === e.to
-                          ? "electric"
-                          : ""
-                      }
-                    />
-                  );
-                })}
-              </svg>
-              {nodes.map((n) => (
-                <button
-                  key={n.id}
-                  aria-label={`${n.id} ノード HP ${n.hp}`}
-                  aria-pressed={target === n.id}
-                  disabled={
-                    phase !== "pick" ||
-                    (!!selected && !validTarget(selected, n))
-                  }
-                  onClick={() => setTarget(n.id)}
-                  className={`server ${n.status} ${target === n.id ? "targeted" : ""} ${last?.targetNodeId === n.id && phase === "cascade" ? "hit" : ""}`}
-                  style={{
-                    left: `${n.position[0]}%`,
-                    top: `${n.position[1]}%`,
-                  }}
-                >
-                  <span className="server-icon">
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                  <strong>{n.id}</strong>
-                  <span className="node-hp">
-                    {n.hp === 0 ? "OFFLINE" : `${n.hp} / 100`}
-                  </span>
-                  <span className="hp-track">
-                    <i style={{ width: n.hp + "%" }} />
-                  </span>
-                </button>
-              ))}
-              <ParticleCanvas burst={burst} reduced={settings.reduced} />
-              {phase === "cascade" && last && (
-                <div
-                  key={`${round}-${cursor}`}
-                  className="score-pop"
-                  style={{
-                    left: `${nodes.find((n) => n.id === last.targetNodeId)!.position[0]}%`,
-                    top: `${nodes.find((n) => n.id === last.targetNodeId)!.position[1]}%`,
-                  }}
-                >
-                  +{last.score}
-                  <small>{last.hp === 0 ? "DESTROYED" : "FAULT"}</small>
-                </div>
-              )}
-              {phase === "cascade" && last?.hp === 0 && !settings.reduced && (
-                <div
-                  key={`wave-${round}-${cursor}`}
-                  className="shockwave"
-                  style={{
-                    left: `${nodes.find((n) => n.id === last.targetNodeId)!.position[0]}%`,
-                    top: `${nodes.find((n) => n.id === last.targetNodeId)!.position[1]}%`,
-                  }}
-                />
-              )}
-              {phase === "cascade" && [5, 10, 20, 50].includes(combo) && (
-                <div className="combo-banner" key={combo}>
-                  {combo} CHAIN
-                  <span>
-                    {combo >= 20
-                      ? "ABSOLUTE CHAOS"
-                      : combo >= 10
-                        ? "CASCADE FAILURE"
-                        : "IT WORKS ON MY MACHINE"}
-                  </span>
-                </div>
-              )}
-              {phase === "countdown" && (
-                <div className="countdown">
-                  DEPLOYING<span>{count || "GO"}</span>
-                </div>
-              )}
-              <div className="board-bottom">
-                <span>
-                  {phase === "pick"
-                    ? "↖ カードと対象ノードを選択"
-                    : last
-                      ? `> ${last.targetNodeId}: ${last.hp === 0 ? "SERVICE DOWN" : "FAULT DETECTED"} +${last.score} BP`
-                      : "> Preparing deployment..."}
-                </span>
-                <span>SEED {seed}</span>
-              </div>
-            </div>
-            {phase === "pick" ? (
-              <>
-                <div className="section-label">
-                  <span>01 / SELECT YOUR BAD IDEA</span>
-                  <span>永続効果は次ラウンドへ持ち越し</span>
-                </div>
-                <div className="cards">
-                  {currentHand.map((c, i) => (
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ duration: 0.18 }}
-                      className={`card ${selected?.id === c.id ? "selected" : ""}`}
-                      key={c.id}
-                      aria-pressed={selected?.id === c.id}
-                      onClick={() => {
-                        setSelected(c);
-                        setTarget(null);
-                      }}
-                    >
-                      <div className="card-top">
-                        <span className={c.type}>{c.type}</span>
-                        <small>
-                          0{i + 1} / {c.rarity}
-                        </small>
-                      </div>
-                      <div className="card-art">
-                        {c.type === "BUG"
-                          ? "⌁"
-                          : c.type === "CHAIN"
-                            ? "⌘"
-                            : "↯"}
-                      </div>
-                      <h2>{c.name}</h2>
-                      <p>{c.description}</p>
-                      <div className="card-footer">
-                        <span>DMG {c.baseDamage}</span>
-                        <span>
-                          {c.effects.spread
-                            ? `伝播 +${Math.round(c.effects.spread * 100)}%`
-                            : c.effects.multiplier
-                              ? `BP +${Math.round(c.effects.multiplier * 100)}%`
-                              : "DIRECT DAMAGE"}
-                        </span>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-                <div className="deploy-bar">
-                  <div>
-                    <span className="eyebrow">DEPLOYMENT PLAN</span>
-                    <p>
-                      {selected
-                        ? `${selected.name} → ${target || "対象ノードを選択"}`
-                        : "まずは、バグをひとつ。"}
-                    </p>
-                  </div>
-                  <button
-                    className="primary"
-                    disabled={!selected || !target}
-                    onClick={deploy}
-                  >
-                    DEPLOY <span>↗</span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="cascade-controls">
-                <div>
-                  <span className="eyebrow">
-                    {phase === "round"
-                      ? "DEPLOYMENT COMPLETE"
-                      : "NO ROLLBACK. ONLY FORWARD."}
-                  </span>
-                  {phase === "round" && uptime(nodes) <= 15 && (
-                    <div className="final-stamp">PRODUCTION DESTROYED</div>
-                  )}
-                  <h2>
-                    {phase === "round"
-                      ? `${combo} CHAIN · ${destroyed} SERVICES DOWN`
-                      : phase === "countdown"
-                        ? "本番反映中…"
-                        : combo >= 10
-                          ? "大丈夫、想定の範囲外です。"
-                          : "正常に異常が発生しています。"}
-                  </h2>
-                </div>
-                {phase === "round" ? (
-                  <button className="primary" onClick={next}>
-                    {round === 3 ? "障害報告書を見る" : "次のラウンドへ"} →
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      className="panic"
-                      disabled={panic || phase !== "cascade"}
-                      onClick={doPanic}
-                    >
-                      {panic ? "PANIC USED" : "PANIC / 緊急マージ"}
-                      <small>全ノードに負荷追加 · 1回限り</small>
-                    </button>
-                    <button
-                      onClick={() => setFast((f) => !f)}
-                      disabled={phase !== "cascade"}
-                    >
-                      {fast ? "通常速度" : "高速化 ⏩"}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-            {acquired.length > 0 && (
-              <div className="inventory">
-                ACTIVE EFFECTS{" "}
-                {acquired.map((c, i) => (
-                  <span key={i}>{c.name}</span>
-                ))}
-              </div>
-            )}
           </section>
         )}
         <footer>
-          <span>PROD BREAKER © 2026</span>
+          <span>PROD BREAKER / SURVIVOR V2.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
         {modal && (
-          <div className="modal-backdrop" onClick={() => setModal(null)}>
+          <div className="modal-backdrop">
             <section
               className="modal"
               role="dialog"
               aria-modal="true"
-              aria-label={modal === "settings" ? "設定" : "遊び方"}
-              onClick={(e) => e.stopPropagation()}
+              aria-label={
+                modal === "settings"
+                  ? "設定"
+                  : modal === "help"
+                    ? "遊び方"
+                    : "一時停止"
+              }
             >
               <button
+                autoFocus
                 className="close"
-                onClick={() => setModal(null)}
                 aria-label="閉じる"
+                onClick={() => setModal(null)}
               >
                 ×
               </button>
               <div className="eyebrow">OPERATOR MANUAL</div>
-              <h2>{modal === "settings" ? "SETTINGS" : "HOW TO BREAK PROD"}</h2>
+              <h2>
+                {modal === "settings"
+                  ? "SETTINGS"
+                  : modal === "help"
+                    ? "HOW TO SURVIVE"
+                    : "INCIDENT PAUSED"}
+              </h2>
               {modal === "settings" ? (
                 <>
                   <label>
@@ -727,19 +764,40 @@ export default function Game() {
                     />
                   </label>
                 </>
+              ) : modal === "help" ? (
+                <>
+                  <p>01　WASD・矢印キー、スマホはドラッグで移動。</p>
+                  <p>02　近くのサーバーや敵を自動で攻撃。</p>
+                  <p>03　青い障害ログを拾って3択で強化。</p>
+                  <p>04　PANIC（スペース）で周囲を爆破＆ログ回収。</p>
+                  <p>05　復旧部隊を避け、90秒・3ウェーブを生き延びよう。</p>
+                  <p className="muted">
+                    レベルアップ・一時停止・非表示タブではゲーム時間が止まります。連鎖範囲を育てるとサーバーが次々に爆発します。
+                  </p>
+                </>
               ) : (
                 <>
-                  <p>01　3枚からカードを1枚選ぶ。</p>
-                  <p>02　対応するノードを選び、DEPLOY。</p>
-                  <p>03　連鎖中にPANICで緊急マージ！</p>
-                  <p>04　3ラウンドで最大BPを狙おう。</p>
-                  <p className="muted">
-                    BUGは直接攻撃、CHAINは伝播強化、BOOSTはBP倍率。カード効果は持ち越します。各ラウンド間にHP45まで自動復旧します。適用できないノードは選択できません。
-                  </p>
+                  <p className="muted">本番も、たまには休憩。</p>
+                  <button
+                    className="text-button"
+                    onClick={() => setModal("settings")}
+                  >
+                    設定を開く →
+                  </button>
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      clearInput();
+                      setModal(null);
+                      setScreen("title");
+                    }}
+                  >
+                    タイトルへ戻る →
+                  </button>
                 </>
               )}
               <button className="primary" onClick={() => setModal(null)}>
-                了解、ヨシ！
+                {screen === "run" ? "ゲームに戻る →" : "了解、ヨシ！"}
               </button>
             </section>
           </div>

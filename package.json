@@ -1,11 +1,7 @@
 {
   "name": "prod-breaker",
-  "version": "1.0.0",
-  "description": "A deterministic cyberpunk production-incident chain reaction game.",
-  "main": "index.js",
-  "directories": {
-    "test": "tests"
-  },
+  "version": "2.0.0",
+  "description": "A 90-second cyberpunk survivor game with auto attacks and cascading server explosions.",
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
@@ -15,8 +11,6 @@
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
-  "keywords": [],
-  "author": "",
   "license": "MIT",
   "type": "module",
   "dependencies": {

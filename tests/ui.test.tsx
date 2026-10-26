@@ -1,12 +1,20 @@
-import { it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { it, expect, vi } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import React from "react";
 import Game from "../src/components/Game";
-it("starts in one tap and exposes accessible server controls", () => {
+vi.mock("../src/components/Arena", () => ({
+  default: () => <canvas aria-label="ゲームフィールド" />,
+}));
+it("starts a real-time run in one tap and exposes movement, timer and panic", () => {
+  vi.stubGlobal("requestAnimationFrame", () => 1);
+  vi.stubGlobal("cancelAnimationFrame", () => {});
   render(<Game />);
   fireEvent.click(screen.getByText(/GAME START/));
-  expect(screen.getByRole("button", { name: /DB ノード/ })).toBeTruthy();
-  expect(
-    screen.getByRole("button", { name: /DEPLOY ↗/ }).hasAttribute("disabled"),
-  ).toBe(true);
+  expect(screen.getByTestId("timer").textContent).toBe("1:30");
+  expect(screen.getByRole("button", { name: /PANIC/ })).toBeTruthy();
+  expect(screen.queryByText("DEPLOY ↗")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "一時停止" }));
+  expect(screen.getByRole("dialog", { name: "一時停止" })).toBeTruthy();
+  cleanup();
+  vi.unstubAllGlobals();
 });

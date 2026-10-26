@@ -1,0 +1,405 @@
+"use client";
+import { useEffect, useRef, type RefObject } from "react";
+import type { World, Vec } from "@/game/survivor";
+export type Stick = { active: boolean; origin: Vec; current: Vec };
+type Props = {
+  world: RefObject<World>;
+  input: RefObject<Vec>;
+  reduced: boolean;
+  stick: RefObject<Stick>;
+  onBlur: () => void;
+};
+const colors = {
+  lime: "#d4fa53",
+  orange: "#ff8b50",
+  blue: "#73d9ff",
+  red: "#ff596d",
+};
+export default function Arena({
+  world: worldRef,
+  input: inputRef,
+  reduced,
+  stick: stickRef,
+  onBlur,
+}: Props) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      const box = canvas.getBoundingClientRect(),
+        dpr = Math.min(devicePixelRatio || 1, 1.75);
+      canvas.width = Math.round(box.width * dpr);
+      canvas.height = Math.round(box.height * dpr);
+    });
+    observer.observe(canvas);
+    function draw() {
+      if (!canvas || !ctx) return;
+      if (!document.hidden) {
+        const box = canvas.getBoundingClientRect();
+        const w = worldRef.current;
+        const dpr = canvas.width / box.width;
+        const width = box.width,
+          height = box.height;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = "#080f12";
+        ctx.fillRect(0, 0, width, height);
+        const scale = width / (width < 600 ? 650 : 1050);
+        const p = w.player;
+        const shake =
+          !reduced && w.effects.some((e) => e.kind === "panic")
+            ? Math.sin(w.time * 100) * 2
+            : 0;
+        ctx.save();
+        ctx.translate(width / 2 + shake, height / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-p.x, -p.y);
+        const left = p.x - width / scale / 2,
+          top = p.y - height / scale / 2,
+          right = left + width / scale,
+          bottom = top + height / scale;
+        ctx.strokeStyle = "#19272b";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = Math.floor(left / 60) * 60; x < right; x += 60) {
+          ctx.moveTo(x, top);
+          ctx.lineTo(x, bottom);
+        }
+        for (let y = Math.floor(top / 60) * 60; y < bottom; y += 60) {
+          ctx.moveTo(left, y);
+          ctx.lineTo(right, y);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = "#293933";
+        ctx.setLineDash([5, 10]);
+        ctx.strokeRect(20, 20, 1960, 1960);
+        ctx.setLineDash([]);
+        ctx.font = "10px monospace";
+        ctx.fillStyle = "#293c36";
+        for (let x = Math.floor(left / 400) * 400; x < right; x += 400)
+          for (let y = Math.floor(top / 300) * 300; y < bottom; y += 300) {
+            ctx.fillText(
+              `SECTOR ${Math.floor(x / 400)}:${Math.floor(y / 300)} / PROD`,
+              x + 20,
+              y + 22,
+            );
+            ctx.fillRect(x + 20, y + 30, 24, 2);
+          }
+        // Nearby servers form a visible dependency network.
+        const servers = w.entities.filter((e) => e.kind === "server");
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#314139";
+        ctx.setLineDash([4, 8]);
+        ctx.beginPath();
+        for (let i = 0; i < servers.length; i++)
+          for (let j = i + 1; j < servers.length; j++)
+            if (
+              Math.hypot(
+                servers[i].x - servers[j].x,
+                servers[i].y - servers[j].y,
+              ) < 165
+            ) {
+              ctx.moveTo(servers[i].x, servers[i].y);
+              ctx.lineTo(servers[j].x, servers[j].y);
+            }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        if (w.aura > 0) {
+          ctx.fillStyle = "#6b73ff12";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 125, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#8995ff55";
+          ctx.stroke();
+        }
+        for (const gem of w.pickups) {
+          ctx.fillStyle = "#73d9ff";
+          ctx.save();
+          ctx.translate(gem.x, gem.y);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-4, -4, 8, 8);
+          ctx.fillStyle = "#dcf7ff";
+          ctx.fillRect(-2, -2, 3, 3);
+          ctx.restore();
+        }
+        for (const e of w.entities) {
+          if (
+            e.x < left - 60 ||
+            e.x > right + 60 ||
+            e.y < top - 60 ||
+            e.y > bottom + 60
+          )
+            continue;
+          const c =
+            e.kind === "server"
+              ? e.hp / e.maxHp > 0.6
+                ? "#a8cf70"
+                : e.hp / e.maxHp > 0.3
+                  ? "#f1d26c"
+                  : "#ff8050"
+              : e.kind === "repair"
+                ? "#6edbc7"
+                : "#ff596d";
+          ctx.save();
+          ctx.translate(Math.round(e.x), Math.round(e.y));
+          ctx.fillStyle = "#0006";
+          ctx.fillRect(-23, 19, 48, 8);
+          if (e.kind === "server") {
+            ctx.fillStyle = "#111f22";
+            ctx.fillRect(-21, -25, 42, 48);
+            ctx.strokeStyle = c;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-21, -25, 42, 48);
+            for (let k = 0; k < 3; k++) {
+              ctx.fillStyle = "#203431";
+              ctx.fillRect(-15, -18 + k * 12, 30, 8);
+              ctx.fillStyle = c;
+              ctx.fillRect(9, -16 + k * 12, 3, 3);
+              ctx.fillStyle = "#4b6454";
+              ctx.fillRect(-11, -15 + k * 12, 13, 2);
+            }
+            ctx.fillStyle = c;
+            ctx.font = "9px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(e.label, 0, 39);
+          } else if (e.kind === "boss") {
+            ctx.fillStyle = "#39141e";
+            ctx.strokeStyle = colors.red;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+              const a = (i * Math.PI) / 4;
+              const x = Math.cos(a) * 36,
+                y = Math.sin(a) * 36;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = colors.red;
+            ctx.fillRect(-16, -14, 32, 28);
+            ctx.fillStyle = "#0a0e11";
+            ctx.fillRect(-9, -5, 5, 5);
+            ctx.fillRect(5, -5, 5, 5);
+            ctx.font = "bold 10px monospace";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#ff9aa7";
+            ctx.fillText("SRE CORE", 0, -49);
+          } else {
+            ctx.fillStyle = e.kind === "repair" ? "#13352f" : "#331925";
+            ctx.fillRect(-14, -14, 28, 28);
+            ctx.strokeStyle = c;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-14, -14, 28, 28);
+            ctx.fillStyle = c;
+            if (e.kind === "repair") {
+              ctx.fillRect(-8, -3, 16, 6);
+              ctx.fillRect(-3, -8, 6, 16);
+            } else {
+              ctx.fillRect(-21, -5, 7, 3);
+              ctx.fillRect(14, -5, 7, 3);
+              ctx.fillRect(-21, 5, 7, 3);
+              ctx.fillRect(14, 5, 7, 3);
+              ctx.fillRect(-8, -5, 5, 5);
+              ctx.fillRect(4, -5, 5, 5);
+            }
+          }
+          if (e.hp < e.maxHp) {
+            ctx.fillStyle = "#293437";
+            ctx.fillRect(-20, -34, 40, 3);
+            ctx.fillStyle = c;
+            ctx.fillRect(-20, -34, (40 * e.hp) / e.maxHp, 3);
+          }
+          if (e.flash > 0 && !reduced) {
+            ctx.fillStyle = "#fff5";
+            ctx.fillRect(-20, -24, 40, 48);
+          }
+          ctx.restore();
+        }
+        for (const shot of w.shots) {
+          ctx.strokeStyle = colors.lime;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(shot.x - shot.vx * 0.026, shot.y - shot.vy * 0.026);
+          ctx.lineTo(shot.x, shot.y);
+          ctx.stroke();
+          ctx.fillStyle = "#f5ffda";
+          ctx.fillRect(shot.x - 2, shot.y - 2, 4, 4);
+        }
+        // The bug is always visibly distinct from servers and chasing drones.
+        ctx.save();
+        ctx.translate(Math.round(p.x), Math.round(p.y));
+        if (p.invulnerable > 0) {
+          ctx.strokeStyle = "#d4fa5380";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 26, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.fillStyle = "#0008";
+        ctx.fillRect(-19, 18, 38, 7);
+        ctx.fillStyle = "#8eaa35";
+        for (const y of [-10, 0, 10]) {
+          ctx.fillRect(-23, y, 9, 4);
+          ctx.fillRect(14, y, 9, 4);
+        }
+        ctx.fillStyle = colors.lime;
+        ctx.fillRect(-14, -17, 28, 35);
+        ctx.fillRect(-9, -23, 5, 8);
+        ctx.fillRect(5, -23, 5, 8);
+        ctx.fillStyle = "#0b1712";
+        ctx.fillRect(-8, -10, 5, 6);
+        ctx.fillRect(4, -10, 5, 6);
+        ctx.fillRect(-2, 1, 3, 14);
+        ctx.fillStyle = "#efffc0";
+        ctx.fillRect(-9, -16, 6, 3);
+        ctx.restore();
+        for (const e of w.effects) {
+          const progress = 1 - e.life / e.maxLife;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, 1 - progress);
+          if (e.kind === "arc" && e.to) {
+            ctx.strokeStyle = colors.blue;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(e.x, e.y);
+            const midx = (e.x + e.to.x) / 2,
+              midy = (e.y + e.to.y) / 2;
+            ctx.lineTo(midx + Math.sin(e.id) * 14, midy - 10);
+            ctx.lineTo(e.to.x, e.to.y);
+            ctx.stroke();
+          } else if (e.kind === "explosion") {
+            if (!reduced) {
+              ctx.strokeStyle = colors.orange;
+              ctx.lineWidth = 3 * (1 - progress);
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, 12 + progress * 65, 0, Math.PI * 2);
+              ctx.stroke();
+              const count = width < 600 ? 12 : 22;
+              for (let i = 0; i < count; i++) {
+                const a = i * 2.4 + e.id;
+                const radius = progress * (25 + (i % 5) * 15);
+                ctx.fillStyle = i % 3 ? "#ff8b50" : "#fff2b0";
+                ctx.fillRect(
+                  e.x + Math.cos(a) * radius,
+                  e.y + Math.sin(a) * radius,
+                  4,
+                  4,
+                );
+              }
+            }
+            ctx.fillStyle = colors.orange;
+            ctx.font = "bold 13px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(e.text, e.x, e.y - 30 - (reduced ? 0 : progress * 30));
+          } else if (e.kind === "panic") {
+            if (!reduced) {
+              ctx.strokeStyle = colors.lime;
+              ctx.lineWidth = 5 * (1 - progress);
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, progress * 460, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          } else if (e.text) {
+            ctx.fillStyle = e.kind === "heal" ? colors.lime : colors.red;
+            ctx.font = "11px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(e.text, e.x, e.y - 40);
+          }
+          ctx.restore();
+        }
+        ctx.restore();
+        // Radar and pointer joystick use screen coordinates.
+        const radar = width < 600 ? 65 : 82;
+        ctx.fillStyle = "#081114dd";
+        ctx.fillRect(width - radar - 14, 14, radar, radar);
+        ctx.strokeStyle = "#3f5146";
+        ctx.strokeRect(width - radar - 14, 14, radar, radar);
+        for (const e of w.entities) {
+          ctx.fillStyle = e.kind === "server" ? "#6d8e4a" : colors.red;
+          ctx.fillRect(
+            width - radar - 14 + (e.x / 2000) * radar,
+            14 + (e.y / 2000) * radar,
+            2,
+            2,
+          );
+        }
+        ctx.fillStyle = colors.lime;
+        ctx.fillRect(
+          width - radar - 15 + (p.x / 2000) * radar,
+          13 + (p.y / 2000) * radar,
+          4,
+          4,
+        );
+        if (stickRef.current.active) {
+          const { origin, current } = stickRef.current;
+          ctx.strokeStyle = "#d4fa5360";
+          ctx.lineWidth = 2;
+          ctx.fillStyle = "#d4fa5311";
+          ctx.beginPath();
+          ctx.arc(origin.x, origin.y, 44, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          const dx = current.x - origin.x,
+            dy = current.y - origin.y,
+            d = Math.max(1, Math.hypot(dx, dy) / 36);
+          ctx.fillStyle = "#d4fa5380";
+          ctx.beginPath();
+          ctx.arc(origin.x + dx / d, origin.y + dy / d, 16, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      frame = requestAnimationFrame(draw);
+    }
+    frame = requestAnimationFrame(draw);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [worldRef, stickRef, reduced]);
+  function point(e: React.PointerEvent<HTMLCanvasElement>) {
+    const box = e.currentTarget.getBoundingClientRect();
+    return { x: e.clientX - box.left, y: e.clientY - box.top };
+  }
+  function release() {
+    stickRef.current.active = false;
+    inputRef.current = { x: 0, y: 0 };
+  }
+  return (
+    <canvas
+      ref={ref}
+      className="arena-canvas"
+      tabIndex={0}
+      role="application"
+      aria-label="ゲームフィールド。WASD・矢印キー、またはドラッグで移動。攻撃は自動。スペースでPANIC。"
+      onContextMenu={(e) => e.preventDefault()}
+      onPointerDown={(e) => {
+        e.currentTarget.focus();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const p = point(e);
+        stickRef.current = { active: true, origin: p, current: p };
+      }}
+      onPointerMove={(e) => {
+        if (!stickRef.current.active) return;
+        const p = point(e);
+        stickRef.current.current = p;
+        inputRef.current = {
+          x: (p.x - stickRef.current.origin.x) / 44,
+          y: (p.y - stickRef.current.origin.y) / 44,
+        };
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
+      onLostPointerCapture={release}
+      onBlur={() => {
+        release();
+        onBlur();
+      }}
+    />
+  );
+}
