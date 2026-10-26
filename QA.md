@@ -40,7 +40,7 @@ E2Eは`next build`の成果物を`next start`で起動して実行。Desktop Chr
 
 - GitHubリポジトリはユーザーが空のPublicとして作成。既存コードがないことを確認してmainへpush済み。
 - [GitHub Actions実行40326291587](https://github.com/SSsan-00/prod-breaker/actions/runs/40326291587)が成功（1分43秒）。lint・型検査・単体テスト・本番ビルド・本番サーバーのPC/スマホE2Eを確認。検証対象コミット: `93d5b71e5f4e344459feef08edaabe9ad3deac2d`。
-- Vercelは未認証。ユーザーの指示により今回はGitHub公開まで。本番URLの確認は未実施です。
+- Vercelはユーザーが公開済み: https://prod-breaker.vercel.app/ 。公開URL上でPC（1280×900）・スマホ相当（393×851）の3ラウンド、カード・DB選択、DEPLOY、PANIC、高速化、リザルト、再挑戦をPlaywrightで確認。ブラウザpageerrorは両方0。実機検証ではありません。
 - iOS Safari / WebKit / Firefox / 実機性能 / 実音声の聴感評価 / ネイティブ共有シートは未検証。
 - PANICは緊急マージのみ、障害種別はfaultのみ。称号は結果に応じた3種類で、永続実績コレクションは未実装。
 - 50コンボの演出定義はありますが、現在の7ノード・再発火制限では到達性を保証していません。

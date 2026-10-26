@@ -52,8 +52,9 @@ Next.js App Router / React / TypeScript strict / Tailwind CSS / Motion / Canvas 
 
 GitHub: https://github.com/SSsan-00/prod-breaker
 
-Vercel本番URL: **未デプロイ**。この環境のVercel CLIが未認証のため、ユーザーの指示でGitHub公開まで実施しています。
+Vercel本番URL: https://prod-breaker.vercel.app/
 
+ユーザーによるデプロイ後、公開URL上でPC（1280×900）・スマホ相当（393×851）の3ラウンド、PANIC、リザルト、再挑戦を確認しました。ブラウザpageerrorは両方0でした。
 無料枠での手動デプロイ手順:
 
 1. Vercelにログインし「Add New Project」からGitHubの`SSsan-00/prod-breaker`をImport。
