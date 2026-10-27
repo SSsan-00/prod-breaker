@@ -1155,3 +1155,15 @@ footer {
     gap: 20px;
   }
 }
+
+/* Avoid the mobile text-selection and callout menus during play. */
+.survivor .game {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.survivor .arena-canvas {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
