@@ -1417,3 +1417,126 @@ footer {
     display: none;
   }
 }
+/* The touch home screen also stays within the visible viewport. */
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  html:has(.survivor .title-screen),
+  body:has(.survivor .title-screen) {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  .survivor:has(.title-screen) {
+    height: 100svh;
+    overflow: hidden;
+  }
+  .survivor:has(.title-screen) .site-header {
+    height: 62px;
+  }
+  .survivor:has(.title-screen) > footer {
+    display: none;
+  }
+  .survivor .title-screen {
+    height: calc(100svh - 62px);
+    min-height: 0;
+    padding: clamp(12px, 3vh, 24px) 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .survivor .title-screen h1 {
+    font-size: clamp(44px, 8vh, 72px);
+    letter-spacing: -3px;
+    margin: 14px 0 12px;
+  }
+  .survivor .title-screen .edition {
+    align-self: flex-start;
+    padding: 7px 10px;
+    margin-bottom: 4px;
+  }
+  .survivor .title-screen .tagline {
+    margin: 6px 0;
+    font-size: 9px;
+  }
+  .survivor .title-screen .intro {
+    margin: 8px 0;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .survivor .title-screen .duration-options {
+    width: 100%;
+    max-width: 400px;
+    margin: 8px 0 10px;
+  }
+  .survivor .title-screen .duration-options button {
+    padding: 8px;
+  }
+  .survivor .title-screen .start {
+    align-self: flex-start;
+    padding: 14px 20px;
+  }
+  .survivor .title-screen .text-button {
+    align-self: flex-start;
+    margin: 8px 0;
+    padding: 8px 0;
+  }
+  .survivor .title-screen .title-meta,
+  .survivor .title-screen .hero-art {
+    display: none;
+  }
+  .survivor .title-screen .high-score {
+    margin: auto 0 0;
+    padding-top: 6px;
+  }
+}
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  .survivor:has(.title-screen) .site-header {
+    height: 40px;
+  }
+  .survivor .title-screen {
+    height: calc(100svh - 40px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(6, auto);
+    align-content: center;
+    column-gap: 16px;
+    padding: 4px 0;
+  }
+  .survivor .title-screen .eyebrow {
+    grid-area: 1 / 1 / 2 / 3;
+  }
+  .survivor .title-screen h1 {
+    grid-area: 2 / 1 / 4 / 2;
+    align-self: center;
+    font-size: clamp(38px, 14vh, 58px);
+    margin: 4px 0;
+  }
+  .survivor .title-screen .edition {
+    grid-area: 4 / 1;
+    margin: 2px 0;
+  }
+  .survivor .title-screen .tagline {
+    grid-area: 5 / 1;
+    margin: 3px 0;
+  }
+  .survivor .title-screen .intro {
+    grid-area: 6 / 1;
+    font-size: 9px;
+    margin: 3px 0;
+  }
+  .survivor .title-screen .duration-options {
+    grid-area: 2 / 2;
+    margin: 5px 0;
+  }
+  .survivor .title-screen .start {
+    grid-area: 3 / 2;
+    min-width: 0;
+    width: 100%;
+  }
+  .survivor .title-screen .text-button {
+    grid-area: 4 / 2;
+    margin: 2px 0;
+  }
+  .survivor .title-screen .high-score {
+    grid-area: 5 / 2;
+    margin: 3px 0;
+  }
+}

@@ -393,3 +393,44 @@ test("long upgrade names fit a landscape touch screen without vertical scrolling
     dimensions.viewport,
   );
 });
+test("home controls fit without vertical scrolling on compact and landscape phones", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== "mobile");
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 393, height: 851 },
+    { width: 851, height: 393 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/?seed=42");
+    await page.screenshot({ path: `test-results/home-${viewport.width}.png` });
+    await expect(
+      page.getByRole("button", { name: /GAME START/ }),
+    ).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollHeight,
+      viewport: innerHeight,
+      controls: [
+        ...document.querySelectorAll(
+          ".title-screen button, .site-header button",
+        ),
+      ].map((el) => ({
+        top: el.getBoundingClientRect().top,
+        bottom: el.getBoundingClientRect().bottom,
+      })),
+    }));
+    expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.viewport);
+    expect(
+      Math.min(...dimensions.controls.map((c) => c.top)),
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      Math.max(...dimensions.controls.map((c) => c.bottom)),
+    ).toBeLessThanOrEqual(dimensions.viewport);
+    await page.getByRole("button", { name: /CHAOS/ }).click();
+    await expect(page.getByRole("button", { name: /CHAOS/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  }
+});
