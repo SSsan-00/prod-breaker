@@ -1691,3 +1691,8 @@ footer {
   filter: drop-shadow(0 12px 12px #0009) drop-shadow(0 0 16px #b8f15333);
 }
 .pixel-bug::before, .pixel-bug::after { display: none; }
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  .survivor .title-screen .pixel-bug {
+    transform: translate(-50%, -50%) rotate(-10deg) scale(0.45);
+  }
+}
