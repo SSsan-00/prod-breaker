@@ -18,6 +18,36 @@ function simulate(w: World, frames: number) {
   return w;
 }
 describe("survivor fixed-step engine", () => {
+  it("supports all durations and finishes at the selected time", () => {
+    for (const duration of [90, 180, 300]) {
+      const w = createWorld(42, duration);
+      expect(w.duration).toBe(duration);
+      w.time = duration - STEP / 2;
+      expect(stepWorld(w, { x: 0, y: 0 }).phase).toBe("won");
+    }
+    expect(createWorld(42, 120).duration).toBe(90);
+  });
+  it("unlocks each evolution exactly once in either order", () => {
+    const recipes = [
+      ["retry", "timeout", "リトライストーム"],
+      ["nplus", "leak", "コネクション枯渇祭り"],
+      ["hotfix", "friday", "週末リリース"],
+      ["threshold", "flush", "完全に正常"],
+      ["select", "where", "全件フルスキャン"],
+      ["force", "config", "本番直編集"],
+      ["oncall", "rollback", "真夜中の復旧会議"],
+      ["spec", "local", "動くから仕様"],
+    ] as const;
+    for (const [a, b, name] of recipes) {
+      let w = createWorld();
+      for (const id of [b, a, a]) {
+        w.phase = "upgrade";
+        w.choices = [id];
+        w = chooseUpgrade(w, id);
+      }
+      expect(w.evolutions.filter((x) => x === name)).toHaveLength(1);
+    }
+  });
   it("is reproducible and never mutates its input", () => {
     const a = createWorld(123),
       before = structuredClone(a);

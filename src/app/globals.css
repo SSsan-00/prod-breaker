@@ -1167,3 +1167,199 @@ footer {
   user-select: none;
   -webkit-touch-callout: none;
 }
+.duration-options {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0 14px;
+  max-width: 400px;
+}
+.duration-options button {
+  flex: 1;
+  text-align: left;
+  padding: 10px;
+  border-color: #40504a;
+}
+.duration-options b,
+.duration-options span {
+  display: block;
+  font: 10px monospace;
+}
+.duration-options span {
+  margin-top: 6px;
+  color: #aabcae;
+}
+.duration-options button[aria-pressed="true"] {
+  border-color: var(--lime);
+  color: var(--lime);
+  background: #d4fa5312;
+}
+.evolution {
+  color: #ffbc70;
+  border-color: #ff8b50;
+}
+.chain-badge.major {
+  color: #8de7ff;
+  text-shadow:
+    0 0 14px #50bfff,
+    3px 3px #000;
+}
+.chain-badge.legendary {
+  color: #fff1ba;
+  text-shadow:
+    0 0 14px #ff6c35,
+    0 0 30px #ff4422,
+    3px 3px #000;
+}
+.chain-badge.legendary b {
+  font-size: 52px;
+}
+.reduced .chain-badge {
+  text-shadow: 3px 3px #000;
+}
+@media (max-width: 700px) {
+  .chain-badge.legendary b {
+    font-size: 40px;
+  }
+}
+.evolution-hint {
+  display: block;
+  color: #ffc487;
+  font: 10px sans-serif;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.evolution-notice {
+  position: absolute;
+  left: 50%;
+  top: 24%;
+  transform: translate(-50%, -50%);
+  padding: 12px 24px;
+  border: 1px solid #ffad67;
+  background: #20170dee;
+  color: #ffcf86;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 0 35px #ff7a3455;
+}
+.evolution-notice small,
+.evolution-notice strong {
+  display: block;
+}
+.evolution-notice small {
+  font: 9px monospace;
+  letter-spacing: 2px;
+}
+.evolution-notice strong {
+  font: bold 21px sans-serif;
+  margin-top: 6px;
+}
+.reduced .evolution-notice {
+  box-shadow: none;
+}
+/* Keep the active run within the visible mobile viewport. */
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  html:has(.survivor .game),
+  body:has(.survivor .game) {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  .survivor:has(.game) {
+    height: 100svh;
+    overflow: hidden;
+  }
+  .survivor:has(.game) .site-header {
+    height: 62px;
+  }
+  .survivor:has(.game) > footer {
+    display: none;
+  }
+  .survivor .game {
+    height: calc(100svh - 62px);
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0;
+  }
+  .survivor .game-heading {
+    flex: none;
+    margin-bottom: 7px;
+  }
+  .survivor .game-heading h1 {
+    margin: 4px 0;
+    font-size: 16px;
+  }
+  .survivor .hud,
+  .survivor .vitals,
+  .survivor .run-controls {
+    flex: none;
+  }
+  .survivor .hud > div {
+    padding: 7px 8px;
+  }
+  .survivor .hud b {
+    font-size: 20px;
+    margin-top: 3px;
+  }
+  .survivor .vitals {
+    padding: 7px 10px;
+  }
+  .survivor .arena-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .survivor .arena-canvas {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+  .survivor .run-controls {
+    margin-top: 7px;
+    padding: 8px 10px;
+  }
+  .survivor .panic {
+    min-height: 48px;
+    padding: 8px;
+  }
+  .survivor .inventory {
+    flex: none;
+    min-height: 24px;
+    margin-top: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+  }
+  .survivor .build-chip {
+    flex: none;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  .survivor:has(.game) .site-header {
+    height: 40px;
+  }
+  .survivor .game {
+    height: calc(100svh - 40px);
+    padding: 4px 0;
+  }
+  .survivor .game-heading {
+    display: none;
+  }
+  .survivor .hud > div {
+    padding: 3px 8px;
+  }
+  .survivor .hud b {
+    font-size: 16px;
+  }
+  .survivor .vitals {
+    padding: 4px 8px;
+  }
+  .survivor .run-controls {
+    margin-top: 4px;
+    padding: 4px 8px;
+  }
+  .survivor .inventory {
+    min-height: 20px;
+    margin-top: 3px;
+  }
+}

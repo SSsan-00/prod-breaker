@@ -4,7 +4,9 @@ async function choose(page: Page) {
     const dialog = page.getByRole("dialog", { name: "レベルアップ" });
     if (!(await dialog.isVisible())) return;
     const cards = dialog.locator(".upgrade-card");
-    const heal = cards.filter({ hasText: "私の環境では動く" });
+    const heal = cards.filter({
+      has: page.locator("h3", { hasText: "私の環境では動く" }),
+    });
     await ((await heal.count()) ? heal : cards.first()).click();
     await page.clock.runFor(100);
   }
@@ -30,9 +32,33 @@ test("real-time movement, auto fire, upgrades, panic, pause, saved settings and 
     path: `test-results/${info.project.name}-title-v2.png`,
     fullPage: true,
   });
+  await expect(page.getByRole("button", { name: /STANDARD/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: /CHAOS/ }).click();
+  await expect(page.getByRole("button", { name: /CHAOS/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: /QUICK/ }).click();
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
   await expect(page.getByTestId("timer")).toHaveText("1:30");
+  if (info.project.name === "mobile") {
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight <= innerHeight,
+      ),
+    ).toBe(true);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+    expect(
+      await page
+        .locator(".panic")
+        .evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight),
+    ).toBe(true);
+  }
+
   const x = Number(
     await page.getByTestId("arena").getAttribute("data-player-x"),
   );
@@ -93,7 +119,7 @@ test("real-time movement, auto fire, upgrades, panic, pause, saved settings and 
   await expect(page.locator(".report")).toContainText("再発防止策");
   expect(
     await page.evaluate(() =>
-      Number(JSON.parse(localStorage.getItem("pb-survivor-high") || "0")),
+      Number(JSON.parse(localStorage.getItem("pb-survivor-high-90") || "0")),
     ),
   ).toBeGreaterThan(0);
   const download = page.waitForEvent("download");
@@ -127,14 +153,15 @@ test("90-second moving run reaches wave 3 with bounded rendering and no browser 
   await page.clock.install();
   await page.goto("/?seed=177");
   await page.clock.runFor(100);
+  await page.getByRole("button", { name: /QUICK/ }).click();
   await page.getByRole("button", { name: /GAME START/ }).click();
   let maxTime = 0;
   for (let i = 0; i < 110; i++) {
     await choose(page);
     if (await page.locator(".result").isVisible()) break;
     const panic = page.locator(".panic");
-    if (await panic.isEnabled()) {
-      await panic.click();
+    if ((await panic.count()) && (await panic.isEnabled())) {
+      await page.keyboard.press("Space");
       await page.clock.runFor(100);
       await choose(page);
     }
@@ -170,6 +197,7 @@ test("actual touch input and hidden-tab pause", async ({
   await page.clock.install();
   await page.goto("/?seed=4");
   await page.clock.runFor(100);
+  await page.getByRole("button", { name: /QUICK/ }).click();
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
   const initial = Number(
@@ -220,4 +248,44 @@ test("actual touch input and hidden-tab pause", async ({
   expect(
     Number(await page.getByTestId("arena").getAttribute("data-time")),
   ).toBeGreaterThan(Number(paused));
+});
+test("duration choices start the correct timer", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.clock.install();
+  await page.goto("/?seed=42");
+  await page.clock.runFor(100);
+  for (const [name, timer] of [
+    ["STANDARD", "3:00"],
+    ["CHAOS", "5:00"],
+    ["QUICK", "1:30"],
+  ]) {
+    await page.getByRole("button", { name: new RegExp(name) }).click();
+    await page.getByRole("button", { name: /GAME START/ }).click();
+    await page.clock.runFor(100);
+    await expect(page.getByTestId("timer")).toHaveText(timer);
+    await page.getByRole("button", { name: "一時停止" }).click();
+    await page.getByRole("button", { name: "タイトルへ戻る →" }).click();
+  }
+});
+test("landscape touch viewport keeps the playfield and PANIC on screen", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== "mobile");
+  await page.setViewportSize({ width: 851, height: 393 });
+  await page.goto("/?seed=42");
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await expect(page.getByTestId("timer")).toHaveText("3:00");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= innerHeight,
+    ),
+  ).toBe(true);
+  expect(
+    await page
+      .locator(".panic")
+      .evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight),
+  ).toBe(true);
+  expect((await page.locator("canvas").boundingBox())!.height).toBeGreaterThan(
+    75,
+  );
 });

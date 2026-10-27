@@ -9,6 +9,7 @@ it("starts a real-time run in one tap and exposes movement, timer and panic", ()
   vi.stubGlobal("requestAnimationFrame", () => 1);
   vi.stubGlobal("cancelAnimationFrame", () => {});
   render(<Game />);
+  fireEvent.click(screen.getByRole("button", { name: /QUICK/ }));
   fireEvent.click(screen.getByText(/GAME START/));
   expect(screen.getByTestId("timer").textContent).toBe("1:30");
   expect(screen.getByRole("button", { name: /PANIC/ })).toBeTruthy();

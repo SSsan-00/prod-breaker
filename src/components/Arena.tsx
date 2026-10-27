@@ -40,6 +40,10 @@ export default function Arena({
       if (!canvas || !ctx) return;
       if (!document.hidden) {
         const box = canvas.getBoundingClientRect();
+        if (!box.width || !box.height) {
+          frame = requestAnimationFrame(draw);
+          return;
+        }
         const w = worldRef.current;
         const dpr = canvas.width / box.width;
         const width = box.width,
@@ -51,8 +55,11 @@ export default function Arena({
         const scale = width / (width < 600 ? 650 : 1050);
         const p = w.player;
         const shake =
-          !reduced && w.effects.some((e) => e.kind === "panic")
-            ? Math.sin(w.time * 100) * 2
+          !reduced &&
+          (w.effects.some((e) => e.kind === "panic") ||
+            (w.combo >= 30 &&
+              w.effects.some((e) => e.kind === "explosion" && e.life > 0.55)))
+            ? Math.sin(w.time * 100) * (w.combo >= 100 ? 4 : 2)
             : 0;
         ctx.save();
         ctx.translate(width / 2 + shake, height / 2);
@@ -62,6 +69,18 @@ export default function Arena({
           top = p.y - height / scale / 2,
           right = left + width / scale,
           bottom = top + height / scale;
+        const floorGlow = ctx.createRadialGradient(
+          p.x,
+          p.y,
+          30,
+          p.x,
+          p.y,
+          (Math.max(width, height) / scale) * 0.75,
+        );
+        floorGlow.addColorStop(0, "#142826");
+        floorGlow.addColorStop(1, "#080f12");
+        ctx.fillStyle = floorGlow;
+        ctx.fillRect(left, top, right - left, bottom - top);
         ctx.strokeStyle = "#19272b";
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -149,7 +168,11 @@ export default function Arena({
           ctx.fillStyle = "#0006";
           ctx.fillRect(-23, 19, 48, 8);
           if (e.kind === "server") {
-            ctx.fillStyle = "#111f22";
+            const metal = ctx.createLinearGradient(-21, -25, 21, 23);
+            metal.addColorStop(0, "#415750");
+            metal.addColorStop(0.45, "#172a28");
+            metal.addColorStop(1, "#091311");
+            ctx.fillStyle = metal;
             ctx.fillRect(-21, -25, 42, 48);
             ctx.strokeStyle = c;
             ctx.lineWidth = 2;
@@ -222,6 +245,10 @@ export default function Arena({
           ctx.restore();
         }
         for (const shot of w.shots) {
+          if (!reduced && width >= 600) {
+            ctx.shadowColor = colors.lime;
+            ctx.shadowBlur = 8;
+          }
           ctx.strokeStyle = colors.lime;
           ctx.lineWidth = 3;
           ctx.beginPath();
@@ -230,6 +257,7 @@ export default function Arena({
           ctx.stroke();
           ctx.fillStyle = "#f5ffda";
           ctx.fillRect(shot.x - 2, shot.y - 2, 4, 4);
+          ctx.shadowBlur = 0;
         }
         // The bug is always visibly distinct from servers and chasing drones.
         ctx.save();
@@ -259,12 +287,17 @@ export default function Arena({
         ctx.fillStyle = "#efffc0";
         ctx.fillRect(-9, -16, 6, 3);
         ctx.restore();
+        let brightBursts = 0;
         for (const e of w.effects) {
           const progress = 1 - e.life / e.maxLife;
           ctx.save();
           ctx.globalAlpha = Math.max(0, 1 - progress);
           if (e.kind === "arc" && e.to) {
             ctx.strokeStyle = colors.blue;
+            if (!reduced && width >= 600) {
+              ctx.shadowColor = colors.blue;
+              ctx.shadowBlur = 12;
+            }
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(e.x, e.y);
@@ -275,6 +308,23 @@ export default function Arena({
             ctx.stroke();
           } else if (e.kind === "explosion") {
             if (!reduced) {
+              if (brightBursts++ < (width < 600 ? 3 : 8)) {
+                const glow = ctx.createRadialGradient(
+                  e.x,
+                  e.y,
+                  0,
+                  e.x,
+                  e.y,
+                  70 + progress * 45,
+                );
+                glow.addColorStop(0, "#fff2baaa");
+                glow.addColorStop(0.2, "#ff913a77");
+                glow.addColorStop(1, "#ff3c1900");
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, 70 + progress * 45, 0, Math.PI * 2);
+                ctx.fill();
+              }
               ctx.strokeStyle = colors.orange;
               ctx.lineWidth = 3 * (1 - progress);
               ctx.beginPath();

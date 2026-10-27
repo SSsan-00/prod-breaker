@@ -40,7 +40,25 @@ export type UpgradeId =
   | "local"
   | "monitor"
   | "refactor"
-  | "env";
+  | "env"
+  | "nplus"
+  | "select"
+  | "flush"
+  | "timeout"
+  | "force"
+  | "hotfix"
+  | "spec"
+  | "threshold"
+  | "dependency"
+  | "rollback"
+  | "deploy"
+  | "yolo"
+  | "dns"
+  | "merge"
+  | "race"
+  | "memory"
+  | "config"
+  | "oncall";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -132,9 +150,157 @@ export const upgrades: {
     icon: "{}",
     description: "移動速度 +15%。逃げ道だけは残しておく。",
   },
+  {
+    id: "nplus",
+    name: "N+1クエリ",
+    type: "BUG",
+    icon: "⌁",
+    description: "同時発射 +1、ダメージ +4。1件取るだけなのに。",
+  },
+  {
+    id: "select",
+    name: "SELECT *",
+    type: "BUG",
+    icon: "✳",
+    description: "連鎖範囲 +25。必要なカラムは後で考える。",
+  },
+  {
+    id: "flush",
+    name: "キャッシュ全消し",
+    type: "CHAIN",
+    icon: "◉",
+    description: "周囲への持続ダメージ +12。困ったら消す。",
+  },
+  {
+    id: "timeout",
+    name: "タイムアウト延長",
+    type: "CHAIN",
+    icon: "◷",
+    description: "弾の貫通 +1、連鎖ダメージ +5。待てば終わる。",
+  },
+  {
+    id: "force",
+    name: "force push",
+    type: "BUG",
+    icon: "➜",
+    description: "弾ダメージ +18。履歴は綺麗になった。",
+  },
+  {
+    id: "hotfix",
+    name: "深夜のホットフィックス",
+    type: "BOOST",
+    icon: "☾",
+    description: "攻撃間隔 -12%、HPを15回復。朝までに直そう。",
+  },
+  {
+    id: "spec",
+    name: "仕様です",
+    type: "BOOST",
+    icon: "✓",
+    description: "最大HP +30、HPを30回復。期待された挙動です。",
+  },
+  {
+    id: "threshold",
+    name: "監視閾値の引き上げ",
+    type: "CHAIN",
+    icon: "⊘",
+    description: "敵の速度 -10%。アラートが減りました。",
+  },
+  {
+    id: "dependency",
+    name: "依存ライブラリ全更新",
+    type: "BOOST",
+    icon: "⇧",
+    description: "攻撃と連鎖が強化。マイナーなので安全。",
+  },
+  {
+    id: "rollback",
+    name: "ロールバック失敗",
+    type: "BUG",
+    icon: "↶",
+    description: "弾の貫通 +1、攻撃速度アップ。戻れません。",
+  },
+  {
+    id: "deploy",
+    name: "手動デプロイ",
+    type: "BOOST",
+    icon: "⌘",
+    description: "BP倍率 +25%、ダメージ +5。手順書は古い。",
+  },
+  {
+    id: "yolo",
+    name: "ヨシ！",
+    type: "BOOST",
+    icon: "✓",
+    description: "HP回復、攻撃速度アップ。見てないけどヨシ。",
+  },
+  {
+    id: "dns",
+    name: "DNSキャッシュ",
+    type: "CHAIN",
+    icon: "◇",
+    description: "ログ回収範囲 +50、連鎖範囲 +20。浸透待ち。",
+  },
+  {
+    id: "merge",
+    name: "コンフリクト解消",
+    type: "BUG",
+    icon: "⊕",
+    description: "弾ダメージ +10、同時発射 +1。両方残した。",
+  },
+  {
+    id: "race",
+    name: "競合状態",
+    type: "CHAIN",
+    icon: "⟳",
+    description: "攻撃速度と連鎖ダメージ上昇。再現率は低い。",
+  },
+  {
+    id: "memory",
+    name: "メモリリーク",
+    type: "BUG",
+    icon: "∞",
+    description: "持続ダメージ +8、最大HP +10。増える一方。",
+  },
+  {
+    id: "config",
+    name: "設定ファイル直編集",
+    type: "BOOST",
+    icon: "{}",
+    description: "移動速度 +10%、ダメージ +8。再起動は後で。",
+  },
+  {
+    id: "oncall",
+    name: "オンコール当番",
+    type: "BOOST",
+    icon: "☎",
+    description: "HP回復、ログ回収範囲 +40。眠れない夜に。",
+  },
 ];
+export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
+  retry: "timeout",
+  timeout: "retry",
+  nplus: "leak",
+  leak: "nplus",
+  hotfix: "friday",
+  friday: "hotfix",
+  threshold: "flush",
+  flush: "threshold",
+  select: "where",
+  where: "select",
+  force: "config",
+  config: "force",
+  oncall: "rollback",
+  rollback: "oncall",
+  spec: "local",
+  local: "spec",
+};
+
 export type World = {
   seed: number;
+  duration: number;
+  evolutions: string[];
+  bossWave: number;
   rng: number;
   serial: number;
   time: number;
@@ -209,9 +375,12 @@ function spawnServer(w: World) {
     y: clamp(w.player.y + Math.sin(angle) * radius, 50, 1950),
   });
 }
-export function createWorld(seed = 42): World {
+export function createWorld(seed = 42, duration = RUN_SECONDS): World {
   const w: World = {
     seed,
+    duration: [90, 180, 300].includes(duration) ? duration : 90,
+    evolutions: [],
+    bossWave: 0,
     rng: seed >>> 0,
     serial: 0,
     time: 0,
@@ -366,23 +535,159 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     case "refactor":
       w.damage += 14;
       break;
+    case "nplus":
+    case "merge":
+      w.multishot = Math.min(6, w.multishot + 1);
+      w.damage += upgrade === "merge" ? 10 : 4;
+      break;
+    case "select":
+      w.chainRange = Math.min(400, w.chainRange + 25);
+      break;
+    case "flush":
+    case "memory":
+      w.aura += upgrade === "flush" ? 12 : 8;
+      if (upgrade === "memory") w.player.maxHp += 10;
+      break;
+    case "timeout":
+    case "rollback":
+      w.pierce = Math.min(8, w.pierce + 1);
+      w.chainDamage += 5;
+      if (upgrade === "rollback")
+        w.fireInterval = Math.max(0.12, w.fireInterval * 0.9);
+      break;
+    case "force":
+      w.damage += 18;
+      break;
+    case "hotfix":
+    case "yolo":
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.88);
+      w.player.hp = Math.min(w.player.maxHp, w.player.hp + 15);
+      break;
+    case "spec":
+      w.player.maxHp += 30;
+      w.player.hp = Math.min(w.player.maxHp, w.player.hp + 30);
+      break;
+    case "threshold":
+      w.slow = Math.max(0.4, w.slow * 0.9);
+      break;
+    case "dependency":
+      w.damage += 10;
+      w.chainDamage += 10;
+      break;
+    case "deploy":
+      w.multiplier += 0.25;
+      w.damage += 5;
+      break;
+    case "dns":
+      w.magnet = Math.min(420, w.magnet + 50);
+      w.chainRange = Math.min(400, w.chainRange + 20);
+      break;
+    case "race":
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.9);
+      w.chainDamage += 8;
+      break;
+    case "config":
+      w.speed = Math.min(340, w.speed * 1.1);
+      w.damage += 8;
+      break;
+    case "oncall":
+      w.player.hp = Math.min(w.player.maxHp, w.player.hp + 25);
+      w.magnet = Math.min(420, w.magnet + 40);
+      break;
     case "env":
       w.speed = Math.min(340, w.speed * 1.15);
       break;
   }
+  const recipes: { name: string; pair: UpgradeId[]; apply: () => void }[] = [
+    {
+      name: "リトライストーム",
+      pair: ["retry", "timeout"],
+      apply: () => {
+        w.chainRange = Math.min(400, w.chainRange + 80);
+        w.chainDamage += 25;
+      },
+    },
+    {
+      name: "コネクション枯渇祭り",
+      pair: ["nplus", "leak"],
+      apply: () => {
+        w.multishot = Math.min(6, w.multishot + 2);
+        w.aura += 20;
+      },
+    },
+    {
+      name: "週末リリース",
+      pair: ["hotfix", "friday"],
+      apply: () => {
+        w.multiplier += 0.8;
+        w.fireInterval = Math.max(0.12, w.fireInterval * 0.7);
+      },
+    },
+    {
+      name: "完全に正常",
+      pair: ["threshold", "flush"],
+      apply: () => {
+        w.aura += 25;
+        w.slow = Math.max(0.4, w.slow * 0.75);
+      },
+    },
+    {
+      name: "全件フルスキャン",
+      pair: ["select", "where"],
+      apply: () => {
+        w.pierce = Math.min(8, w.pierce + 2);
+        w.chainRange = Math.min(400, w.chainRange + 70);
+      },
+    },
+    {
+      name: "本番直編集",
+      pair: ["force", "config"],
+      apply: () => {
+        w.damage += 35;
+        w.speed = Math.min(340, w.speed * 1.2);
+      },
+    },
+    {
+      name: "真夜中の復旧会議",
+      pair: ["oncall", "rollback"],
+      apply: () => {
+        w.player.maxHp += 40;
+        w.player.hp = w.player.maxHp;
+        w.chainDamage += 20;
+      },
+    },
+    {
+      name: "動くから仕様",
+      pair: ["spec", "local"],
+      apply: () => {
+        w.player.maxHp += 50;
+        w.player.hp = w.player.maxHp;
+        w.aura += 12;
+      },
+    },
+  ];
+  for (const recipe of recipes)
+    if (
+      !w.evolutions.includes(recipe.name) &&
+      recipe.pair.every((id) => w.build.includes(id))
+    ) {
+      recipe.apply();
+      w.evolutions.push(recipe.name);
+      fx(w, w.player, "heal", `EVOLUTION: ${recipe.name}`);
+    }
   w.choices = [];
   w.phase = "playing";
   return w;
 }
 export function wave(w: World) {
-  return Math.min(3, Math.floor(w.time / 30) + 1);
+  return Math.min(w.duration / 30, Math.floor(w.time / 30) + 1);
 }
 /** One 1/30 second step. Input and state are never mutated. */
 export function stepWorld(state: World, input: Input): World {
   if (state.phase !== "playing") return state;
   const w = structuredClone(state),
     dt = STEP;
-  w.time = Math.min(RUN_SECONDS, w.time + dt);
+  w.time = Math.min(w.duration, w.time + dt);
   w.player.invulnerable = Math.max(0, w.player.invulnerable - dt);
   w.panicCooldown = Math.max(0, w.panicCooldown - dt);
   for (const e of w.entities) e.flash = Math.max(0, e.flash - dt);
@@ -484,14 +789,19 @@ export function stepWorld(state: World, input: Input): World {
       flash: 0,
     });
   }
-  if (w.time >= 60 && !w.bossSpawned) {
+  if (
+    w.time >= 30 &&
+    Math.floor(w.time / 30) > w.bossWave &&
+    w.time < w.duration
+  ) {
+    w.bossWave = Math.floor(w.time / 30);
     w.bossSpawned = true;
     w.entities.push({
       id: id(w),
       x: clamp(w.player.x + 350, 40, 1960),
       y: w.player.y,
-      hp: 650,
-      maxHp: 650,
+      hp: 250 + w.bossWave * 200,
+      maxHp: 250 + w.bossWave * 200,
       kind: "boss",
       label: "SRE CORE",
       flash: 0,
@@ -560,7 +870,7 @@ export function stepWorld(state: World, input: Input): World {
     .slice(-160);
   w.effects = w.effects.slice(-100);
   if (w.player.hp <= 0) w.phase = "lost";
-  else if (w.time >= RUN_SECONDS) w.phase = "won";
+  else if (w.time >= w.duration) w.phase = "won";
   else if (w.xp >= w.nextXp) {
     w.xp -= w.nextXp;
     w.level++;

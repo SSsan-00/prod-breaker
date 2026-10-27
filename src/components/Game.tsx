@@ -6,10 +6,10 @@ import {
   stepWorld,
   chooseUpgrade,
   upgrades,
+  evolutionPartners,
   wave,
   survivorReport,
   STEP,
-  RUN_SECONDS,
   type World,
   type Vec,
   type UpgradeId,
@@ -21,6 +21,7 @@ type Settings = { mute: boolean; volume: number; reduced: boolean };
 type Screen = "title" | "run" | "result";
 type Modal = "settings" | "help" | "pause" | null;
 export default function Game() {
+  const [duration, setDuration] = useState(180);
   const [initialWorld] = useState(() => createWorld());
   const world = useRef<World>(initialWorld),
     input = useRef<Vec>({ x: 0, y: 0 }),
@@ -41,7 +42,13 @@ export default function Game() {
       reduced: false,
     }),
     [high, setHigh] = useState(0),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [evolutionNotice, setEvolutionNotice] = useState("");
+  useEffect(() => {
+    if (!evolutionNotice) return;
+    const timer = setTimeout(() => setEvolutionNotice(""), 2000);
+    return () => clearTimeout(timer);
+  }, [evolutionNotice]);
   const settingsRef = useRef(settings);
   const screenRef = useRef(screen);
   const modalRef = useRef(modal);
@@ -65,7 +72,7 @@ export default function Game() {
             matchMedia("(prefers-reduced-motion: reduce)").matches,
         }),
       );
-      setHigh(read("pb-survivor-high", 0));
+      setHigh(read("pb-survivor-high-180", 0));
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -170,6 +177,7 @@ export default function Game() {
       accumulator = 0,
       lastUi = 0,
       lastSound = 0;
+    let oldCombo = 0;
     let oldDestroyed = world.current.destroyed;
     const frame = (now: number) => {
       if (document.hidden) {
@@ -204,6 +212,15 @@ export default function Game() {
         changed = true;
       }
       const w = world.current;
+      const milestone = [100, 30, 10].find(
+        (value) => w.combo >= value && oldCombo < value,
+      );
+      if (milestone && !settingsRef.current.mute)
+        sound(
+          milestone === 10 ? "hit" : milestone === 30 ? "deploy" : "panic",
+          settingsRef.current.volume,
+        );
+      oldCombo = w.combo;
       if (w.destroyed > oldDestroyed && now - lastSound > 140) {
         oldDestroyed = w.destroyed;
         lastSound = now;
@@ -218,7 +235,7 @@ export default function Game() {
         setSnapshot(w);
         setHigh((previous) => {
           const value = Math.max(previous, w.score);
-          write("pb-survivor-high", value);
+          write(`pb-survivor-high-${w.duration}`, value);
           return value;
         });
         setScreen("result");
@@ -251,16 +268,20 @@ export default function Game() {
       param !== null && Number.isFinite(Number(param))
         ? Number(param) >>> 0
         : Math.floor(Math.random() * 0xffffffff);
-    world.current = createWorld(seed);
+    world.current = createWorld(seed, duration);
     setSnapshot(world.current);
     setNotice("");
+    setEvolutionNotice("");
     setModal(null);
     setScreen("run");
     if (!settings.mute) sound("deploy", settings.volume);
   }
   function select(id: UpgradeId) {
     if (world.current.phase !== "upgrade") return;
+    const previous = world.current.evolutions.length;
     world.current = chooseUpgrade(world.current, id);
+    if (world.current.evolutions.length > previous)
+      setEvolutionNotice(world.current.evolutions.at(-1)!);
     clearInput();
     setSnapshot(world.current);
     if (!settings.mute) sound("deploy", settings.volume);
@@ -279,7 +300,7 @@ export default function Game() {
   }
   const w = snapshot,
     incident = survivorReport(w),
-    remaining = Math.ceil(RUN_SECONDS - w.time),
+    remaining = Math.ceil(w.duration - w.time),
     minutes = Math.floor(remaining / 60),
     seconds = String(remaining % 60).padStart(2, "0");
   async function exportImage(share = false) {
@@ -382,7 +403,7 @@ export default function Game() {
         {screen === "title" ? (
           <section className="title-screen">
             <div className="eyebrow">
-              90 SECOND RUN / AUTO ATTACK / ENDLESS BAD IDEAS
+              SURVIVOR RUN / AUTO ATTACK / ENDLESS BAD IDEAS
             </div>
             <h1>
               PROD
@@ -392,14 +413,42 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.0</span>
+              SURVIVOR EDITION <span>↗ V2.1</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
               逃げろ。育てろ。本番を連鎖爆破しろ。
               <br />
-              暴走バグとなって、復旧部隊の猛攻を90秒生き延びよう。
+              暴走バグとなって、復旧部隊の猛攻を生き延びよう。
             </p>
+            <div
+              className="duration-options"
+              role="group"
+              aria-label="プレイ時間"
+            >
+              {[
+                { seconds: 90, label: "QUICK", time: "90秒" },
+                { seconds: 180, label: "STANDARD", time: "3分" },
+                { seconds: 300, label: "CHAOS", time: "5分" },
+              ].map((option) => (
+                <button
+                  key={option.seconds}
+                  aria-pressed={duration === option.seconds}
+                  onClick={() => {
+                    setDuration(option.seconds);
+                    setHigh(
+                      read(
+                        `pb-survivor-high-${option.seconds}`,
+                        option.seconds === 90 ? read("pb-survivor-high", 0) : 0,
+                      ),
+                    );
+                  }}
+                >
+                  <b>{option.label}</b>
+                  <span>{option.time}</span>
+                </button>
+              ))}
+            </div>
             <button className="primary start" onClick={start}>
               GAME START <span>↗</span>
             </button>
@@ -454,8 +503,8 @@ export default function Game() {
               <div>
                 WAVE
                 <b>
-                  0{wave(w)}
-                  <small> / 03</small>
+                  {String(wave(w)).padStart(2, "0")}
+                  <small> / {String(w.duration / 30).padStart(2, "0")}</small>
                 </b>
               </div>
               <div>
@@ -541,16 +590,24 @@ export default function Game() {
               )}
               {w.combo >= 5 && (
                 <div
-                  className={`chain-badge ${w.combo >= 20 ? "massive" : ""}`}
+                  className={`chain-badge ${w.combo >= 100 ? "legendary" : w.combo >= 30 ? "massive" : w.combo >= 10 ? "major" : ""}`}
                 >
                   <b>{w.combo}</b> CHAIN
                   <span>
-                    {w.combo >= 20
-                      ? "ABSOLUTE CHAOS"
-                      : w.combo >= 10
-                        ? "CASCADE FAILURE"
-                        : "LOOKS GOOD TO ME"}
+                    {w.combo >= 100
+                      ? "PRODUCTION OBLITERATED"
+                      : w.combo >= 30
+                        ? "ABSOLUTE CHAOS"
+                        : w.combo >= 10
+                          ? "CASCADE FAILURE"
+                          : "LOOKS GOOD TO ME"}
                   </span>
+                </div>
+              )}
+              {evolutionNotice && (
+                <div className="evolution-notice" role="status">
+                  <small>EVOLUTION UNLOCKED</small>
+                  <strong>{evolutionNotice}</strong>
                 </div>
               )}
               <div className="arena-bottomline">
@@ -581,6 +638,11 @@ export default function Game() {
               </button>
             </div>
             <div className="inventory">
+              {w.evolutions.map((name) => (
+                <span className="build-chip evolution" key={name}>
+                  ✦ {name}
+                </span>
+              ))}
               <span>ACTIVE BUILD</span>
               {w.build.length ? (
                 w.build.map((id, i) => (
@@ -626,6 +688,17 @@ export default function Game() {
                           <div className="card-art">{u.icon}</div>
                           <h3>{u.name}</h3>
                           <p>{u.description}</p>
+                          {evolutionPartners[id] && (
+                            <small className="evolution-hint">
+                              ✦{" "}
+                              {
+                                upgrades.find(
+                                  (card) => card.id === evolutionPartners[id],
+                                )?.name
+                              }{" "}
+                              と組み合わせで進化
+                            </small>
+                          )}
                           <span className="choose-label">
                             INSTALL UPGRADE ↗
                           </span>
@@ -641,7 +714,7 @@ export default function Game() {
           <section className="result">
             <div className="eyebrow">INCIDENT CLOSED / SURVIVOR RUN</div>
             <h1 className="result-title">
-              {w.phase === "won" ? "90 SECONDS." : "BUG TERMINATED."}
+              {w.phase === "won" ? `${w.duration} SECONDS.` : "BUG TERMINATED."}
               <br />
               <span>
                 {w.phase === "won" ? "PROD IN RUINS." : "DEPLOY AGAIN."}
@@ -693,7 +766,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.1</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
@@ -770,7 +843,7 @@ export default function Game() {
                   <p>02　近くのサーバーや敵を自動で攻撃。</p>
                   <p>03　青い障害ログを拾って3択で強化。</p>
                   <p>04　PANIC（スペース）で周囲を爆破＆ログ回収。</p>
-                  <p>05　復旧部隊を避け、90秒・3ウェーブを生き延びよう。</p>
+                  <p>05　復旧部隊を避け、選んだ時間を生き延びよう。</p>
                   <p className="muted">
                     レベルアップ・一時停止・非表示タブではゲーム時間が止まります。連鎖範囲を育てるとサーバーが次々に爆発します。
                   </p>
