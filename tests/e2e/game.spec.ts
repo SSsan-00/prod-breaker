@@ -331,3 +331,65 @@ test("landscape touch viewport keeps the playfield and PANIC on screen", async (
     75,
   );
 });
+test("long upgrade names fit a compact touch screen without vertical scrolling", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== "mobile");
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.clock.install();
+  await page.goto("/?seed=3855");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await page.clock.runFor(100);
+  await page.locator(".panic").click();
+  await page.clock.runFor(300);
+  const dialog = page.getByRole("dialog", { name: "レベルアップ" });
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: "承認待ちのまま緊急リリース" }),
+  ).toBeVisible();
+  const dimensions = await dialog.evaluate((el) => ({
+    scroll: el.scrollHeight,
+    client: el.clientHeight,
+    bottom: el.getBoundingClientRect().bottom,
+    viewport: innerHeight,
+    buttons: [...el.querySelectorAll("button")].map(
+      (button) => button.getBoundingClientRect().bottom,
+    ),
+  }));
+  expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
+  expect(dimensions.bottom).toBeLessThanOrEqual(dimensions.viewport);
+  expect(Math.max(...dimensions.buttons)).toBeLessThanOrEqual(
+    dimensions.viewport,
+  );
+  await dialog.locator(".upgrade-card").last().click();
+});
+test("long upgrade names fit a landscape touch screen without vertical scrolling", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== "mobile");
+  await page.setViewportSize({ width: 851, height: 393 });
+  await page.clock.install();
+  await page.goto("/?seed=3855");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await page.clock.runFor(100);
+  await page.locator(".panic").click();
+  await page.clock.runFor(300);
+  const dialog = page.getByRole("dialog", { name: "レベルアップ" });
+  await expect(dialog).toBeVisible();
+  const dimensions = await dialog.evaluate((el) => ({
+    scroll: el.scrollHeight,
+    client: el.clientHeight,
+    bottom: el.getBoundingClientRect().bottom,
+    viewport: innerHeight,
+    buttons: [...el.querySelectorAll("button")].map(
+      (button) => button.getBoundingClientRect().bottom,
+    ),
+  }));
+  expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
+  expect(dimensions.bottom).toBeLessThanOrEqual(dimensions.viewport);
+  expect(Math.max(...dimensions.buttons)).toBeLessThanOrEqual(
+    dimensions.viewport,
+  );
+});
