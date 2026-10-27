@@ -42,7 +42,6 @@ export default function Game() {
       reduced: false,
     }),
     [high, setHigh] = useState(0),
-    [notice, setNotice] = useState(""),
     [evolutionNotice, setEvolutionNotice] = useState("");
   useEffect(() => {
     if (!evolutionNotice) return;
@@ -270,7 +269,6 @@ export default function Game() {
         : Math.floor(Math.random() * 0xffffffff);
     world.current = createWorld(seed, duration);
     setSnapshot(world.current);
-    setNotice("");
     setEvolutionNotice("");
     setModal(null);
     setScreen("run");
@@ -303,57 +301,19 @@ export default function Game() {
     remaining = Math.ceil(w.duration - w.time),
     minutes = Math.floor(remaining / 60),
     seconds = String(remaining % 60).padStart(2, "0");
-  async function exportImage(share = false) {
-    try {
-      const c = document.createElement("canvas");
-      c.width = 1080;
-      c.height = 1080;
-      const ctx = c.getContext("2d");
-      if (!ctx) throw new Error("canvas");
-      ctx.fillStyle = "#0a1013";
-      ctx.fillRect(0, 0, 1080, 1080);
-      ctx.fillStyle = "#d4fa53";
-      ctx.font = "bold 80px monospace";
-      ctx.fillText("PROD BREAKER", 65, 140);
-      ctx.font = "26px monospace";
-      ctx.fillText("SURVIVOR / BUILD THE BUG.", 65, 195);
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 110px monospace";
-      ctx.fillText(`${w.score.toLocaleString()} BP`, 65, 360);
-      ctx.font = "34px sans-serif";
-      [
-        incident.title,
-        `${w.time.toFixed(1)}秒 / LV ${w.level} / ${w.destroyed}サーバー破壊`,
-        `MAX CHAIN ${w.maxCombo} / WAVE ${wave(w)}`,
-        `原因：${incident.cause}`,
-        "再発防止策：金曜日を廃止する。",
-        "架空のジョーク障害報告書です。",
-      ].forEach((s, i) => ctx.fillText(s, 65, 475 + i * 75));
-      const blob = await new Promise<Blob | null>((resolve) =>
-        c.toBlob(resolve),
-      );
-      if (!blob) throw new Error("blob");
-      const file = new File([blob], "prod-breaker-survivor.png", {
-        type: "image/png",
-      });
-      if (share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "PROD BREAKER" });
-        return;
-      }
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = file.name;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-      setNotice("リザルト画像を保存しました。");
-    } catch (e) {
-      if (!(e instanceof DOMException && e.name === "AbortError"))
-        setNotice("画像を保存できませんでした。別のブラウザでお試しください。");
-    }
-  }
   return (
     <MotionConfig reducedMotion={settings.reduced ? "always" : "user"}>
-      <main className={`app survivor ${settings.reduced ? "reduced" : ""}`}>
+      <main
+        className={`app survivor ${settings.reduced ? "reduced" : ""}`}
+        onContextMenu={(event) => {
+          const target = event.target as HTMLElement;
+          if (
+            (screen === "run" || target.closest(".site-header")) &&
+            !target.closest("input, textarea")
+          )
+            event.preventDefault();
+        }}
+      >
         <header className="site-header">
           <button
             className="brand"
@@ -413,7 +373,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.1</span>
+              SURVIVOR EDITION <span>↗ V2.2</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -637,23 +597,6 @@ export default function Game() {
                 <small>周囲を爆破＋ログ全回収 / SPACE</small>
               </button>
             </div>
-            <div className="inventory">
-              {w.evolutions.map((name) => (
-                <span className="build-chip evolution" key={name}>
-                  ✦ {name}
-                </span>
-              ))}
-              <span>ACTIVE BUILD</span>
-              {w.build.length ? (
-                w.build.map((id, i) => (
-                  <span className="build-chip" key={i}>
-                    {upgrades.find((u) => u.id === id)!.name}
-                  </span>
-                ))
-              ) : (
-                <span>まだ素のバグです。青いログを回収しよう。</span>
-              )}
-            </div>
             {w.phase === "upgrade" && !modal && (
               <div className="modal-backdrop level-backdrop">
                 <section
@@ -755,18 +698,11 @@ export default function Game() {
             <button className="primary" onClick={start}>
               もう一度プレイ ↻
             </button>
-            <div className="result-actions">
-              <button onClick={() => void exportImage()}>画像保存 ↓</button>
-              <button onClick={() => void exportImage(true)}>共有 ↗</button>
-            </div>
             <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP</p>
-            <p role="status" className="muted">
-              {notice}
-            </p>
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.1</span>
+          <span>PROD BREAKER / SURVIVOR V2.2</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

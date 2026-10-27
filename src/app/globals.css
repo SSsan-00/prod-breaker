@@ -550,20 +550,7 @@ button:disabled {
   margin-top: 7px;
   color: #b99b88;
 }
-.inventory {
-  font: 9px monospace;
-  color: var(--muted);
-  margin-top: 17px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
-}
-.build-chip {
-  border: 1px solid var(--line);
-  padding: 5px 8px;
-  color: #bfd0b2;
-}
+
 .result {
   max-width: 720px;
   margin: 50px auto;
@@ -622,12 +609,7 @@ button:disabled {
   font-size: 10px;
   color: var(--muted);
 }
-.result-actions {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin: 15px;
-}
+
 .muted {
   font-size: 12px;
   line-height: 1.9;
@@ -1017,14 +999,7 @@ footer {
   .panic small {
     font-size: 7px;
   }
-  .inventory {
-    font-size: 7px;
-    gap: 6px;
-    margin-top: 12px;
-  }
-  .build-chip {
-    padding: 4px 6px;
-  }
+
   .result {
     margin: 35px auto;
   }
@@ -1157,7 +1132,11 @@ footer {
 }
 
 /* Avoid the mobile text-selection and callout menus during play. */
-.survivor .game {
+.survivor .game,
+.survivor .site-header,
+.survivor button,
+.survivor button *,
+.survivor [role="dialog"] {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -1193,10 +1172,7 @@ footer {
   color: var(--lime);
   background: #d4fa5312;
 }
-.evolution {
-  color: #ffbc70;
-  border-color: #ff8b50;
-}
+
 .chain-badge.major {
   color: #8de7ff;
   text-shadow:
@@ -1320,18 +1296,6 @@ footer {
     min-height: 48px;
     padding: 8px;
   }
-  .survivor .inventory {
-    flex: none;
-    min-height: 24px;
-    margin-top: 6px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-  }
-  .survivor .build-chip {
-    flex: none;
-  }
 }
 
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
@@ -1357,9 +1321,5 @@ footer {
   .survivor .run-controls {
     margin-top: 4px;
     padding: 4px 8px;
-  }
-  .survivor .inventory {
-    min-height: 20px;
-    margin-top: 3px;
   }
 }

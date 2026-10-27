@@ -122,11 +122,10 @@ test("real-time movement, auto fire, upgrades, panic, pause, saved settings and 
       Number(JSON.parse(localStorage.getItem("pb-survivor-high-90") || "0")),
     ),
   ).toBeGreaterThan(0);
-  const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "画像保存 ↓" }).click();
-  expect((await download).suggestedFilename()).toBe(
-    "prod-breaker-survivor.png",
+  await expect(page.getByRole("button", { name: /画像保存|共有/ })).toHaveCount(
+    0,
   );
+  await expect(page.locator(".inventory")).toHaveCount(0);
   await page.screenshot({
     path: `test-results/${info.project.name}-result-v2.png`,
     fullPage: true,
@@ -200,6 +199,45 @@ test("actual touch input and hidden-tab pause", async ({
   await page.getByRole("button", { name: /QUICK/ }).click();
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
+  const topButton = page.getByRole("button", { name: "ミュート切替" });
+  expect(
+    await topButton.evaluate((el) => getComputedStyle(el).userSelect),
+  ).toBe("none");
+  expect(
+    await topButton.evaluate((el) =>
+      el.dispatchEvent(
+        new MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+      ),
+    ),
+  ).toBe(false);
+  expect(
+    await page
+      .locator("canvas")
+      .evaluate((el) =>
+        el.dispatchEvent(
+          new MouseEvent("contextmenu", { bubbles: true, cancelable: true }),
+        ),
+      ),
+  ).toBe(false);
+  const buttonBox = (await topButton.boundingBox())!;
+  const touch = await context.newCDPSession(page);
+  const point = {
+    x: buttonBox.x + buttonBox.width / 2,
+    y: buttonBox.y + buttonBox.height / 2,
+    id: 3,
+  };
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [point],
+  });
+  await page.clock.runFor(900);
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await page.clock.runFor(100);
+  expect(await page.evaluate(() => String(window.getSelection()))).toBe("");
+  await expect(topButton).toContainText("SOUND ON");
   const initial = Number(
     await page.getByTestId("arena").getAttribute("data-player-x"),
   );
@@ -244,6 +282,8 @@ test("actual touch input and hidden-tab pause", async ({
     document.dispatchEvent(new Event("visibilitychange"));
   });
   await page.getByRole("button", { name: "ゲームに戻る →" }).click();
+  await page.clock.runFor(200);
+  await choose(page);
   await page.clock.runFor(200);
   expect(
     Number(await page.getByTestId("arena").getAttribute("data-time")),
