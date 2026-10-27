@@ -434,3 +434,30 @@ test("home controls fit without vertical scrolling on compact and landscape phon
     );
   }
 });
+test("gameplay omits the redundant instruction and keeps PANIC accessible", async ({
+  page,
+}, info) => {
+  await page.goto("/?seed=42");
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await expect(
+    page.getByText("移動だけに集中。攻撃はバグに任せよう。"),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /PANIC/ })).toBeVisible();
+  if (info.project.name === "mobile") {
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight <= innerHeight,
+      ),
+    ).toBe(true);
+    expect(
+      await page
+        .locator(".panic")
+        .evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight),
+    ).toBe(true);
+  }
+  if (info.project.name === "desktop")
+    await page.screenshot({
+      path: "test-results/game-no-instruction.png",
+      fullPage: true,
+    });
+});

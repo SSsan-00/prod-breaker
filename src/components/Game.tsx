@@ -373,7 +373,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.3.2</span>
+              SURVIVOR EDITION <span>↗ V2.3.3</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -582,7 +582,6 @@ export default function Game() {
                     ? "MERGE PIPELINE COOLING DOWN"
                     : "WHEN IN DOUBT, MERGE IT."}
                 </span>
-                <p>移動だけに集中。攻撃はバグに任せよう。</p>
               </div>
               <button
                 className="panic"
@@ -702,7 +701,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.3.2</span>
+          <span>PROD BREAKER / SURVIVOR V2.3.3</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
