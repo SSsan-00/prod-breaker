@@ -373,7 +373,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.3.3</span>
+              SURVIVOR EDITION <span>↗ V2.3.4</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -420,7 +420,11 @@ export default function Game() {
               <span>AUTO FIRE</span>
               <span>LEVEL UP & BREAK</span>
             </div>
-            <div className="hero-art" aria-hidden="true">
+            <div
+              className="hero-art"
+              role="img"
+              aria-label="ゲームの主人公、暴走バグ"
+            >
               <div className="orbit orbit-one" />
               <div className="orbit orbit-two" />
               <div className="pixel-bug">
@@ -701,7 +705,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.3.3</span>
+          <span>PROD BREAKER / SURVIVOR V2.3.4</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

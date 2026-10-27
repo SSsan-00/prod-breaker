@@ -406,6 +406,32 @@ test("home controls fit without vertical scrolling on compact and landscape phon
     await page.goto("/?seed=42");
     await page.screenshot({ path: `test-results/home-${viewport.width}.png` });
     await expect(
+      page.getByRole("img", { name: "ゲームの主人公、暴走バグ" }),
+    ).toBeVisible();
+    const mascot = await page.locator(".pixel-bug").boundingBox();
+    expect(mascot).not.toBeNull();
+    expect(mascot!.x).toBeGreaterThanOrEqual(0);
+    expect(mascot!.y).toBeGreaterThanOrEqual(0);
+    expect(mascot!.x + mascot!.width).toBeLessThanOrEqual(viewport.width);
+    expect(mascot!.y + mascot!.height).toBeLessThanOrEqual(viewport.height);
+    const overlapsControl = await page.evaluate(() => {
+      const bug = document.querySelector(".pixel-bug")!.getBoundingClientRect();
+      return [
+        ...document.querySelectorAll(
+          ".title-screen button, .site-header button",
+        ),
+      ].some((el) => {
+        const button = el.getBoundingClientRect();
+        return (
+          bug.left < button.right &&
+          bug.right > button.left &&
+          bug.top < button.bottom &&
+          bug.bottom > button.top
+        );
+      });
+    });
+    expect(overlapsControl).toBe(false);
+    await expect(
       page.getByRole("button", { name: /GAME START/ }),
     ).toBeVisible();
     const dimensions = await page.evaluate(() => ({
@@ -460,4 +486,24 @@ test("gameplay omits the redundant instruction and keeps PANIC accessible", asyn
       path: "test-results/game-no-instruction.png",
       fullPage: true,
     });
+});
+test("home mascot stays visible, respects reduced motion and does not obstruct starting", async ({
+  page,
+}, info) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/?seed=42");
+  await expect(
+    page.getByRole("img", { name: "ゲームの主人公、暴走バグ" }),
+  ).toBeVisible();
+  expect(
+    await page
+      .locator(".pixel-bug")
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe("none");
+  await page.screenshot({
+    path: `test-results/mascot-${info.project.name}.png`,
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await expect(page.getByTestId("timer")).toBeVisible();
 });
