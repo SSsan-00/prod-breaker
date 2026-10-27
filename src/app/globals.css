@@ -1680,3 +1680,14 @@ footer {
     transform: translate(-50%, -50%) rotate(-10deg) scale(0.58);
   }
 }
+
+/* The mascot is an illustrated, armored bug; its silhouette stays legible at phone sizes. */
+.pixel-bug {
+  width: 140px;
+  height: 172px;
+  background: url('/assets/bug.svg') center / contain no-repeat;
+  border: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 12px 12px #0009) drop-shadow(0 0 16px #b8f15333);
+}
+.pixel-bug::before, .pixel-bug::after { display: none; }

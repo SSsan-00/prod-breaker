@@ -190,7 +190,11 @@ export default function Arena({
             ctx.textAlign = "center";
             ctx.fillText(e.label, 0, 39);
           } else if (e.kind === "boss") {
-            ctx.fillStyle = "#39141e";
+            const armor = ctx.createLinearGradient(-36, -36, 36, 36);
+            armor.addColorStop(0, "#8e4650");
+            armor.addColorStop(0.4, "#39141e");
+            armor.addColorStop(1, "#110c15");
+            ctx.fillStyle = armor;
             ctx.strokeStyle = colors.red;
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -204,11 +208,19 @@ export default function Arena({
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
-            ctx.fillStyle = colors.red;
-            ctx.fillRect(-16, -14, 32, 28);
-            ctx.fillStyle = "#0a0e11";
-            ctx.fillRect(-9, -5, 5, 5);
-            ctx.fillRect(5, -5, 5, 5);
+            ctx.fillStyle = "#1c1018";
+            ctx.fillRect(-18, -16, 36, 30);
+            ctx.strokeStyle = "#c45b63";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-18, -16, 36, 30);
+            ctx.fillStyle = "#ff6570";
+            ctx.fillRect(-12, -7, 8, 4);
+            ctx.fillRect(4, -7, 8, 4);
+            ctx.fillStyle = "#ffb49b";
+            ctx.fillRect(-10, -7, 4, 2);
+            ctx.fillRect(6, -7, 4, 2);
+            ctx.fillStyle = "#773b43";
+            ctx.fillRect(-9, 5, 18, 2);
             ctx.font = "bold 10px monospace";
             ctx.textAlign = "center";
             ctx.fillStyle = "#ff9aa7";
@@ -269,23 +281,48 @@ export default function Arena({
           ctx.arc(0, 0, 26, 0, Math.PI * 2);
           ctx.stroke();
         }
+        // Layered chitin and jointed limbs mirror the illustrated home mascot.
         ctx.fillStyle = "#0008";
-        ctx.fillRect(-19, 18, 38, 7);
-        ctx.fillStyle = "#8eaa35";
-        for (const y of [-10, 0, 10]) {
-          ctx.fillRect(-23, y, 9, 4);
-          ctx.fillRect(14, y, 9, 4);
+        ctx.beginPath();
+        ctx.ellipse(0, 21, 20, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#537c35";
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+        for (const y of [-8, 1, 10]) {
+          for (const side of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(side * 11, y);
+            ctx.lineTo(side * 19, y - 4);
+            ctx.lineTo(side * 23, y + 2);
+            ctx.stroke();
+          }
         }
-        ctx.fillStyle = colors.lime;
-        ctx.fillRect(-14, -17, 28, 35);
-        ctx.fillRect(-9, -23, 5, 8);
-        ctx.fillRect(5, -23, 5, 8);
-        ctx.fillStyle = "#0b1712";
-        ctx.fillRect(-8, -10, 5, 6);
-        ctx.fillRect(4, -10, 5, 6);
-        ctx.fillRect(-2, 1, 3, 14);
-        ctx.fillStyle = "#efffc0";
-        ctx.fillRect(-9, -16, 6, 3);
+        ctx.strokeStyle = "#a2cf59";
+        ctx.beginPath();
+        ctx.moveTo(-7, -16); ctx.lineTo(-12, -25);
+        ctx.moveTo(7, -16); ctx.lineTo(12, -25);
+        ctx.stroke();
+        const shell = ctx.createLinearGradient(-13, -18, 13, 18);
+        shell.addColorStop(0, "#dcfa8b");
+        shell.addColorStop(0.45, "#83b83e");
+        shell.addColorStop(1, "#284b29");
+        ctx.fillStyle = shell;
+        ctx.strokeStyle = "#1a3421";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 2, 14, 19, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 18); ctx.stroke();
+        ctx.fillStyle = "#527d36";
+        ctx.beginPath(); ctx.ellipse(0, -13, 11, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#152e20";
+        ctx.fillRect(-8, -15, 6, 5); ctx.fillRect(2, -15, 6, 5);
+        ctx.fillStyle = "#eaff9c";
+        ctx.fillRect(-7, -14, 4, 2); ctx.fillRect(3, -14, 4, 2);
+        ctx.strokeStyle = "#d4ee8c99";
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-10, 1); ctx.lineTo(-6, -1); ctx.moveTo(5, 9); ctx.lineTo(9, 5); ctx.stroke();
         ctx.restore();
         let brightBursts = 0;
         for (const e of w.effects) {
