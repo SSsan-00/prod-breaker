@@ -309,10 +309,13 @@ export default function Arena({
         ctx.fillStyle = "#142e25";
         ctx.beginPath(); ctx.roundRect(-11, -12, 22, 17, 4); ctx.fill();
         ctx.fillStyle = "#e5ffa8";
-        ctx.beginPath(); ctx.roundRect(-7, -8, 4, 6, 1); ctx.roundRect(3, -8, 4, 6, 1); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-8, -9); ctx.lineTo(-3, -7); ctx.lineTo(-3, -3); ctx.lineTo(-8, -3); ctx.closePath();
+        ctx.moveTo(8, -9); ctx.lineTo(3, -7); ctx.lineTo(3, -3); ctx.lineTo(8, -3); ctx.closePath();
+        ctx.fill();
         ctx.strokeStyle = "#b4e77e";
         ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(-3, 1); ctx.quadraticCurveTo(0, 3, 3, 1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-3, 1); ctx.quadraticCurveTo(0, 4, 4, 0); ctx.stroke();
         ctx.fillStyle = "#588e3e";
         ctx.fillRect(-8, 11, 9, 2);
         ctx.fillStyle = "#a9f2ed";
