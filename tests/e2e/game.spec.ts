@@ -398,13 +398,16 @@ test("home controls fit without vertical scrolling on compact and landscape phon
 }, info) => {
   test.skip(info.project.name !== "mobile");
   for (const viewport of [
+    { width: 320, height: 480 },
     { width: 320, height: 568 },
     { width: 393, height: 851 },
     { width: 851, height: 393 },
   ]) {
     await page.setViewportSize(viewport);
     await page.goto("/?seed=42");
-    await page.screenshot({ path: `test-results/home-${viewport.width}.png` });
+    await page.screenshot({
+      path: `test-results/home-${viewport.width}x${viewport.height}.png`,
+    });
     await expect(
       page.getByRole("img", { name: "ゲームの主人公、暴走バグ" }),
     ).toBeVisible();
