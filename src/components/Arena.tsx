@@ -281,48 +281,42 @@ export default function Arena({
           ctx.arc(0, 0, 26, 0, Math.PI * 2);
           ctx.stroke();
         }
-        // Layered chitin and jointed limbs mirror the illustrated home mascot.
+        // Compact robot silhouette matches the home-screen mascot.
         ctx.fillStyle = "#0008";
         ctx.beginPath();
-        ctx.ellipse(0, 21, 20, 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 22, 19, 5, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = "#537c35";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#6a9845";
+        ctx.lineWidth = 4;
         ctx.lineCap = "round";
-        for (const y of [-8, 1, 10]) {
-          for (const side of [-1, 1]) {
-            ctx.beginPath();
-            ctx.moveTo(side * 11, y);
-            ctx.lineTo(side * 19, y - 4);
-            ctx.lineTo(side * 23, y + 2);
-            ctx.stroke();
-          }
+        for (const y of [-6, 5]) {
+          ctx.beginPath();
+          ctx.moveTo(-13, y); ctx.lineTo(-20, y);
+          ctx.moveTo(13, y); ctx.lineTo(20, y);
+          ctx.stroke();
         }
-        ctx.strokeStyle = "#a2cf59";
-        ctx.beginPath();
-        ctx.moveTo(-7, -16); ctx.lineTo(-12, -25);
-        ctx.moveTo(7, -16); ctx.lineTo(12, -25);
-        ctx.stroke();
-        const shell = ctx.createLinearGradient(-13, -18, 13, 18);
-        shell.addColorStop(0, "#dcfa8b");
-        shell.addColorStop(0.45, "#83b83e");
-        shell.addColorStop(1, "#284b29");
+        ctx.beginPath(); ctx.moveTo(0, -17); ctx.lineTo(0, -24); ctx.stroke();
+        ctx.fillStyle = "#dfff9d";
+        ctx.beginPath(); ctx.arc(0, -25, 2, 0, Math.PI * 2); ctx.fill();
+        const shell = ctx.createLinearGradient(-14, -18, 14, 19);
+        shell.addColorStop(0, "#e6ffa5");
+        shell.addColorStop(0.5, "#a2d54f");
+        shell.addColorStop(1, "#52782d");
         ctx.fillStyle = shell;
-        ctx.strokeStyle = "#1a3421";
+        ctx.strokeStyle = "#294b2c";
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(0, 2, 14, 19, 0, 0, Math.PI * 2);
-        ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 18); ctx.stroke();
-        ctx.fillStyle = "#527d36";
-        ctx.beginPath(); ctx.ellipse(0, -13, 11, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#152e20";
-        ctx.fillRect(-8, -15, 6, 5); ctx.fillRect(2, -15, 6, 5);
-        ctx.fillStyle = "#eaff9c";
-        ctx.fillRect(-7, -14, 4, 2); ctx.fillRect(3, -14, 4, 2);
-        ctx.strokeStyle = "#d4ee8c99";
+        ctx.beginPath(); ctx.roundRect(-14, -18, 28, 38, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#142e25";
+        ctx.beginPath(); ctx.roundRect(-11, -12, 22, 17, 4); ctx.fill();
+        ctx.fillStyle = "#e5ffa8";
+        ctx.beginPath(); ctx.roundRect(-7, -8, 4, 6, 1); ctx.roundRect(3, -8, 4, 6, 1); ctx.fill();
+        ctx.strokeStyle = "#b4e77e";
         ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(-10, 1); ctx.lineTo(-6, -1); ctx.moveTo(5, 9); ctx.lineTo(9, 5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-3, 1); ctx.quadraticCurveTo(0, 3, 3, 1); ctx.stroke();
+        ctx.fillStyle = "#588e3e";
+        ctx.fillRect(-8, 11, 9, 2);
+        ctx.fillStyle = "#a9f2ed";
+        ctx.fillRect(6, 11, 3, 3);
         ctx.restore();
         let brightBursts = 0;
         for (const e of w.effects) {
