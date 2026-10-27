@@ -169,11 +169,13 @@ test("90-second moving run reaches wave 3 with bounded rendering and no browser 
     await page.keyboard.down(key);
     await page.clock.runFor(1000);
     await page.keyboard.up(key);
-    if (await page.getByTestId("arena").count())
-      maxTime = Number(
-        await page.getByTestId("arena").getAttribute("data-time"),
+    const elapsed = await page
+      .getByTestId("arena")
+      .evaluateAll(
+        (elements) => elements[0]?.getAttribute("data-time") ?? null,
       );
-    else {
+    if (elapsed !== null) maxTime = Number(elapsed);
+    else if (await page.locator(".result").isVisible()) {
       maxTime = parseFloat(await page.locator(".stats b").first().innerText());
       break;
     }

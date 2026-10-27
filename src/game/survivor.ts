@@ -58,7 +58,25 @@ export type UpgradeId =
   | "race"
   | "memory"
   | "config"
-  | "oncall";
+  | "oncall"
+  | "cron"
+  | "batch"
+  | "migration"
+  | "index"
+  | "feature"
+  | "canary"
+  | "cert"
+  | "clock"
+  | "approval"
+  | "review"
+  | "autoscale"
+  | "quota"
+  | "schema"
+  | "contract"
+  | "meeting"
+  | "reboot"
+  | "staging"
+  | "drift";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -276,6 +294,133 @@ export const upgrades: {
     icon: "☎",
     description: "HP回復、ログ回収範囲 +40。眠れない夜に。",
   },
+  {
+    id: "cron",
+    name: "cron多重起動",
+    type: "CHAIN",
+    icon: "⏱",
+    description: "連鎖ダメージ +9。前回のジョブがまだ生きている。",
+  },
+  {
+    id: "batch",
+    name: "バッチの手動再実行",
+    type: "BUG",
+    icon: "▶",
+    description:
+      "持続ダメージ +10、弾ダメージ +5。二重起動ではない、再実行です。",
+  },
+  {
+    id: "migration",
+    name: "無停止マイグレーション",
+    type: "BUG",
+    icon: "⇆",
+    description: "貫通 +1、ダメージ +8。ロックは想定外。",
+  },
+  {
+    id: "index",
+    name: "インデックス貼り忘れ",
+    type: "CHAIN",
+    icon: "▤",
+    description: "連鎖範囲 +25、ダメージ +5。本番データは多かった。",
+  },
+  {
+    id: "feature",
+    name: "フラグ全部ON",
+    type: "BOOST",
+    icon: "⚑",
+    description: "同時発射 +1、BP倍率 +15%。全機能を有効化。",
+  },
+  {
+    id: "canary",
+    name: "カナリア全量配信",
+    type: "BOOST",
+    icon: "↗",
+    description: "攻撃速度 +10%、移動速度 +8%。全員がカナリア。",
+  },
+  {
+    id: "cert",
+    name: "証明書の期限切れ",
+    type: "BUG",
+    icon: "◈",
+    description: "連鎖ダメージ +10、持続ダメージ +6。去年も見た。",
+  },
+  {
+    id: "clock",
+    name: "時刻同期ずれ",
+    type: "CHAIN",
+    icon: "◷",
+    description: "敵の移動速度 -8%、連鎖範囲 +20。時刻だけ別世界。",
+  },
+  {
+    id: "approval",
+    name: "承認待ちのまま緊急リリース",
+    type: "BOOST",
+    icon: "✓",
+    description: "最大HP +20、HP回復 +20。承認は事後で。",
+  },
+  {
+    id: "review",
+    name: "レビューコメント全解決",
+    type: "BUG",
+    icon: "✎",
+    description: "弾ダメージ +12、BP倍率 +10%。指摘は消えた。",
+  },
+  {
+    id: "autoscale",
+    name: "オートスケール暴走",
+    type: "CHAIN",
+    icon: "⇧",
+    description: "同時発射 +1、連鎖範囲 +15。増えれば解決。",
+  },
+  {
+    id: "quota",
+    name: "クォータ上限到達",
+    type: "BOOST",
+    icon: "▥",
+    description: "持続ダメージ +8、HP回復 +15。上限とは聞いてない。",
+  },
+  {
+    id: "schema",
+    name: "スキーマ変更直当て",
+    type: "BUG",
+    icon: "▦",
+    description: "貫通 +1、連鎖ダメージ +7。互換性は未来の課題。",
+  },
+  {
+    id: "contract",
+    name: "API仕様の暗黙変更",
+    type: "CHAIN",
+    icon: "≋",
+    description: "攻撃速度 +8%、ダメージ +6。レスポンスが少しだけ違う。",
+  },
+  {
+    id: "meeting",
+    name: "障害対応会議",
+    type: "BOOST",
+    icon: "☎",
+    description: "最大HP +15、HP回復 +25。まず会議室を探す。",
+  },
+  {
+    id: "reboot",
+    name: "とりあえず再起動",
+    type: "BUG",
+    icon: "⟳",
+    description: "持続ダメージ +8、攻撃速度 +8%。根本原因は元気です。",
+  },
+  {
+    id: "staging",
+    name: "検証環境だけ最新",
+    type: "BOOST",
+    icon: "⌂",
+    description: "移動速度 +10%、BP倍率 +15%。本番も同じはず。",
+  },
+  {
+    id: "drift",
+    name: "構成管理のドリフト",
+    type: "CHAIN",
+    icon: "⇄",
+    description: "連鎖範囲 +30、ログ回収 +30。いつの間にか差分が。",
+  },
 ];
 export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   retry: "timeout",
@@ -294,6 +439,24 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   rollback: "oncall",
   spec: "local",
   local: "spec",
+  cron: "batch",
+  batch: "cron",
+  migration: "index",
+  index: "migration",
+  feature: "canary",
+  canary: "feature",
+  cert: "clock",
+  clock: "cert",
+  approval: "review",
+  review: "approval",
+  autoscale: "quota",
+  quota: "autoscale",
+  schema: "contract",
+  contract: "schema",
+  meeting: "reboot",
+  reboot: "meeting",
+  staging: "drift",
+  drift: "staging",
 };
 
 export type World = {
@@ -594,6 +757,77 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.player.hp = Math.min(w.player.maxHp, w.player.hp + 25);
       w.magnet = Math.min(420, w.magnet + 40);
       break;
+    case "cron":
+      w.chainDamage += 9;
+      break;
+    case "batch":
+      w.aura += 10;
+      w.damage += 5;
+      break;
+    case "migration":
+      w.pierce = Math.min(8, w.pierce + 1);
+      w.damage += 8;
+      break;
+    case "index":
+      w.chainRange = Math.min(400, w.chainRange + 25);
+      w.damage += 5;
+      break;
+    case "feature":
+      w.multishot = Math.min(6, w.multishot + 1);
+      w.multiplier += 0.15;
+      break;
+    case "canary":
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.9);
+      w.speed = Math.min(340, w.speed * 1.08);
+      break;
+    case "cert":
+      w.chainDamage += 10;
+      w.aura += 6;
+      break;
+    case "clock":
+      w.slow = Math.max(0.4, w.slow * 0.92);
+      w.chainRange = Math.min(400, w.chainRange + 20);
+      break;
+    case "approval":
+      w.player.maxHp += 20;
+      w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20);
+      break;
+    case "review":
+      w.damage += 12;
+      w.multiplier += 0.1;
+      break;
+    case "autoscale":
+      w.multishot = Math.min(6, w.multishot + 1);
+      w.chainRange = Math.min(400, w.chainRange + 15);
+      break;
+    case "quota":
+      w.aura += 8;
+      w.player.hp = Math.min(w.player.maxHp, w.player.hp + 15);
+      break;
+    case "schema":
+      w.pierce = Math.min(8, w.pierce + 1);
+      w.chainDamage += 7;
+      break;
+    case "contract":
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92);
+      w.damage += 6;
+      break;
+    case "meeting":
+      w.player.maxHp += 15;
+      w.player.hp = Math.min(w.player.maxHp, w.player.hp + 25);
+      break;
+    case "reboot":
+      w.aura += 8;
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92);
+      break;
+    case "staging":
+      w.speed = Math.min(340, w.speed * 1.1);
+      w.multiplier += 0.15;
+      break;
+    case "drift":
+      w.chainRange = Math.min(400, w.chainRange + 30);
+      w.magnet = Math.min(420, w.magnet + 30);
+      break;
     case "env":
       w.speed = Math.min(340, w.speed * 1.15);
       break;
@@ -663,6 +897,81 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
         w.player.maxHp += 50;
         w.player.hp = w.player.maxHp;
         w.aura += 12;
+      },
+    },
+
+    {
+      name: "二重起動フェスティバル",
+      pair: ["cron", "batch"],
+      apply: () => {
+        w.aura += 20;
+        w.chainDamage += 20;
+      },
+    },
+    {
+      name: "ロック待ちの行列",
+      pair: ["migration", "index"],
+      apply: () => {
+        w.pierce = Math.min(8, w.pierce + 2);
+        w.chainRange = Math.min(400, w.chainRange + 60);
+      },
+    },
+    {
+      name: "全員カナリア",
+      pair: ["feature", "canary"],
+      apply: () => {
+        w.multishot = Math.min(6, w.multishot + 1);
+        w.fireInterval = Math.max(0.12, w.fireInterval * 0.75);
+      },
+    },
+    {
+      name: "期限切れタイムリープ",
+      pair: ["cert", "clock"],
+      apply: () => {
+        w.aura += 20;
+        w.slow = Math.max(0.4, w.slow * 0.8);
+      },
+    },
+    {
+      name: "承認済みということにする",
+      pair: ["approval", "review"],
+      apply: () => {
+        w.player.maxHp += 40;
+        w.player.hp = w.player.maxHp;
+        w.damage += 15;
+      },
+    },
+    {
+      name: "無限スケール上限",
+      pair: ["autoscale", "quota"],
+      apply: () => {
+        w.multishot = Math.min(6, w.multishot + 1);
+        w.aura += 18;
+      },
+    },
+    {
+      name: "互換性は来世で",
+      pair: ["schema", "contract"],
+      apply: () => {
+        w.pierce = Math.min(8, w.pierce + 2);
+        w.damage += 22;
+      },
+    },
+    {
+      name: "再起動の承認会議",
+      pair: ["meeting", "reboot"],
+      apply: () => {
+        w.player.maxHp += 30;
+        w.player.hp = w.player.maxHp;
+        w.aura += 16;
+      },
+    },
+    {
+      name: "環境差分パラダイス",
+      pair: ["staging", "drift"],
+      apply: () => {
+        w.chainRange = Math.min(400, w.chainRange + 65);
+        w.multiplier += 0.5;
       },
     },
   ];
@@ -881,21 +1190,102 @@ export function stepWorld(state: World, input: Input): World {
   }
   return w;
 }
+/** A report depends only on the final run, and never changes on re-render. */
 export function survivorReport(w: World) {
+  const causes = [
+    "善意のパフォーマンス改善",
+    "レビューで「あとで直す」と書いた一行",
+    "手順書には載っていない手動操作",
+    "本番だけ微妙に違う環境変数",
+    "再起動すれば直るという強い信念",
+    "深夜の小さな設定変更",
+    "互換性があるはずだった依存ライブラリ更新",
+    "キャッシュはいつか消えるという楽観",
+    "通知が多すぎたので止めた監視",
+    "昨日は正常に終わったバッチの再実行",
+    "本番データでは試していない検索条件",
+    "コメントアウトされた最後の安全装置",
+    "「影響範囲は限定的」という見積もり",
+    "本番への善意の一括変更",
+    "期限切れを誰も見ていなかった証明書",
+    "仕様書にない仕様への完全対応",
+  ];
+  const preventions = [
+    "金曜日を廃止する。",
+    "リリース前にカレンダーを確認する。",
+    "「ヨシ！」の前に一度だけ中身を見る。",
+    "本番環境に気軽に入れないよう入口を迷路にする。",
+    "再起動ボタンに「本当に？」と三回聞かせる。",
+    "手順書の最終更新日も監視する。",
+    "レビューの「LGTM」に句読点を必須にする。",
+    "休日のデプロイには温かい飲み物を添える。",
+    "アラートを消す前に一度だけ読む。",
+    "「ローカルでは動く」を証拠として採用しない。",
+    "設定変更の前に深呼吸と差分確認を行う。",
+    "復旧BOTにも有給を付与する。",
+    "バッチの開始前に前回のバッチへ生存確認を行う。",
+    "全件更新の前に全員を集合させる。",
+    "「念のため」の再実行を念のため確認する。",
+    "承認ボタンの位置をデプロイボタンから離す。",
+    "期限切れの通知を期限切れにしない。",
+    "影響範囲の欄を「たぶん」以外で埋める。",
+    "原因調査中のまま祝勝会を始めない。",
+    "バックアップの復元方法もバックアップする。",
+  ];
+  const titles =
+    w.destroyed >= 80
+      ? [
+          "本番の破壊神",
+          "稼働率ゼロの錬金術師",
+          "連鎖障害の演出家",
+          "全件更新の覇者",
+          "SLA解体職人",
+          "データセンターの伝説",
+        ]
+      : w.destroyed >= 25
+        ? [
+            "伝説のデグレ職人",
+            "キャッシュを消す者",
+            "影響範囲は全サービス",
+            "秘密の障害職人",
+            "手順書の冒険者",
+          ]
+        : [
+            "原因は調査中",
+            "本番は見ていない",
+            "ヨシ！の達人",
+            "ログの海の漂流者",
+            "再起動見習い",
+          ];
+  if (w.maxCombo >= 20) titles.push("無限リトライの使者", "連鎖反応の支配者");
+  if (w.maxCombo >= 100) titles.push("終わらない障害対応", "アラートの大洪水");
+  if (w.build.includes("friday")) titles.push("金曜の魔術師", "週末を奪う者");
+  if (w.build.includes("local"))
+    titles.push("動作保証はローカル", "私の環境代表");
+  if (w.panicUses >= 3) titles.push("緊急マージの達人", "再起動ボタンの守護者");
+  if (w.evolutions.length >= 1)
+    titles.push("進化したレガシーコード", "複雑性の錬金術師");
+  if (w.phase === "won")
+    titles.push("90秒を超えた何か", "本番を生き延びたバグ");
+  const mix = (salt: number) => {
+    let hash =
+      (w.seed ^
+        Math.imul(w.destroyed + 1, 0x9e3779b1) ^
+        Math.imul(w.maxCombo + 1, 0x85ebca6b) ^
+        salt) >>>
+      0;
+    hash = Math.imul(hash ^ (hash >>> 16), 0x7feb352d) >>> 0;
+    return (hash ^ (hash >>> 15)) >>> 0;
+  };
+  const buildCause = w.build.length
+    ? upgrades.find((u) => u.id === w.build[mix(31) % w.build.length])?.name
+    : undefined;
   return {
-    title:
-      w.destroyed >= 80
-        ? "本番の破壊神"
-        : w.maxCombo >= 20
-          ? "伝説のデグレ職人"
-          : w.build.includes("friday")
-            ? "金曜の魔術師"
-            : w.phase === "won"
-              ? "動作保証はローカル"
-              : "原因は調査中",
-    cause: w.build.length
-      ? upgrades.find((u) => u.id === w.build[w.build.length - 1])!.name
-      : "善意の本番デプロイ",
-    prevention: "金曜日を廃止する。復旧BOTには有給を付与する。",
+    title: titles[mix(1) % titles.length],
+    cause:
+      buildCause && mix(2) % 2 === 0
+        ? `${buildCause} と ${causes[mix(3) % causes.length]}`
+        : causes[mix(3) % causes.length],
+    prevention: preventions[mix(4) % preventions.length],
   };
 }

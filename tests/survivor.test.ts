@@ -4,6 +4,8 @@ import {
   stepWorld,
   chooseUpgrade,
   upgrades,
+  evolutionPartners,
+  survivorReport,
   STEP,
   wave,
   RUN_SECONDS,
@@ -37,16 +39,61 @@ describe("survivor fixed-step engine", () => {
       ["force", "config", "本番直編集"],
       ["oncall", "rollback", "真夜中の復旧会議"],
       ["spec", "local", "動くから仕様"],
+      ["cron", "batch", "二重起動フェスティバル"],
+      ["migration", "index", "ロック待ちの行列"],
+      ["feature", "canary", "全員カナリア"],
+      ["cert", "clock", "期限切れタイムリープ"],
+      ["approval", "review", "承認済みということにする"],
+      ["autoscale", "quota", "無限スケール上限"],
+      ["schema", "contract", "互換性は来世で"],
+      ["meeting", "reboot", "再起動の承認会議"],
+      ["staging", "drift", "環境差分パラダイス"],
     ] as const;
+    expect(recipes).toHaveLength(17);
+    expect(upgrades).toHaveLength(48);
     for (const [a, b, name] of recipes) {
-      let w = createWorld();
-      for (const id of [b, a, a]) {
-        w.phase = "upgrade";
-        w.choices = [id];
-        w = chooseUpgrade(w, id);
+      expect(evolutionPartners[a]).toBe(b);
+      expect(evolutionPartners[b]).toBe(a);
+      for (const order of [
+        [a, b, a],
+        [b, a, a],
+      ] as const) {
+        let w = createWorld();
+        for (const id of order) {
+          w.phase = "upgrade";
+          w.choices = [id];
+          w = chooseUpgrade(w, id);
+        }
+        expect(w.evolutions.filter((x) => x === name)).toHaveLength(1);
       }
-      expect(w.evolutions.filter((x) => x === name)).toHaveLength(1);
     }
+  });
+  it("produces deterministic varied reports even for highly destructive runs", () => {
+    const reports = Array.from({ length: 100 }, (_, seed) => {
+      const w = createWorld(seed);
+      w.destroyed = 120;
+      w.maxCombo = 80;
+      w.build = ["friday", "retry"];
+      return survivorReport(w);
+    });
+    expect(new Set(reports.map((r) => r.title)).size).toBeGreaterThan(5);
+    expect(new Set(reports.map((r) => r.cause)).size).toBeGreaterThan(8);
+    expect(new Set(reports.map((r) => r.prevention)).size).toBeGreaterThan(8);
+    const w = createWorld(7);
+    w.destroyed = 120;
+    expect(survivorReport(w)).toEqual(survivorReport(w));
+    const before = Array.from({ length: 100 }, (_, seed) => {
+      const state = createWorld(seed);
+      state.destroyed = 79;
+      return survivorReport(state).title;
+    });
+    const after = Array.from({ length: 100 }, (_, seed) => {
+      const state = createWorld(seed);
+      state.destroyed = 80;
+      return survivorReport(state).title;
+    });
+    expect(before).not.toContain("本番の破壊神");
+    expect(after).toContain("本番の破壊神");
   });
   it("is reproducible and never mutates its input", () => {
     const a = createWorld(123),
@@ -105,7 +152,7 @@ describe("survivor fixed-step engine", () => {
     expect(b.build).toHaveLength(1);
     expect(a.build).toHaveLength(0);
   });
-  it("applies all 12 upgrade effects", () => {
+  it("applies every upgrade effect", () => {
     for (const u of upgrades) {
       const a = createWorld();
       a.phase = "upgrade";
@@ -115,6 +162,24 @@ describe("survivor fixed-step engine", () => {
       expect(b.choices).toEqual([]);
       expect(b.phase).toBe("playing");
       expect(b.player.hp).toBeLessThanOrEqual(b.player.maxHp);
+      const stats = (w: World) => [
+        w.damage,
+        w.fireInterval,
+        w.multishot,
+        w.pierce,
+        w.speed,
+        w.magnet,
+        w.chainRange,
+        w.chainDamage,
+        w.multiplier,
+        w.aura,
+        w.slow,
+        w.player.hp,
+        w.player.maxHp,
+      ];
+      expect(stats(b), `${u.name} must have a gameplay effect`).not.toEqual(
+        stats(a),
+      );
     }
   });
   it("caps fire rate, shots, movement speed and chain radius", () => {
