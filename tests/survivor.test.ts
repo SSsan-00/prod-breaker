@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  chainPower,
   createWorld,
   stepWorld,
   chooseUpgrade,
@@ -20,6 +21,11 @@ function simulate(w: World, frames: number) {
   return w;
 }
 describe("survivor fixed-step engine", () => {
+  it("rewards chain milestones with predictable propagation power", () => {
+    expect([0, 9, 10, 29, 30, 100].map(chainPower)).toEqual([1, 1, 1.25, 1.25, 1.5, 1.5]);
+    const w = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
+    if (w.combo >= 10) expect(w.effects.some((e) => e.kind === "milestone")).toBe(true);
+  });
   it("supports all durations and finishes at the selected time", () => {
     for (const duration of [90, 180, 300]) {
       const w = createWorld(42, duration);

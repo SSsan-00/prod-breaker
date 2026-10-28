@@ -22,7 +22,7 @@ export type Shot = Vec & {
 export type Pickup = Vec & { id: number; value: number };
 export type Fx = Vec & {
   id: number;
-  kind: "explosion" | "arc" | "hit" | "panic" | "heal";
+  kind: "explosion" | "arc" | "hit" | "panic" | "heal" | "milestone";
   life: number;
   maxLife: number;
   text: string;
@@ -515,7 +515,7 @@ function id(w: World) {
   return ++w.serial;
 }
 function fx(w: World, p: Vec, kind: Fx["kind"], text = "", to?: Vec) {
-  const life = kind === "panic" ? 0.9 : kind === "explosion" ? 0.65 : 0.35;
+  const life = kind === "milestone" ? 1.2 : kind === "panic" ? 0.9 : kind === "explosion" ? 0.65 : 0.35;
   w.effects.push({ ...p, id: id(w), kind, text, life, maxLife: life, to });
 }
 function server(w: World, p: Vec) {
@@ -596,6 +596,10 @@ export function createWorld(seed = 42, duration = RUN_SECONDS): World {
   for (let i = 0; i < 19; i++) spawnServer(w);
   return w;
 }
+/** Chain momentum rewards sustained destruction without adding another pause. */
+export function chainPower(combo: number) {
+  return combo >= 30 ? 1.5 : combo >= 10 ? 1.25 : 1;
+}
 function killChain(w: World, first: Entity, damage: number) {
   const queue = [{ target: first.id, damage }];
   const visits = new Map<number, number>();
@@ -620,18 +624,21 @@ function killChain(w: World, first: Entity, damage: number) {
     w.combo = w.time <= w.comboUntil ? w.combo + 1 : 1;
     w.comboUntil = w.time + 2.8;
     w.maxCombo = Math.max(w.maxCombo, w.combo);
-    w.score += Math.round(
+    const bonus = Math.round(
       (target.kind === "server" ? 100 : target.kind === "boss" ? 1500 : 75) *
         w.multiplier *
         (1 + Math.min(w.combo, 50) * 0.06),
     );
+    w.score = Math.min(Number.MAX_SAFE_INTEGER, w.score + bonus);
+    if ([10, 30, 100].includes(w.combo))
+      fx(w, target, "milestone", w.combo === 100 ? "SYSTEM MELTDOWN" : w.combo === 30 ? "OVERLOAD x1.5" : "OVERLOAD x1.25");
     if (target.kind === "server") w.destroyed++;
     else w.kills++;
     fx(
       w,
       target,
       "explosion",
-      `+${Math.round(100 * w.multiplier)}${w.combo >= 5 ? ` / ${w.combo} CHAIN` : ""}`,
+      `+${bonus}${w.combo >= 5 ? ` / ${w.combo} CHAIN` : ""}`,
     );
     w.pickups.push({
       x: target.x,
@@ -644,7 +651,7 @@ function killChain(w: World, first: Entity, damage: number) {
         fx(w, target, "arc", "", next);
         queue.push({
           target: next.id,
-          damage: w.chainDamage * (target.kind === "boss" ? 2 : 1),
+          damage: w.chainDamage * chainPower(w.combo) * (target.kind === "boss" ? 2 : 1),
         });
       }
     }

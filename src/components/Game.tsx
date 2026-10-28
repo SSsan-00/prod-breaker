@@ -373,7 +373,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.3.9</span>
+              SURVIVOR EDITION <span>↗ V2.4.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -551,7 +551,8 @@ export default function Game() {
                 <div
                   className={`chain-badge ${w.combo >= 100 ? "legendary" : w.combo >= 30 ? "massive" : w.combo >= 10 ? "major" : ""}`}
                 >
-                  <b>{w.combo}</b> CHAIN
+                  <b key={w.combo}>{w.combo}</b> CHAIN
+                  {w.combo >= 10 && <em>連鎖ダメージ ×{w.combo >= 30 ? "1.5" : "1.25"}</em>}
                   <span>
                     {w.combo >= 100
                       ? "PRODUCTION OBLITERATED"
@@ -700,7 +701,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.3.9</span>
+          <span>PROD BREAKER / SURVIVOR V2.4.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

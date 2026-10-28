@@ -381,6 +381,23 @@ export default function Arena({
             ctx.font = "bold 13px monospace";
             ctx.textAlign = "center";
             ctx.fillText(e.text, e.x, e.y - 30 - (reduced ? 0 : progress * 30));
+          } else if (e.kind === "milestone") {
+            if (!reduced) {
+              ctx.strokeStyle = "#d4fa53";
+              ctx.lineWidth = 4 * (1 - progress);
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, 25 + progress * 130, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.strokeStyle = "#73d9ff";
+              ctx.lineWidth = 2 * (1 - progress);
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, 15 + progress * 95, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+            ctx.fillStyle = "#efffb4";
+            ctx.font = "bold 18px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText(e.text, e.x, e.y - 55 - (reduced ? 0 : progress * 20));
           } else if (e.kind === "panic") {
             if (!reduced) {
               ctx.strokeStyle = colors.lime;
