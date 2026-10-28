@@ -77,8 +77,8 @@ describe("survivor fixed-step engine", () => {
       ["publicbucket", "discovery", "知らない公開資産"],
       ["session", "logout", "永遠にログイン中"],
       ["plaintext", "passwordsheet", "みんなのパスワード帳"],
-      ["prepared", "sqlstring", "善意の文字列連結"],
-      ["sanitize", "trusthtml", "全員善意の表示欄"],
+      ["prepared", "sqlstring", "SQLインジェクション発生！"],
+      ["sanitize", "trusthtml", "クロスサイトスクリプティング発生！"],
       ["lottery", "attachment", "至急の当選通知"],
       ["secretlog", "publicchat", "秘密の全体共有"],
     ] as const;

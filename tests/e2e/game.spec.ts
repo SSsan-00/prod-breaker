@@ -600,7 +600,7 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
     }
   }
   await card.click();
-  await expect(page.locator(".evolution-notice")).toContainText("善意の文字列連結");
+  await expect(page.locator(".evolution-notice")).toContainText("SQLインジェクション発生！");
 });
 
 
