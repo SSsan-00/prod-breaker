@@ -59,9 +59,13 @@ describe("survivor fixed-step engine", () => {
       ["timezone", "midnight", "世界同時バッチ祭り"],
       ["secrets", "clipboard", "秘伝の設定コピペ"],
       ["terraform", "manual", "存在しないインフラ"],
+      ["sudo", "token", "永遠の管理者権限"],
+      ["backup", "restore", "復元できない安心"],
+      ["regex", "encoding", "文字化け大正解"],
+      ["queue", "duplicate", "無限二重配送"],
     ] as const;
-    expect(recipes).toHaveLength(21);
-    expect(upgrades).toHaveLength(56);
+    expect(recipes).toHaveLength(25);
+    expect(upgrades).toHaveLength(64);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);
@@ -93,7 +97,8 @@ describe("survivor fixed-step engine", () => {
     expect(evolutionReady(w, "timeout")).toBe(false);
   });
   it("offers an unfinished evolution partner while keeping three distinct choices", () => {
-    for (let seed = 0; seed < 60; seed++) {
+    let offered = 0;
+    for (let seed = 0; seed < 100; seed++) {
       const w = createWorld(seed);
       w.build = ["retry"];
       w.xp = 1000;
@@ -101,10 +106,10 @@ describe("survivor fixed-step engine", () => {
       expect(next.phase).toBe("upgrade");
       expect(next.choices).toHaveLength(3);
       expect(new Set(next.choices).size).toBe(3);
-      expect(next.choices).toContain("timeout");
-      expect(next.choices.some((id) => evolutionReady(next, id))).toBe(true);
+      if (next.choices.includes("timeout")) offered++;
       expect(stepWorld(w, { x: 0, y: 0 }).choices).toEqual(next.choices);
     }
+    expect(offered).toBe(100);
     const completed = createWorld(8);
     completed.build = ["retry", "timeout"];
     completed.evolutions = ["リトライストーム"];
@@ -112,6 +117,15 @@ describe("survivor fixed-step engine", () => {
     const next = stepWorld(completed, { x: 0, y: 0 });
     expect(next.choices.some((id) => evolutionReady(next, id))).toBe(false);
     expect(new Set(next.choices).size).toBe(3);
+  });
+  it("offers a possible evolution starter in every opening choice", () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const w = createWorld(seed);
+      w.xp = 1000;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(next.choices.some((id) => !!evolutionPartners[id])).toBe(true);
+      expect(new Set(next.choices).size).toBe(3);
+    }
   });
   it("produces deterministic varied reports even for highly destructive runs", () => {
     const reports = Array.from({ length: 100 }, (_, seed) => {

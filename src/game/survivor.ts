@@ -78,7 +78,9 @@ export type UpgradeId =
   | "staging"
   | "drift"
   | "lockfile" | "latest" | "timezone" | "midnight"
-  | "secrets" | "clipboard" | "terraform" | "manual";
+  | "secrets" | "clipboard" | "terraform" | "manual"
+  | "sudo" | "token" | "backup" | "restore"
+  | "regex" | "encoding" | "queue" | "duplicate";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -431,6 +433,14 @@ export const upgrades: {
   { id: "clipboard", name: "コピペで設定完了", type: "CHAIN", icon: "▤", description: "連鎖範囲 +25、攻撃力 +8。コメントも一緒に引き継ぐ。" },
   { id: "terraform", name: "手元だけの構成変更", type: "BUG", icon: "◇", description: "貫通 +1、攻撃力 +8。差分はなかったことに。" },
   { id: "manual", name: "職人の手作業", type: "BOOST", icon: "✦", description: "移動速度 +8%、BP倍率 +20%。手順は記憶の中。" },
+  { id: "sudo", name: "権限はとりあえず全部", type: "BUG", icon: "♜", description: "攻撃力 +12、貫通 +1。困ったら管理者権限。" },
+  { id: "token", name: "期限切れトークン", type: "CHAIN", icon: "⌛", description: "連鎖ダメージ +10、敵速度 -8%。更新担当は異動済み。" },
+  { id: "backup", name: "バックアップ成功通知", type: "BOOST", icon: "▣", description: "最大HP +20、HP回復 +20。通知が来たので安心。" },
+  { id: "restore", name: "復元テストは来期", type: "BUG", icon: "↶", description: "持続ダメージ +8、BP倍率 +15%。復元方法は誰かが知っている。" },
+  { id: "regex", name: "正規表現で全部解決", type: "CHAIN", icon: ".*", description: "連鎖範囲 +25、攻撃力 +7。例外も例外なく処理。" },
+  { id: "encoding", name: "文字コードは雰囲気", type: "BUG", icon: "※", description: "貫通 +1、連鎖ダメージ +7。文字化けも仕様のうち。" },
+  { id: "queue", name: "キューは永遠に貯まる", type: "CHAIN", icon: "≋", description: "連鎖範囲 +25、持続ダメージ +7。処理はいつか追いつく。" },
+  { id: "duplicate", name: "二重送信は想定外", type: "BOOST", icon: "Ⅱ", description: "同時発射 +1、BP倍率 +10%。冪等性は次のスプリントで。" },
 ];
 export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   retry: "timeout",
@@ -471,6 +481,8 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   timezone: "midnight", midnight: "timezone",
   secrets: "clipboard", clipboard: "secrets",
   terraform: "manual", manual: "terraform",
+  sudo: "token", token: "sudo", backup: "restore", restore: "backup",
+  regex: "encoding", encoding: "regex", queue: "duplicate", duplicate: "queue",
 };
 
 export const evolutionNames: Partial<Record<UpgradeId, string>> = {
@@ -495,6 +507,10 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   timezone: "世界同時バッチ祭り", midnight: "世界同時バッチ祭り",
   secrets: "秘伝の設定コピペ", clipboard: "秘伝の設定コピペ",
   terraform: "存在しないインフラ", manual: "存在しないインフラ",
+  sudo: "永遠の管理者権限", token: "永遠の管理者権限",
+  backup: "復元できない安心", restore: "復元できない安心",
+  regex: "文字化け大正解", encoding: "文字化け大正解",
+  queue: "無限二重配送", duplicate: "無限二重配送",
 };
 
 export type World = {
@@ -716,12 +732,21 @@ function choices(w: World) {
     const at = Math.floor(random(w) * pool.length);
     result.push(pool.splice(at, 1)[0].id);
   }
-  // Offer one unfinished combination when available, keeping two free choices.
+  // Keep a route to evolution in the choices without removing player agency.
   const eligible = upgrades.filter((card) => evolutionReady(w, card.id));
   if (eligible.length && !result.some((id) => evolutionReady(w, id))) {
     const candidate = eligible[Math.floor(random(w) * eligible.length)].id;
     const slot = Math.floor(random(w) * result.length);
     result[slot] = candidate;
+  } else if (!eligible.length) {
+    const starters = upgrades.filter((card) => {
+      const name = evolutionNames[card.id];
+      return !!evolutionPartners[card.id] && !!name && !w.evolutions.includes(name);
+    });
+    if (starters.length && !result.some((id) => starters.some((card) => card.id === id))) {
+      const candidate = starters[Math.floor(random(w) * starters.length)].id;
+      result[Math.floor(random(w) * result.length)] = candidate;
+    }
   }
   return result;
 }
@@ -912,6 +937,22 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.pierce = Math.min(8, w.pierce + 1); w.damage += 8; break;
     case "manual":
       w.speed = Math.min(340, w.speed * 1.08); w.multiplier += 0.2; break;
+    case "sudo":
+      w.damage += 12; w.pierce = Math.min(8, w.pierce + 1); break;
+    case "token":
+      w.chainDamage += 10; w.slow = Math.max(0.4, w.slow * 0.92); break;
+    case "backup":
+      w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
+    case "restore":
+      w.aura += 8; w.multiplier += 0.15; break;
+    case "regex":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 7; break;
+    case "encoding":
+      w.pierce = Math.min(8, w.pierce + 1); w.chainDamage += 7; break;
+    case "queue":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 7; break;
+    case "duplicate":
+      w.multishot = Math.min(6, w.multishot + 1); w.multiplier += 0.1; break;
     case "env":
       w.speed = Math.min(340, w.speed * 1.15);
       break;
@@ -1045,6 +1086,10 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.timezone!, pair: ["timezone", "midnight"], apply: () => { w.chainRange = Math.min(400, w.chainRange + 60); w.aura += 18; } },
     { name: evolutionNames.secrets!, pair: ["secrets", "clipboard"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 20; } },
     { name: evolutionNames.terraform!, pair: ["terraform", "manual"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.multiplier += 0.5; } },
+    { name: evolutionNames.sudo!, pair: ["sudo", "token"], apply: () => { w.damage += 20; w.chainDamage += 18; } },
+    { name: evolutionNames.backup!, pair: ["backup", "restore"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.aura += 16; } },
+    { name: evolutionNames.regex!, pair: ["regex", "encoding"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainRange = Math.min(400, w.chainRange + 55); } },
+    { name: evolutionNames.queue!, pair: ["queue", "duplicate"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainDamage += 20; } },
   ];
   for (const recipe of recipes)
     if (
