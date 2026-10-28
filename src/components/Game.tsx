@@ -169,8 +169,10 @@ export default function Game() {
         setModal((m) => m || "pause");
     }
     function blur() {
+      // Mobile browsers can emit blur during ordinary touch and focus changes.
+      // Clear movement, but only pause automatically when the page is hidden.
       clearInput();
-      if (screenRef.current === "run") setModal((m) => m || "pause");
+      cancelPauseHold();
     }
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -423,7 +425,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.13.2</span>
+              SURVIVOR EDITION <span>↗ V2.13.3</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -766,7 +768,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.13.2</span>
+          <span>PROD BREAKER / SURVIVOR V2.13.3</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

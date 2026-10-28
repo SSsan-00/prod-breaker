@@ -253,6 +253,8 @@ test("actual touch input and hidden-tab pause", async ({
         ),
       ),
   ).toBe(false);
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
   await topButton.tap();
   await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
   const buttonBox = (await topButton.boundingBox())!;
