@@ -1958,3 +1958,16 @@ footer {
   .survivor .title-screen .text-button:hover,
   .survivor .modal .text-button:hover { color: #eeffc1; border-color: #d4fa53; }
 }
+
+/* Match the replay icon to the start button and center it optically. */
+.survivor .result > .primary .replay-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #20341466;
+  border-radius: 2px;
+  background: #263f171a;
+  font: 20px/1 Arial, sans-serif;
+}

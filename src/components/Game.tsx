@@ -431,7 +431,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.20.0</span>
+              SURVIVOR EDITION <span>↗ V2.20.1</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -769,13 +769,13 @@ export default function Game() {
               </small>
             </article>
             <button className="primary" onClick={start}>
-              もう一度プレイ ↻
+              もう一度プレイ <span className="replay-icon">↻</span>
             </button>
             <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP</p>
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.20.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.20.1</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
