@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { evolutionNames } from "../../src/game/survivor";
 async function choose(page: Page) {
   for (let i = 0; i < 12; i++) {
     const dialog = page.getByRole("dialog", { name: "レベルアップ" });
@@ -550,18 +551,18 @@ test("chain milestone triggers a visible overdrive without another pause", async
 
 test("available evolution is highlighted and selecting it unlocks the combination", async ({ page }, info) => {
   await page.clock.install();
-  await page.goto("/?seed=40");
+  await page.goto("/?seed=10");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
   await page.locator(".panic").click();
   await page.clock.runFor(300);
   const dialog = page.getByRole("dialog", { name: "レベルアップ" });
-  await dialog.getByRole("button", { name: /フラグ全部ON/ }).click();
+  await dialog.getByRole("button", { name: /オートスケール暴走/ }).click();
   await page.clock.runFor(8200);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("強化を1つ選択。選択中はゲームが止まります。" )).toHaveCount(0);
-  const card = dialog.getByRole("button", { name: /カナリア全量配信/ });
+  const card = dialog.getByRole("button", { name: /クォータ上限到達/ });
   await expect(card).toHaveClass(/evolution-ready/);
   await expect(card).toContainText("進化可能");
   await expect(card).toContainText("選ぶと進化");
@@ -575,5 +576,41 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
     }
   }
   await card.click();
-  await expect(page.locator(".evolution-notice")).toContainText("全員カナリア");
+  await expect(page.locator(".evolution-notice")).toContainText("無限スケール上限");
+});
+
+
+test("all cut-in messages fit on a single line on compact screens", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile");
+  await page.clock.install();
+  await page.goto("/?seed=13");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await page.clock.runFor(100);
+  await page.locator(".panic").click();
+  await page.clock.runFor(300);
+  await expect(page.locator(".chain-cutin")).toBeVisible();
+  for (const viewport of [{ width: 320, height: 480 }, { width: 393, height: 851 }, { width: 851, height: 393 }]) {
+    await page.setViewportSize(viewport);
+    const result = await page.evaluate((names) => {
+      const arena = document.querySelector(".arena-shell")!;
+      const sample = document.createElement("div");
+      sample.className = "evolution-notice";
+      sample.innerHTML = "<small>EVOLUTION UNLOCKED</small><strong></strong>";
+      arena.appendChild(sample);
+      const check = (el: Element, text: string) => {
+        el.textContent = text;
+        const range = document.createRange(); range.selectNodeContents(el);
+        return { text, lines: range.getClientRects().length, overflow: el.scrollWidth > el.clientWidth };
+      };
+      const rows = ["OVERLOAD x1.25", "OVERLOAD x1.5", "SYSTEM MELTDOWN"].map(text => check(document.querySelector(".chain-cutin strong")!, text));
+      rows.push(...names.map(text => check(sample.querySelector("strong")!, text)));
+      sample.remove();
+      return rows;
+    }, [...new Set(Object.values(evolutionNames).filter((name): name is string => !!name))]);
+    for (const row of result) {
+      expect(row.lines, `${row.text} at ${viewport.width}x${viewport.height}`).toBe(1);
+      expect(row.overflow, `${row.text} at ${viewport.width}x${viewport.height}`).toBe(false);
+    }
+  }
 });

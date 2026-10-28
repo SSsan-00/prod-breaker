@@ -1147,7 +1147,7 @@ export function stepWorld(state: World, input: Input): World {
   }
   w.spawnTimer -= dt;
   if (w.spawnTimer <= 0) {
-    w.spawnTimer = Math.max(0.4, 1.65 - w.time * 0.012);
+    w.spawnTimer = Math.max(0.38, 1.4 - w.time * 0.012);
     const angle = random(w) * Math.PI * 2;
     const kind = w.time > 15 && random(w) < 0.18 ? "repair" : "drone";
     const hp = kind === "repair" ? 30 : 22 + wave(w) * 7;
@@ -1161,6 +1161,15 @@ export function stepWorld(state: World, input: Input): World {
       label: kind === "repair" ? "AUTO FIX" : "WAF",
       flash: 0,
     });
+    // Later waves add a second attacker on the opposite flank.
+    if (w.time >= 30 && w.entities.length < 95) {
+      w.entities.push({
+        id: id(w),
+        x: clamp(w.player.x - Math.cos(angle) * 460, 20, 1980),
+        y: clamp(w.player.y - Math.sin(angle) * 460, 20, 1980),
+        hp, maxHp: hp, kind: "drone", label: "WAF", flash: 0,
+      });
+    }
   }
   if (
     w.time >= 30 &&
@@ -1222,9 +1231,9 @@ export function stepWorld(state: World, input: Input): World {
     .slice(-100);
   w.serverTimer -= dt;
   if (w.serverTimer <= 0) {
-    w.serverTimer = 1.2;
-    if (w.entities.filter((e) => e.kind === "server").length < 30)
-      for (let i = 0; i < 3; i++) spawnServer(w);
+    w.serverTimer = 1.0;
+    const servers = w.entities.filter((e) => e.kind === "server").length;
+    for (let i = 0; i < Math.min(4, 40 - servers); i++) spawnServer(w);
   }
   for (const p of w.pickups) {
     const d = distance(p, w.player);

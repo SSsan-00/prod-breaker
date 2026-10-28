@@ -193,6 +193,15 @@ describe("survivor fixed-step engine", () => {
     expect(w.time - firstTime).toBeGreaterThanOrEqual(5);
     expect(w.xp).toBeGreaterThan(0);
   });
+  it("adds targets and a flanking enemy in later waves while keeping bounds", () => {
+    const w = createWorld();
+    w.time = 35; w.bossWave = 1; w.spawnTimer = 0; w.serverTimer = 0;
+    const beforeServers = w.entities.filter((e) => e.kind === "server").length;
+    const next = stepWorld(w, { x: 0, y: 0 });
+    expect(next.entities.filter((e) => e.kind === "server").length).toBe(beforeServers + 4);
+    expect(next.entities.filter((e) => e.kind === "drone" || e.kind === "repair").length).toBe(2);
+    expect(next.entities.length).toBeLessThanOrEqual(100);
+  });
   it("activates a temporary faster firing burst at a chain milestone", () => {
     const triggered = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
     expect(triggered.combo).toBeGreaterThanOrEqual(10);
