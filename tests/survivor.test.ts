@@ -149,15 +149,34 @@ describe("survivor fixed-step engine", () => {
     w = chooseUpgrade(w, w.choices[0]);
     w.xp = 1000;
     const banked = w.xp;
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 330; i++) {
       w = stepWorld(w, { x: 0, y: 0 });
       expect(w.phase).toBe("playing");
     }
     expect(w.xp).toBeGreaterThanOrEqual(banked);
-    while (w.phase === "playing" && w.time < firstTime + 7)
+    while (w.phase === "playing" && w.time < firstTime + 13)
       w = stepWorld(w, { x: 0, y: 0 });
     expect(w.phase).toBe("upgrade");
-    expect(w.time - firstTime).toBeGreaterThanOrEqual(6);
+    expect(w.time - firstTime).toBeGreaterThanOrEqual(12);
+    expect(w.xp).toBeGreaterThan(0);
+  });
+  it("keeps banked XP from causing back-to-back upgrades after 30 seconds", () => {
+    let w = createWorld();
+    w.time = 31;
+    w.xp = 1000;
+    w.player.hp = w.player.maxHp = 10000;
+    w = stepWorld(w, { x: 0, y: 0 });
+    expect(w.phase).toBe("upgrade");
+    const firstTime = w.time;
+    w = chooseUpgrade(w, w.choices[0]);
+    for (let i = 0; i < 210; i++) {
+      w = stepWorld(w, { x: 0, y: 0 });
+      expect(w.phase).toBe("playing");
+    }
+    while (w.phase === "playing" && w.time < firstTime + 9)
+      w = stepWorld(w, { x: 0, y: 0 });
+    expect(w.phase).toBe("upgrade");
+    expect(w.time - firstTime).toBeGreaterThanOrEqual(8);
     expect(w.xp).toBeGreaterThan(0);
   });
   it("recharges PANIC at chain milestones without going negative", () => {
