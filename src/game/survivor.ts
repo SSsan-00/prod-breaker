@@ -481,6 +481,10 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   timezone: "midnight", midnight: "timezone",
   secrets: "clipboard", clipboard: "secrets",
   terraform: "manual", manual: "terraform",
+  cache: "dns", dns: "cache", common: "dependency", dependency: "common",
+  test: "deploy", deploy: "test", log: "monitor", monitor: "log",
+  refactor: "merge", merge: "refactor", env: "yolo", yolo: "env",
+  race: "memory", memory: "race",
   sudo: "token", token: "sudo", backup: "restore", restore: "backup",
   regex: "encoding", encoding: "regex", queue: "duplicate", duplicate: "queue",
 };
@@ -507,6 +511,13 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   timezone: "世界同時バッチ祭り", midnight: "世界同時バッチ祭り",
   secrets: "秘伝の設定コピペ", clipboard: "秘伝の設定コピペ",
   terraform: "存在しないインフラ", manual: "存在しないインフラ",
+  cache: "世界中に古い情報", dns: "世界中に古い情報",
+  common: "全社共通の爆心地", dependency: "全社共通の爆心地",
+  test: "本番がテスト環境", deploy: "本番がテスト環境",
+  log: "監視なきログの海", monitor: "監視なきログの海",
+  refactor: "衝突だらけの大改修", merge: "衝突だらけの大改修",
+  env: "環境変数ヨシ！", yolo: "環境変数ヨシ！",
+  race: "競合する記憶", memory: "競合する記憶",
   sudo: "永遠の管理者権限", token: "永遠の管理者権限",
   backup: "復元できない安心", restore: "復元できない安心",
   regex: "文字化け大正解", encoding: "文字化け大正解",
@@ -1090,6 +1101,13 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.backup!, pair: ["backup", "restore"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.aura += 16; } },
     { name: evolutionNames.regex!, pair: ["regex", "encoding"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainRange = Math.min(400, w.chainRange + 55); } },
     { name: evolutionNames.queue!, pair: ["queue", "duplicate"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainDamage += 20; } },
+    { name: evolutionNames.cache!, pair: ["cache", "dns"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainRange = Math.min(400, w.chainRange + 55); } },
+    { name: evolutionNames.common!, pair: ["common", "dependency"], apply: () => { w.chainDamage += 28; w.damage += 15; } },
+    { name: evolutionNames.test!, pair: ["test", "deploy"], apply: () => { w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); w.multiplier += 0.4; } },
+    { name: evolutionNames.log!, pair: ["log", "monitor"], apply: () => { w.magnet = Math.min(420, w.magnet + 70); w.slow = Math.max(0.4, w.slow * 0.8); } },
+    { name: evolutionNames.refactor!, pair: ["refactor", "merge"], apply: () => { w.damage += 25; w.multishot = Math.min(6, w.multishot + 1); } },
+    { name: evolutionNames.env!, pair: ["env", "yolo"], apply: () => { w.speed = Math.min(340, w.speed * 1.15); w.fireInterval = Math.max(0.12, w.fireInterval * 0.85); } },
+    { name: evolutionNames.race!, pair: ["race", "memory"], apply: () => { w.aura += 18; w.chainDamage += 20; } },
   ];
   for (const recipe of recipes)
     if (

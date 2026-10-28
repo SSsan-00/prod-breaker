@@ -7,6 +7,7 @@ import {
   chooseUpgrade,
   upgrades,
   evolutionPartners,
+  evolutionNames,
   evolutionReady,
   wave,
   survivorReport,
@@ -374,7 +375,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.10.0</span>
+              SURVIVOR EDITION <span>↗ V2.11.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -625,6 +626,7 @@ export default function Game() {
                     {w.choices.map((id) => {
                       const u = upgrades.find((u) => u.id === id)!;
                       const ready = evolutionReady(w, id);
+                      const evolved = !!evolutionNames[id] && w.evolutions.includes(evolutionNames[id]!);
                       return (
                         <motion.button
                           autoFocus={id === w.choices[0]}
@@ -635,7 +637,7 @@ export default function Game() {
                         >
                           <div className="card-top">
                             <span className={u.type}>{u.type}</span>
-                            <small>{ready ? "✦ 進化可能" : "STACKABLE"}</small>
+                            <small>{ready ? "✦ 選ぶと進化！" : evolved ? "進化済み" : "STACKABLE"}</small>
                           </div>
                           <div className="card-art">{u.icon}</div>
                           <h3>{u.name}</h3>
@@ -648,7 +650,7 @@ export default function Game() {
                                   (card) => card.id === evolutionPartners[id],
                                 )?.name
                               }{" "}
-                              {ready ? " を取得済み → 選ぶと進化！" : " と組み合わせで進化"}
+                              {ready ? " を取得済み → 選ぶと進化！" : evolved ? " との進化は発動済み" : " と組み合わせで進化"}
                             </small>
                           )}
                           <span className="choose-label">
@@ -711,7 +713,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.10.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.11.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

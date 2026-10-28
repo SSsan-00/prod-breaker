@@ -564,7 +564,7 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
   await expect(dialog.getByText("強化を1つ選択。選択中はゲームが止まります。" )).toHaveCount(0);
   const card = dialog.getByRole("button", { name: /クォータ上限到達/ });
   await expect(card).toHaveClass(/evolution-ready/);
-  await expect(card).toContainText("進化可能");
+  await expect(card).toContainText("選ぶと進化！");
   await expect(card).toContainText("選ぶと進化");
   if (info.project.name === "mobile") {
     for (const viewport of [{ width: 320, height: 568 }, { width: 851, height: 393 }]) {

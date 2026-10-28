@@ -63,8 +63,15 @@ describe("survivor fixed-step engine", () => {
       ["backup", "restore", "復元できない安心"],
       ["regex", "encoding", "文字化け大正解"],
       ["queue", "duplicate", "無限二重配送"],
+      ["cache", "dns", "世界中に古い情報"],
+      ["common", "dependency", "全社共通の爆心地"],
+      ["test", "deploy", "本番がテスト環境"],
+      ["log", "monitor", "監視なきログの海"],
+      ["refactor", "merge", "衝突だらけの大改修"],
+      ["env", "yolo", "環境変数ヨシ！"],
+      ["race", "memory", "競合する記憶"],
     ] as const;
-    expect(recipes).toHaveLength(25);
+    expect(recipes).toHaveLength(32);
     expect(upgrades).toHaveLength(64);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
@@ -124,6 +131,18 @@ describe("survivor fixed-step engine", () => {
       w.xp = 1000;
       const next = stepWorld(w, { x: 0, y: 0 });
       expect(next.choices.some((id) => !!evolutionPartners[id])).toBe(true);
+      expect(new Set(next.choices).size).toBe(3);
+    }
+  });
+  it("offers an evolution partner after choosing any first upgrade", () => {
+    for (const upgrade of upgrades) {
+      const world = createWorld(42);
+      world.phase = "upgrade";
+      world.choices = [upgrade.id];
+      const selected = chooseUpgrade(world, upgrade.id);
+      selected.xp = 1000;
+      const next = stepWorld(selected, { x: 0, y: 0 });
+      expect(next.choices.some((id) => evolutionReady(next, id)), upgrade.name).toBe(true);
       expect(new Set(next.choices).size).toBe(3);
     }
   });
