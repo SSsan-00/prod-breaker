@@ -510,3 +510,20 @@ test("home mascot stays visible, respects reduced motion and does not obstruct s
   await page.getByRole("button", { name: /GAME START/ }).click();
   await expect(page.getByTestId("timer")).toBeVisible();
 });
+
+test("chain milestone triggers a visible overdrive without another pause", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/?seed=13");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await page.clock.runFor(100);
+  await page.locator(".panic").click();
+  await page.clock.runFor(300);
+  const dialog = page.getByRole("dialog", { name: "レベルアップ" });
+  await expect(dialog).toBeVisible();
+  await dialog.locator(".upgrade-card").first().click();
+  await expect(page.getByText("OVERDRIVE", { exact: true })).toBeVisible();
+  await page.clock.runFor(1000);
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText("OVERDRIVE", { exact: true })).toBeVisible();
+});

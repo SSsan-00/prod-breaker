@@ -491,6 +491,7 @@ export type World = {
   combo: number;
   maxCombo: number;
   comboUntil: number;
+  overdriveUntil: number;
   destroyed: number;
   kills: number;
   level: number;
@@ -572,6 +573,7 @@ export function createWorld(seed = 42, duration = RUN_SECONDS): World {
     combo: 0,
     maxCombo: 0,
     comboUntil: 0,
+    overdriveUntil: 0,
     destroyed: 0,
     kills: 0,
     level: 1,
@@ -647,6 +649,8 @@ function killChain(w: World, first: Entity, damage: number) {
     if ([10, 30, 100].includes(w.combo)) {
       // Milestones recharge PANIC once per crossing, including during a cascade.
       w.panicCooldown = Math.max(0, w.panicCooldown - 2);
+      // A short automatic burst rewards a chain without interrupting movement.
+      w.overdriveUntil = Math.min(w.time + 10, Math.max(w.overdriveUntil, w.time) + (w.combo === 10 ? 5 : 3));
       fx(w, target, "milestone", w.combo === 100 ? "SYSTEM MELTDOWN" : w.combo === 30 ? "OVERLOAD x1.5" : "OVERLOAD x1.25");
     }
     if (target.kind === "server") w.destroyed++;
@@ -1069,7 +1073,7 @@ export function stepWorld(state: World, input: Input): World {
   if (w.time > w.comboUntil) w.combo = 0;
   w.shotTimer -= dt;
   if (w.shotTimer <= 0) {
-    w.shotTimer += w.fireInterval;
+    w.shotTimer += w.fireInterval * (w.time < w.overdriveUntil ? 0.65 : 1);
     const live = w.entities
       .filter((e) => e.hp > 0 && distance(e, w.player) < 510)
       .sort((a, b) => {

@@ -1715,3 +1715,9 @@ footer {
 @keyframes evolution-entrance { from { opacity: 0; transform: translate(-50%, -50%) scale(.85); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 .reduced .level-dialog, .reduced .upgrade-card, .reduced .evolution-notice { animation: none; }
 @media (prefers-reduced-motion: reduce) { .level-dialog, .upgrade-card, .evolution-notice { animation: none; } }
+
+.overdrive-badge { position: absolute; right: 16px; top: 102px; pointer-events: none; text-align: right; color: #b8f7ff; text-shadow: 0 0 12px #50cfff; font: bold 12px monospace; }
+.overdrive-badge span { display: block; color: #d5f8ee; font: 10px sans-serif; margin-top: 3px; }
+.reduced .overdrive-badge { text-shadow: none; }
+@media (max-width: 700px) { .overdrive-badge { top: 86px; right: 10px; font-size: 10px; } .overdrive-badge span { font-size: 9px; } }
+@media (prefers-reduced-motion: reduce) { .overdrive-badge { text-shadow: none; } }

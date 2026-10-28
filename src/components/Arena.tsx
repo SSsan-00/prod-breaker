@@ -281,6 +281,15 @@ export default function Arena({
           ctx.arc(0, 0, 26, 0, Math.PI * 2);
           ctx.stroke();
         }
+        if (w.time < w.overdriveUntil) {
+          ctx.strokeStyle = reduced ? "#b4dc75" : "#7de6ff";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([7, 5]);
+          ctx.beginPath();
+          ctx.arc(0, 0, 31 + (reduced ? 0 : Math.sin(w.time * 8) * 2), 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
         // Compact robot silhouette matches the home-screen mascot.
         ctx.fillStyle = "#0008";
         ctx.beginPath();

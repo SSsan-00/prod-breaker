@@ -179,6 +179,22 @@ describe("survivor fixed-step engine", () => {
     expect(w.time - firstTime).toBeGreaterThanOrEqual(8);
     expect(w.xp).toBeGreaterThan(0);
   });
+  it("activates a temporary faster firing burst at a chain milestone", () => {
+    const triggered = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
+    expect(triggered.combo).toBeGreaterThanOrEqual(10);
+    expect(triggered.overdriveUntil).toBeGreaterThan(triggered.time);
+    const active = createWorld();
+    active.overdriveUntil = 10;
+    const normal = createWorld();
+    const fastStep = stepWorld(active, { x: 0, y: 0 });
+    const normalStep = stepWorld(normal, { x: 0, y: 0 });
+    expect(fastStep.shotTimer).toBeCloseTo(normal.fireInterval * 0.65 - STEP);
+    expect(normalStep.shotTimer).toBeCloseTo(normal.fireInterval - STEP);
+    const expired = createWorld();
+    expired.time = 10;
+    expired.overdriveUntil = 10;
+    expect(stepWorld(expired, { x: 0, y: 0 }).shotTimer).toBeCloseTo(normal.fireInterval - STEP);
+  });
   it("recharges PANIC at chain milestones without going negative", () => {
     const w = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
     expect(w.combo).toBeGreaterThanOrEqual(10);
