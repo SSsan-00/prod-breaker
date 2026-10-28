@@ -654,3 +654,25 @@ test("all cut-in messages fit on a single line on compact screens", async ({ pag
     }
   }
 });
+
+test("result collapse plays after the score and respects reduced motion", async ({ page }, info) => {
+  await page.clock.install();
+  await page.goto("/?seed=42");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /QUICK/ }).click();
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  for (let i = 0; i < 110; i++) {
+    await choose(page);
+    if (await page.locator(".result").isVisible()) break;
+    await page.clock.runFor(1000);
+  }
+  const result = page.locator(".result");
+  await expect(result).toBeVisible();
+  await expect(result.locator(".result-score")).toBeVisible();
+  const animation = await result.evaluate((el) => getComputedStyle(el).animationName);
+  expect(animation).toBe(info.project.name === "mobile" ? "none" : "result-collapse");
+  await page.clock.runFor(2500);
+  expect(await result.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+  await page.getByRole("button", { name: "もう一度プレイ ↻" }).click();
+  await expect(page.getByTestId("health")).toHaveText("100 / 100");
+});
