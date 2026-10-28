@@ -274,7 +274,7 @@ describe("survivor fixed-step engine", () => {
     const next = stepWorld(w, { x: 0, y: 0 });
     expect(wave(next)).toBe(2);
     expect(next.effects.filter((e) => e.kind === "wave").map((e) => e.text)).toEqual(["WAVE 02"]);
-    expect(next.entities.find((e) => e.kind === "boss")?.maxHp).toBe(485);
+    expect(next.entities.find((e) => e.kind === "boss")?.maxHp).toBe(580);
     const drone = next.entities.find((e) => e.kind === "drone");
     expect(drone?.maxHp).toBe(38);
     const after = stepWorld(next, { x: 0, y: 0 });
