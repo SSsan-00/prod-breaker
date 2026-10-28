@@ -1250,16 +1250,21 @@ export function stepWorld(state: World, input: Input): World {
     w.bossWave = Math.floor(w.time / 30);
     w.bossSpawned = true;
     enteredWave = true;
-    w.entities.push({
-      id: id(w),
-      x: clamp(w.player.x + 350, 40, 1960),
-      y: w.player.y,
-      hp: 275 + w.bossWave * 210,
-      maxHp: 275 + w.bossWave * 210,
-      kind: "boss",
-      label: "SRE CORE",
-      flash: 0,
-    });
+    // Wave 2 brings one core, wave 3 brings two, and so on.
+    const count = w.bossWave;
+    for (let i = 0; i < count; i++) {
+      const angle = (i * Math.PI * 2) / count;
+      w.entities.push({
+        id: id(w),
+        x: clamp(w.player.x + Math.cos(angle) * 350, 40, 1960),
+        y: clamp(w.player.y + Math.sin(angle) * 350, 40, 1960),
+        hp: 275 + w.bossWave * 210,
+        maxHp: 275 + w.bossWave * 210,
+        kind: "boss",
+        label: "SRE CORE",
+        flash: 0,
+      });
+    }
     fx(w, w.player, "panic", "SRE CORE ONLINE");
   }
   for (const e of w.entities) {
@@ -1296,11 +1301,15 @@ export function stepWorld(state: World, input: Input): World {
     }
   }
   // Keep distant entities and logs bounded, and populate the region being explored.
-  w.entities = w.entities
-    .filter(
-      (e) => e.hp > 0 && (e.kind === "boss" || distance(e, w.player) < 850),
-    )
-    .slice(-100);
+  const nearby = w.entities.filter(
+    (e) => e.hp > 0 && (e.kind === "boss" || distance(e, w.player) < 850),
+  );
+  if (nearby.length > 100) {
+    const bosses = nearby.filter((e) => e.kind === "boss").slice(-100);
+    const others = nearby.filter((e) => e.kind !== "boss");
+    const remaining = 100 - bosses.length;
+    w.entities = [...(remaining ? others.slice(-remaining) : []), ...bosses];
+  } else w.entities = nearby;
   w.serverTimer -= dt;
   if (w.serverTimer <= 0) {
     w.serverTimer = 1.0;

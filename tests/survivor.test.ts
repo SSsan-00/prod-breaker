@@ -421,15 +421,28 @@ describe("survivor fixed-step engine", () => {
     ];
     expect(stepWorld(a, { x: 0, y: 0 }).entities[0].hp).toBeGreaterThan(10);
   });
-  it("advances waves and spawns the boss once", () => {
+  it("advances waves and spawns the increasing number of bosses once", () => {
     let a = createWorld();
     a.time = 60 - STEP;
     const b = stepWorld(a, { x: 0, y: 0 });
     expect(wave(b)).toBe(3);
     expect(b.bossSpawned).toBe(true);
-    expect(b.entities.filter((e) => e.kind === "boss")).toHaveLength(1);
+    expect(b.entities.filter((e) => e.kind === "boss")).toHaveLength(2);
     a = stepWorld(b, { x: 0, y: 0 });
-    expect(a.entities.filter((e) => e.kind === "boss")).toHaveLength(1);
+    expect(a.entities.filter((e) => e.kind === "boss")).toHaveLength(2);
+  });
+  it("spawns one additional core per wave without exceeding the entity cap", () => {
+    for (let waveNumber = 2; waveNumber <= 10; waveNumber++) {
+      const w = createWorld(42, 300);
+      w.time = (waveNumber - 1) * 30 - STEP / 2;
+      w.bossWave = waveNumber - 2;
+      w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      const bosses = next.entities.filter((e) => e.kind === "boss");
+      expect(bosses).toHaveLength(waveNumber - 1);
+      expect(new Set(bosses.map((e) => e.id)).size).toBe(waveNumber - 1);
+      expect(next.entities.length).toBeLessThanOrEqual(100);
+    }
   });
   it("wins at 90 seconds and freezes terminal states", () => {
     const a = createWorld();
