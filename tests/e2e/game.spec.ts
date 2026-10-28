@@ -106,10 +106,14 @@ test("real-time movement, auto fire, upgrades, panic, pause, saved settings and 
     path: `test-results/${info.project.name}-arena-v2.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "設定", exact: true }).click();
+  if (info.project.name === "mobile") {
+    await page.getByRole("button", { name: "一時停止" }).click();
+    await page.getByRole("button", { name: "設定を開く →" }).click();
+  } else await page.getByRole("button", { name: "設定", exact: true }).click();
   await page.getByLabel("演出を軽減").check();
+  if (info.project.name === "mobile") await page.getByLabel("ミュート", { exact: true }).uncheck();
   await page.getByRole("button", { name: "ゲームに戻る →" }).click();
-  await page.getByRole("button", { name: "ミュート切替" }).click();
+  if (info.project.name === "desktop") await page.getByRole("button", { name: "ミュート切替" }).click();
   // Let the unpiloted bug get caught, exercising the actual game-over path.
   for (let i = 0; i < 105; i++) {
     await choose(page);
@@ -227,7 +231,9 @@ test("actual touch input and hidden-tab pause", async ({
   await page.getByRole("button", { name: /QUICK/ }).click();
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
-  const topButton = page.getByRole("button", { name: "ミュート切替" });
+  const topButton = page.getByRole("button", { name: "一時停止" });
+  await expect(page.getByRole("button", { name: "設定", exact: true })).toBeHidden();
+  await expect(topButton).toContainText("長押し");
   expect(
     await topButton.evaluate((el) => getComputedStyle(el).userSelect),
   ).toBe("none");
@@ -254,18 +260,23 @@ test("actual touch input and hidden-tab pause", async ({
     y: buttonBox.y + buttonBox.height / 2,
     id: 3,
   };
-  await touch.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [point],
-  });
-  await page.clock.runFor(900);
-  await touch.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
-  });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
   await page.clock.runFor(100);
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.clock.runFor(100);
+  await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...point, x: point.x - 35 }] });
+  await page.clock.runFor(700);
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+  await page.clock.runFor(700);
+  await expect(page.getByRole("dialog", { name: "一時停止" })).toBeVisible();
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.getByRole("button", { name: "ゲームに戻る →" }).click();
   expect(await page.evaluate(() => String(window.getSelection()))).toBe("");
-  await expect(topButton).toContainText("SOUND ON");
+  await choose(page);
   const initial = Number(
     await page.getByTestId("arena").getAttribute("data-player-x"),
   );

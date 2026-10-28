@@ -34,7 +34,10 @@ export default function Game() {
     }),
     keys = useRef(new Set<string>()),
     panicPending = useRef(false),
-    frameRef = useRef(0);
+    frameRef = useRef(0),
+    pauseHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    pauseTouch = useRef<{ x: number; y: number } | null>(null),
+    suppressPauseClick = useRef(false);
   const [snapshot, setSnapshot] = useState<World>(initialWorld),
     [screen, setScreen] = useState<Screen>("title"),
     [modal, setModal] = useState<Modal>(null),
@@ -50,6 +53,14 @@ export default function Game() {
     const timer = setTimeout(() => setEvolutionNotice(""), 2000);
     return () => clearTimeout(timer);
   }, [evolutionNotice]);
+  useEffect(() => () => {
+    if (pauseHoldTimer.current) clearTimeout(pauseHoldTimer.current);
+  }, []);
+  function cancelPauseHold() {
+    if (pauseHoldTimer.current) clearTimeout(pauseHoldTimer.current);
+    pauseHoldTimer.current = null;
+    pauseTouch.current = null;
+  }
   const settingsRef = useRef(settings);
   const screenRef = useRef(screen);
   const modalRef = useRef(modal);
@@ -330,6 +341,7 @@ export default function Game() {
               } else setScreen("title");
             }}
             aria-label="PROD BREAKER ホーム"
+            disabled={screen === "run"}
           >
             P<span>▰</span>B{" "}
             <small>
@@ -339,6 +351,7 @@ export default function Game() {
           <div className="header-right">
             <span className="sandbox">● SIMULATION ONLY</span>
             <button
+              className="header-sound"
               aria-label="ミュート切替"
               onClick={() => updateSettings({ mute: !settings.mute })}
             >
@@ -346,16 +359,44 @@ export default function Game() {
             </button>
             {screen === "run" && (
               <button
+                className="header-pause"
                 aria-label="一時停止"
-                onClick={() => {
+                onPointerDown={(event) => {
+                  cancelPauseHold();
+                  suppressPauseClick.current = event.pointerType === "touch";
+                  if (event.pointerType !== "touch") return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  pauseTouch.current = { x: event.clientX, y: event.clientY };
+                  pauseHoldTimer.current = setTimeout(() => {
+                    pauseHoldTimer.current = null;
+                    pauseTouch.current = null;
+                    clearInput();
+                    setModal("pause");
+                  }, 600);
+                }}
+                onPointerMove={(event) => {
+                  const start = pauseTouch.current;
+                  if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 14)
+                    cancelPauseHold();
+                }}
+                onPointerUp={cancelPauseHold}
+                onPointerCancel={cancelPauseHold}
+                onLostPointerCapture={cancelPauseHold}
+                onClick={(event) => {
+                  if (event.detail !== 0 && suppressPauseClick.current) {
+                    suppressPauseClick.current = false;
+                    return;
+                  }
+                  suppressPauseClick.current = false;
                   clearInput();
                   setModal("pause");
                 }}
               >
-                Ⅱ
+                Ⅱ<span className="hold-hint">長押し</span>
               </button>
             )}
             <button
+              className="header-settings"
               aria-label="設定"
               onClick={() => {
                 clearInput();
@@ -379,7 +420,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.13.0</span>
+              SURVIVOR EDITION <span>↗ V2.13.1</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -722,7 +763,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.13.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.13.1</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
