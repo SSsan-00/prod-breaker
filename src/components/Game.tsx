@@ -20,6 +20,29 @@ import {
 import Arena, { type Stick } from "./Arena";
 import { read, write } from "@/lib/storage";
 import { sound, startMusic } from "@/effects/audio";
+const levelUpMessages = [
+  "もっと、壊せる。",
+  "本番は、まだ動いている。",
+  "障害に、伸びしろを。",
+  "その修正、火に油。",
+  "デプロイは止まらない。",
+  "本番に、新たな刺激を。",
+  "これは成長か、事故か。",
+  "エラーの先へ。",
+  "障害は、ここからが本番。",
+  "善意を、武器に。",
+  "監視が追いつかない。",
+  "まだ慌てる時間じゃない。",
+  "次の一手が、伝説になる。",
+  "強くなったのは、バグです。",
+  "予定通り、想定外。",
+  "本番に、もう一撃。",
+  "その自信が、障害を呼ぶ。",
+  "稼働率より、可能性。",
+  "バグにも、キャリアアップを。",
+  "ここからが炎上の見せ場。",
+] as const;
+
 type Settings = { mute: boolean; volume: number; reduced: boolean };
 type Screen = "title" | "run" | "result";
 type Modal = "settings" | "help" | "pause" | null;
@@ -431,7 +454,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.20.2</span>
+              SURVIVOR EDITION <span>↗ V2.20.3</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -681,7 +704,7 @@ export default function Game() {
                   <div className="eyebrow">DEPLOY ANOTHER BAD IDEA</div>
                   <h2>
                     LEVEL {w.level}
-                    <span>もっと、壊せる。</span>
+                    <span>{levelUpMessages[((w.seed >>> 0) + w.level) % levelUpMessages.length]}</span>
                   </h2>
                   <div className="upgrade-cards">
                     {w.choices.map((id) => {
@@ -775,7 +798,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.20.2</span>
+          <span>PROD BREAKER / SURVIVOR V2.20.3</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
