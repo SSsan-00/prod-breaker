@@ -132,6 +132,24 @@ describe("survivor fixed-step engine", () => {
     expect(a.choices).toHaveLength(3);
     expect(new Set(a.choices).size).toBe(3);
   });
+  it("spaces opening upgrades while preserving earned XP", () => {
+    let w = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
+    expect(w.phase).toBe("upgrade");
+    const firstTime = w.time;
+    w = chooseUpgrade(w, w.choices[0]);
+    w.xp = 1000;
+    const banked = w.xp;
+    for (let i = 0; i < 150; i++) {
+      w = stepWorld(w, { x: 0, y: 0 });
+      expect(w.phase).toBe("playing");
+    }
+    expect(w.xp).toBeGreaterThanOrEqual(banked);
+    while (w.phase === "playing" && w.time < firstTime + 7)
+      w = stepWorld(w, { x: 0, y: 0 });
+    expect(w.phase).toBe("upgrade");
+    expect(w.time - firstTime).toBeGreaterThanOrEqual(6);
+    expect(w.xp).toBeGreaterThan(0);
+  });
   it("prevents repeated panic during cooldown", () => {
     let a = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
     a = chooseUpgrade(a, a.choices[0]);

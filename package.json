@@ -1,6 +1,6 @@
 {
   "name": "prod-breaker",
-  "version": "2.3.8",
+  "version": "2.3.9",
   "description": "A cyberpunk survivor game with cascading server explosions and incident reports.",
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",

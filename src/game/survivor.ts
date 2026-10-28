@@ -482,6 +482,7 @@ export type World = {
   level: number;
   xp: number;
   nextXp: number;
+  nextUpgradeAt: number;
   choices: UpgradeId[];
   build: UpgradeId[];
   damage: number;
@@ -562,6 +563,7 @@ export function createWorld(seed = 42, duration = RUN_SECONDS): World {
     level: 1,
     xp: 0,
     nextXp: 5,
+    nextUpgradeAt: 0,
     choices: [],
     build: [],
     damage: 18,
@@ -1180,9 +1182,11 @@ export function stepWorld(state: World, input: Input): World {
   w.effects = w.effects.slice(-100);
   if (w.player.hp <= 0) w.phase = "lost";
   else if (w.time >= w.duration) w.phase = "won";
-  else if (w.xp >= w.nextXp) {
+  else if (w.xp >= w.nextXp && w.time >= w.nextUpgradeAt) {
     w.xp -= w.nextXp;
     w.level++;
+    // Bank XP during the opening so consecutive upgrades cannot interrupt play.
+    w.nextUpgradeAt = w.time < 30 ? w.time + 6 : w.time;
     w.nextXp = Math.round(w.nextXp * 1.25 + 2);
     w.choices = choices(w);
     w.phase = "upgrade";
