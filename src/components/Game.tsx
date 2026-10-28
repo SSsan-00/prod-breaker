@@ -454,7 +454,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.20.4</span>
+              SURVIVOR EDITION <span>↗ V2.20.5</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -595,6 +595,23 @@ export default function Game() {
                   />
                 </div>
               </div>
+              {!evolutionNotice && w.effects.filter((effect) => effect.kind === "wave").slice(-1).map((effect) => (
+                <div className="chain-cutin wave-cutin" key={effect.id} role="status" data-testid="wave-cutin">
+                  <small>INCOMING INCIDENT</small><strong>{effect.text}</strong><span>復旧部隊、増援到着。</span>
+                </div>
+              ))}
+              {!evolutionNotice && !w.effects.some((effect) => effect.kind === "wave") && w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
+                <div className="chain-cutin" key={effect.id} aria-hidden="true">
+                  <small>CHAIN REACTION</small><strong>{effect.text}</strong><span>本番、炎上中。</span>
+                </div>
+              ))}
+              {evolutionNotice && (
+                <div className="evolution-notice" role="status">
+                  <small>EVOLUTION UNLOCKED</small>
+                  <strong>{evolutionNotice}</strong>
+                  <span className="evolution-bonus-notice">{evolutionBonusNotice.join(" / ")}</span>
+                </div>
+              )}
             </div>
             <div
               className="arena-shell"
@@ -645,26 +662,9 @@ export default function Game() {
                   </span>
                 </div>
               )}
-              {!evolutionNotice && w.effects.filter((effect) => effect.kind === "wave").slice(-1).map((effect) => (
-                <div className="chain-cutin wave-cutin" key={effect.id} role="status" data-testid="wave-cutin">
-                  <small>INCOMING INCIDENT</small><strong>{effect.text}</strong><span>復旧部隊、増援到着。</span>
-                </div>
-              ))}
-              {!evolutionNotice && !w.effects.some((effect) => effect.kind === "wave") && w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
-                <div className="chain-cutin" key={effect.id} aria-hidden="true">
-                  <small>CHAIN REACTION</small><strong>{effect.text}</strong><span>本番、炎上中。</span>
-                </div>
-              ))}
               {w.time < w.overdriveUntil && (
                 <div className="overdrive-badge" role="status">
                   <b>OVERDRIVE</b><span>攻撃速度アップ / {Math.ceil(w.overdriveUntil - w.time)}s</span>
-                </div>
-              )}
-              {evolutionNotice && (
-                <div className="evolution-notice" role="status">
-                  <small>EVOLUTION UNLOCKED</small>
-                  <strong>{evolutionNotice}</strong>
-                  <span className="evolution-bonus-notice">{evolutionBonusNotice.join(" / ")}</span>
                 </div>
               )}
               <div className="arena-bottomline">
@@ -798,7 +798,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.20.4</span>
+          <span>PROD BREAKER / SURVIVOR V2.20.5</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
