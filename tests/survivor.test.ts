@@ -70,9 +70,15 @@ describe("survivor fixed-step engine", () => {
       ["refactor", "merge", "衝突だらけの大改修"],
       ["env", "yolo", "環境変数ヨシ！"],
       ["race", "memory", "競合する記憶"],
+      ["allowall", "temporary", "永遠の暫定許可"],
+      ["mfa", "sharedaccount", "みんなで本人確認"],
+      ["auditlog", "retention", "消えた監査証跡"],
+      ["patchlater", "scanner", "既知のまま定例延期"],
+      ["publicbucket", "discovery", "知らない公開資産"],
+      ["session", "logout", "永遠にログイン中"],
     ] as const;
-    expect(recipes).toHaveLength(32);
-    expect(upgrades).toHaveLength(64);
+    expect(recipes).toHaveLength(38);
+    expect(upgrades).toHaveLength(76);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);

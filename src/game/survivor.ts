@@ -81,7 +81,10 @@ export type UpgradeId =
   | "lockfile" | "latest" | "timezone" | "midnight"
   | "secrets" | "clipboard" | "terraform" | "manual"
   | "sudo" | "token" | "backup" | "restore"
-  | "regex" | "encoding" | "queue" | "duplicate";
+  | "regex" | "encoding" | "queue" | "duplicate"
+  | "allowall" | "temporary" | "mfa" | "sharedaccount"
+  | "auditlog" | "retention" | "patchlater" | "scanner"
+  | "publicbucket" | "discovery" | "session" | "logout";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -442,6 +445,18 @@ export const upgrades: {
   { id: "encoding", name: "文字コードは雰囲気", type: "BUG", icon: "※", description: "貫通 +1、連鎖ダメージ +7。文字化けも仕様のうち。" },
   { id: "queue", name: "キューは永遠に貯まる", type: "CHAIN", icon: "≋", description: "連鎖範囲 +25、持続ダメージ +7。処理はいつか追いつく。" },
   { id: "duplicate", name: "二重送信は想定外", type: "BOOST", icon: "Ⅱ", description: "同時発射 +1、BP倍率 +10%。冪等性は次のスプリントで。" },
+  { id: "allowall", name: "とりあえず全許可", type: "BUG", icon: "⊞", description: "貫通 +1、攻撃力 +6。接続できたので解決。" },
+  { id: "temporary", name: "一時的な例外設定", type: "CHAIN", icon: "⌛", description: "連鎖範囲 +25、連鎖ダメージ +6。一時的とは数年のこと。" },
+  { id: "mfa", name: "多要素認証の例外", type: "BOOST", icon: "◇", description: "攻撃速度 +8%、BP倍率 +10%。緊急時だけ、毎日。" },
+  { id: "sharedaccount", name: "みんなの共有アカウント", type: "BUG", icon: "♟", description: "同時発射 +1、攻撃力 +4。操作したのは、みんな。" },
+  { id: "auditlog", name: "監査ログは残してある", type: "BOOST", icon: "≡", description: "ログ回収範囲 +45、最大HP +10。読む方法は調査中。" },
+  { id: "retention", name: "保存期間は昨日まで", type: "CHAIN", icon: "◷", description: "連鎖範囲 +20、敵速度 -8%。必要な記録だけ昨日消えた。" },
+  { id: "patchlater", name: "パッチは次回の定例で", type: "BUG", icon: "⊕", description: "攻撃力 +10、持続ダメージ +6。次回の定例は延期。" },
+  { id: "scanner", name: "診断結果は既知の問題", type: "CHAIN", icon: "⌁", description: "連鎖ダメージ +10、BP倍率 +10%。知っていたのでセーフ。" },
+  { id: "publicbucket", name: "公開設定は仮のまま", type: "BOOST", icon: "▤", description: "最大HP +20、HP回復 +20。仮のまま正式リリース。" },
+  { id: "discovery", name: "棚卸しにない資産", type: "CHAIN", icon: "?", description: "連鎖範囲 +25、攻撃力 +6。誰も知らないのに動いている。" },
+  { id: "session", name: "セッションは無期限", type: "BUG", icon: "∞", description: "持続ダメージ +8、連鎖ダメージ +5。いつまでも一緒。" },
+  { id: "logout", name: "ログアウトは気持ちだけ", type: "BOOST", icon: "↪", description: "移動速度 +8%、攻撃速度 +8%。画面は閉じました。" },
 ];
 export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   retry: "timeout",
@@ -488,6 +503,9 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   race: "memory", memory: "race",
   sudo: "token", token: "sudo", backup: "restore", restore: "backup",
   regex: "encoding", encoding: "regex", queue: "duplicate", duplicate: "queue",
+  allowall: "temporary", temporary: "allowall", mfa: "sharedaccount", sharedaccount: "mfa",
+  auditlog: "retention", retention: "auditlog", patchlater: "scanner", scanner: "patchlater",
+  publicbucket: "discovery", discovery: "publicbucket", session: "logout", logout: "session",
 };
 
 export const evolutionNames: Partial<Record<UpgradeId, string>> = {
@@ -519,6 +537,12 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   refactor: "衝突だらけの大改修", merge: "衝突だらけの大改修",
   env: "環境変数ヨシ！", yolo: "環境変数ヨシ！",
   race: "競合する記憶", memory: "競合する記憶",
+  allowall: "永遠の暫定許可", temporary: "永遠の暫定許可",
+  mfa: "みんなで本人確認", sharedaccount: "みんなで本人確認",
+  auditlog: "消えた監査証跡", retention: "消えた監査証跡",
+  patchlater: "既知のまま定例延期", scanner: "既知のまま定例延期",
+  publicbucket: "知らない公開資産", discovery: "知らない公開資産",
+  session: "永遠にログイン中", logout: "永遠にログイン中",
   sudo: "永遠の管理者権限", token: "永遠の管理者権限",
   backup: "復元できない安心", restore: "復元できない安心",
   regex: "文字化け大正解", encoding: "文字化け大正解",
@@ -973,6 +997,30 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 7; break;
     case "duplicate":
       w.multishot = Math.min(6, w.multishot + 1); w.multiplier += 0.1; break;
+    case "allowall":
+      w.pierce = Math.min(8, w.pierce + 1); w.damage += 6; break;
+    case "temporary":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 6; break;
+    case "mfa":
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); w.multiplier += 0.1; break;
+    case "sharedaccount":
+      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+    case "auditlog":
+      w.magnet = Math.min(420, w.magnet + 45); w.player.maxHp += 10; break;
+    case "retention":
+      w.chainRange = Math.min(400, w.chainRange + 20); w.slow = Math.max(0.4, w.slow * 0.92); break;
+    case "patchlater":
+      w.damage += 10; w.aura += 6; break;
+    case "scanner":
+      w.chainDamage += 10; w.multiplier += 0.1; break;
+    case "publicbucket":
+      w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
+    case "discovery":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 6; break;
+    case "session":
+      w.aura += 8; w.chainDamage += 5; break;
+    case "logout":
+      w.speed = Math.min(340, w.speed * 1.08); w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); break;
     case "env":
       w.speed = Math.min(340, w.speed * 1.15);
       break;
@@ -1117,6 +1165,12 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.refactor!, pair: ["refactor", "merge"], apply: () => { w.damage += 25; w.multishot = Math.min(6, w.multishot + 1); } },
     { name: evolutionNames.env!, pair: ["env", "yolo"], apply: () => { w.speed = Math.min(340, w.speed * 1.15); w.fireInterval = Math.max(0.12, w.fireInterval * 0.85); } },
     { name: evolutionNames.race!, pair: ["race", "memory"], apply: () => { w.aura += 18; w.chainDamage += 20; } },
+    { name: evolutionNames.allowall!, pair: ["allowall", "temporary"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainRange = Math.min(400, w.chainRange + 55); } },
+    { name: evolutionNames.mfa!, pair: ["mfa", "sharedaccount"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
+    { name: evolutionNames.auditlog!, pair: ["auditlog", "retention"], apply: () => { w.magnet = Math.min(420, w.magnet + 65); w.slow = Math.max(0.4, w.slow * 0.85); } },
+    { name: evolutionNames.patchlater!, pair: ["patchlater", "scanner"], apply: () => { w.damage += 20; w.chainDamage += 20; } },
+    { name: evolutionNames.publicbucket!, pair: ["publicbucket", "discovery"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainRange = Math.min(400, w.chainRange + 45); } },
+    { name: evolutionNames.session!, pair: ["session", "logout"], apply: () => { w.aura += 18; w.speed = Math.min(340, w.speed * 1.12); } },
   ];
   for (const recipe of recipes)
     if (
