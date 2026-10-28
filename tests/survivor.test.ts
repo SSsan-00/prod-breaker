@@ -459,6 +459,24 @@ describe("survivor fixed-step engine", () => {
     a = stepWorld(b, { x: 0, y: 0 });
     expect(a.entities.filter((e) => e.kind === "boss")).toHaveLength(2);
   });
+  it("scales core and enemy durability in later waves", () => {
+    const sample = (waveNumber: number) => {
+      const w = createWorld(42, 300);
+      w.time = (waveNumber - 1) * 30 - STEP / 2;
+      w.bossWave = waveNumber - 2;
+      w.shotTimer = 10; w.spawnTimer = 0; w.serverTimer = 10;
+      return stepWorld(w, { x: 0, y: 0 });
+    };
+    const early = sample(2);
+    const late = sample(8);
+    const earlyCore = early.entities.find((e) => e.kind === "boss")!;
+    const lateCore = late.entities.find((e) => e.kind === "boss")!;
+    expect(earlyCore.maxHp).toBe(580);
+    expect(lateCore.maxHp).toBeGreaterThan((330 + 7 * 250) * 2);
+    const earlyEnemy = early.entities.find((e) => e.kind === "drone")!;
+    const lateEnemy = late.entities.find((e) => e.kind === "drone")!;
+    expect(lateEnemy.maxHp).toBeGreaterThan(earlyEnemy.maxHp);
+  });
   it("spawns one additional core per wave without exceeding the entity cap", () => {
     for (let waveNumber = 2; waveNumber <= 10; waveNumber++) {
       const w = createWorld(42, 300);

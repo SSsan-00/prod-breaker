@@ -1230,7 +1230,10 @@ export function stepWorld(state: World, input: Input): World {
     w.spawnTimer = Math.max(0.36, (w.time >= 30 ? 1.32 : 1.4) - w.time * 0.012);
     const angle = random(w) * Math.PI * 2;
     const kind = w.time > 15 && random(w) < 0.18 ? "repair" : "drone";
-    const hp = kind === "repair" ? 30 : 22 + wave(w) * 7 + Math.min(12, Math.max(0, wave(w) - 1) * 2);
+    const lateWave = Math.max(0, wave(w) - 2);
+    const hp = kind === "repair"
+      ? 30 + Math.min(28, lateWave * 4)
+      : 22 + wave(w) * 7 + Math.min(12, Math.max(0, wave(w) - 1) * 2) + lateWave * 3;
     w.entities.push({
       id: id(w),
       x: clamp(w.player.x + Math.cos(angle) * 460, 20, 1980),
@@ -1261,14 +1264,16 @@ export function stepWorld(state: World, input: Input): World {
     enteredWave = true;
     // Wave 2 brings one core, wave 3 brings two, and so on.
     const count = w.bossWave;
+    // Keep the first core familiar; later waves scale with mature player builds.
+    const coreHp = Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2));
     for (let i = 0; i < count; i++) {
       const angle = (i * Math.PI * 2) / count;
       w.entities.push({
         id: id(w),
         x: clamp(w.player.x + Math.cos(angle) * 350, 40, 1960),
         y: clamp(w.player.y + Math.sin(angle) * 350, 40, 1960),
-        hp: 330 + w.bossWave * 250,
-        maxHp: 330 + w.bossWave * 250,
+        hp: coreHp,
+        maxHp: coreHp,
         kind: "boss",
         label: "SRE CORE",
         flash: 0,
