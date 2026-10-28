@@ -82,9 +82,10 @@ describe("survivor fixed-step engine", () => {
       ["sanitize", "trusthtml", "クロスサイトスクリプティング発生！"],
       ["lottery", "attachment", "至急の当選通知"],
       ["secretlog", "publicchat", "秘密の全体共有"],
+      ["shoulder", "privacyfilter", "ショルダーハック発生！"],
     ] as const;
-    expect(recipes).toHaveLength(43);
-    expect(upgrades).toHaveLength(86);
+    expect(recipes).toHaveLength(44);
+    expect(upgrades).toHaveLength(88);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);

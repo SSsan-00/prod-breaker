@@ -87,7 +87,7 @@ export type UpgradeId =
   | "publicbucket" | "discovery" | "session" | "logout"
   | "plaintext" | "passwordsheet" | "prepared" | "sqlstring"
   | "sanitize" | "trusthtml" | "lottery" | "attachment"
-  | "secretlog" | "publicchat";
+  | "secretlog" | "publicchat" | "shoulder" | "privacyfilter";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -469,6 +469,8 @@ export const upgrades: {
   { id: "lottery", name: "宝くじ当選メール", type: "BOOST", icon: "✉", description: "BP倍率 +20%、移動速度 +8%。応募した覚えはない。" },
   { id: "attachment", name: "急ぎの添付ファイル", type: "BUG", icon: "▣", description: "持続ダメージ +8、攻撃力 +6。件名には【至急】。" },
   { id: "secretlog", name: "秘密もログに出す", type: "CHAIN", icon: "≋", description: "ログ回収 +35、連鎖ダメージ +8。デバッグは正直者。" },
+  { id: "shoulder", name: "背後から失礼します", type: "BUG", icon: "◉", description: "攻撃力 +8、ログ回収範囲 +35。パスワード、丸見えですよ。" },
+  { id: "privacyfilter", name: "覗き見防止は気合い", type: "CHAIN", icon: "▣", description: "連鎖範囲 +25、連鎖ダメージ +8。背後の視線は見なかったことに。" },
   { id: "publicchat", name: "全員見えるチャンネル", type: "BOOST", icon: "☏", description: "最大HP +20、HP回復 +20。共有範囲は確認済み？" },
 ];
 export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
@@ -522,6 +524,7 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   plaintext: "passwordsheet", passwordsheet: "plaintext", prepared: "sqlstring", sqlstring: "prepared",
   sanitize: "trusthtml", trusthtml: "sanitize", lottery: "attachment", attachment: "lottery",
   secretlog: "publicchat", publicchat: "secretlog",
+  shoulder: "privacyfilter", privacyfilter: "shoulder",
 };
 
 export const evolutionNames: Partial<Record<UpgradeId, string>> = {
@@ -558,6 +561,7 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   sanitize: "クロスサイトスクリプティング発生！", trusthtml: "クロスサイトスクリプティング発生！",
   lottery: "至急の当選通知", attachment: "至急の当選通知",
   secretlog: "秘密の全体共有", publicchat: "秘密の全体共有",
+  shoulder: "ショルダーハック発生！", privacyfilter: "ショルダーハック発生！",
   allowall: "永遠の暫定許可", temporary: "永遠の暫定許可",
   mfa: "みんなで本人確認", sharedaccount: "みんなで本人確認",
   auditlog: "消えた監査証跡", retention: "消えた監査証跡",
@@ -1060,6 +1064,10 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.aura += 8; w.damage += 6; break;
     case "secretlog":
       w.magnet = Math.min(420, w.magnet + 35); w.chainDamage += 8; break;
+    case "shoulder":
+      w.damage += 8; w.magnet = Math.min(420, w.magnet + 35); break;
+    case "privacyfilter":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
     case "publicchat":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "env":
@@ -1216,6 +1224,7 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.prepared!, pair: ["prepared", "sqlstring"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
     { name: evolutionNames.sanitize!, pair: ["sanitize", "trusthtml"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainRange = Math.min(400, w.chainRange + 45); } },
     { name: evolutionNames.lottery!, pair: ["lottery", "attachment"], apply: () => { w.multiplier += 0.45; w.aura += 16; } },
+    { name: evolutionNames.shoulder!, pair: ["shoulder", "privacyfilter"], apply: () => { w.chainRange = Math.min(400, w.chainRange + 45); w.damage += 20; } },
     { name: evolutionNames.secretlog!, pair: ["secretlog", "publicchat"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 18; } },
   ];
   for (const recipe of recipes)
