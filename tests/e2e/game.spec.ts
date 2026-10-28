@@ -380,7 +380,7 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
   test.skip(info.project.name !== "mobile");
   await page.setViewportSize({ width: 320, height: 568 });
   await page.clock.install();
-  await page.goto("/?seed=34");
+  await page.goto("/?seed=4");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
@@ -389,7 +389,7 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
   const dialog = page.getByRole("dialog", { name: "レベルアップ" });
   await expect(dialog).toBeVisible();
   await expect(
-    dialog.getByRole("heading", { name: "承認待ちのまま緊急リリース" }),
+    dialog.getByRole("heading", { name: "プリペアドステートメントって何？" }),
   ).toBeVisible();
   const dimensions = await dialog.evaluate((el) => ({
     scroll: el.scrollHeight,
@@ -575,18 +575,18 @@ test("chain milestone triggers a visible overdrive without another pause", async
 
 test("available evolution is highlighted and selecting it unlocks the combination", async ({ page }, info) => {
   await page.clock.install();
-  await page.goto("/?seed=1");
+  await page.goto("/?seed=4");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
   await page.locator(".panic").click();
   await page.clock.runFor(300);
   const dialog = page.getByRole("dialog", { name: "レベルアップ" });
-  await dialog.getByRole("button", { name: /診断結果は既知の問題/ }).click();
+  await dialog.getByRole("button", { name: /プリペアドステートメントって何？/ }).click();
   await page.clock.runFor(8200);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("強化を1つ選択。選択中はゲームが止まります。" )).toHaveCount(0);
-  const card = dialog.getByRole("button", { name: /パッチは次回の定例で/ });
+  const card = dialog.getByRole("button", { name: /SQLは文字列でつなぐ/ });
   await expect(card).toHaveClass(/evolution-ready/);
   await expect(card).toContainText("選ぶと進化！");
   await expect(card).toContainText("選ぶと進化");
@@ -600,7 +600,7 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
     }
   }
   await card.click();
-  await expect(page.locator(".evolution-notice")).toContainText("既知のまま定例延期");
+  await expect(page.locator(".evolution-notice")).toContainText("善意の文字列連結");
 });
 
 

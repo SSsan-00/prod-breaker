@@ -84,7 +84,10 @@ export type UpgradeId =
   | "regex" | "encoding" | "queue" | "duplicate"
   | "allowall" | "temporary" | "mfa" | "sharedaccount"
   | "auditlog" | "retention" | "patchlater" | "scanner"
-  | "publicbucket" | "discovery" | "session" | "logout";
+  | "publicbucket" | "discovery" | "session" | "logout"
+  | "plaintext" | "passwordsheet" | "prepared" | "sqlstring"
+  | "sanitize" | "trusthtml" | "lottery" | "attachment"
+  | "secretlog" | "publicchat";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -457,6 +460,16 @@ export const upgrades: {
   { id: "discovery", name: "棚卸しにない資産", type: "CHAIN", icon: "?", description: "連鎖範囲 +25、攻撃力 +6。誰も知らないのに動いている。" },
   { id: "session", name: "セッションは無期限", type: "BUG", icon: "∞", description: "持続ダメージ +8、連鎖ダメージ +5。いつまでも一緒。" },
   { id: "logout", name: "ログアウトは気持ちだけ", type: "BOOST", icon: "↪", description: "移動速度 +8%、攻撃速度 +8%。画面は閉じました。" },
+  { id: "plaintext", name: "秘技パスワード平文保存", type: "BUG", icon: "◉", description: "攻撃力 +10、貫通 +1。読めるから忘れても安心。" },
+  { id: "passwordsheet", name: "パスワード一覧.xlsx", type: "BOOST", icon: "▦", description: "ログ回収 +40、最大HP +10。最新版はどのファイル？" },
+  { id: "prepared", name: "プリペアドステートメントって何？", type: "CHAIN", icon: "?", description: "連鎖範囲 +25、攻撃力 +5。安全なSQLの仕組み？あとで調べる。" },
+  { id: "sqlstring", name: "SQLは文字列でつなぐ", type: "BUG", icon: "＋", description: "連鎖ダメージ +10、貫通 +1。入力値も仲良く合体。" },
+  { id: "sanitize", name: "HTMLサニタイズって何？", type: "CHAIN", icon: "◇", description: "連鎖範囲 +25、敵速度 -8%。危ない表示を整える処理？たぶん。" },
+  { id: "trusthtml", name: "入力は全部信頼する", type: "BUG", icon: "♡", description: "同時発射 +1、攻撃力 +4。ユーザーは全員いい人。" },
+  { id: "lottery", name: "宝くじ当選メール", type: "BOOST", icon: "✉", description: "BP倍率 +20%、移動速度 +8%。応募した覚えはない。" },
+  { id: "attachment", name: "急ぎの添付ファイル", type: "BUG", icon: "▣", description: "持続ダメージ +8、攻撃力 +6。件名には【至急】。" },
+  { id: "secretlog", name: "秘密もログに出す", type: "CHAIN", icon: "≋", description: "ログ回収 +35、連鎖ダメージ +8。デバッグは正直者。" },
+  { id: "publicchat", name: "全員見えるチャンネル", type: "BOOST", icon: "☏", description: "最大HP +20、HP回復 +20。共有範囲は確認済み？" },
 ];
 export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   retry: "timeout",
@@ -506,6 +519,9 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   allowall: "temporary", temporary: "allowall", mfa: "sharedaccount", sharedaccount: "mfa",
   auditlog: "retention", retention: "auditlog", patchlater: "scanner", scanner: "patchlater",
   publicbucket: "discovery", discovery: "publicbucket", session: "logout", logout: "session",
+  plaintext: "passwordsheet", passwordsheet: "plaintext", prepared: "sqlstring", sqlstring: "prepared",
+  sanitize: "trusthtml", trusthtml: "sanitize", lottery: "attachment", attachment: "lottery",
+  secretlog: "publicchat", publicchat: "secretlog",
 };
 
 export const evolutionNames: Partial<Record<UpgradeId, string>> = {
@@ -537,6 +553,11 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   refactor: "衝突だらけの大改修", merge: "衝突だらけの大改修",
   env: "環境変数ヨシ！", yolo: "環境変数ヨシ！",
   race: "競合する記憶", memory: "競合する記憶",
+  plaintext: "みんなのパスワード帳", passwordsheet: "みんなのパスワード帳",
+  prepared: "善意の文字列連結", sqlstring: "善意の文字列連結",
+  sanitize: "全員善意の表示欄", trusthtml: "全員善意の表示欄",
+  lottery: "至急の当選通知", attachment: "至急の当選通知",
+  secretlog: "秘密の全体共有", publicchat: "秘密の全体共有",
   allowall: "永遠の暫定許可", temporary: "永遠の暫定許可",
   mfa: "みんなで本人確認", sharedaccount: "みんなで本人確認",
   auditlog: "消えた監査証跡", retention: "消えた監査証跡",
@@ -1021,6 +1042,26 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.aura += 8; w.chainDamage += 5; break;
     case "logout":
       w.speed = Math.min(340, w.speed * 1.08); w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); break;
+    case "plaintext":
+      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+    case "passwordsheet":
+      w.magnet = Math.min(420, w.magnet + 40); w.player.maxHp += 10; break;
+    case "prepared":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 5; break;
+    case "sqlstring":
+      w.chainDamage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+    case "sanitize":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.slow = Math.max(0.4, w.slow * 0.92); break;
+    case "trusthtml":
+      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+    case "lottery":
+      w.multiplier += 0.2; w.speed = Math.min(340, w.speed * 1.08); break;
+    case "attachment":
+      w.aura += 8; w.damage += 6; break;
+    case "secretlog":
+      w.magnet = Math.min(420, w.magnet + 35); w.chainDamage += 8; break;
+    case "publicchat":
+      w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "env":
       w.speed = Math.min(340, w.speed * 1.15);
       break;
@@ -1171,6 +1212,11 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.patchlater!, pair: ["patchlater", "scanner"], apply: () => { w.damage += 20; w.chainDamage += 20; } },
     { name: evolutionNames.publicbucket!, pair: ["publicbucket", "discovery"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainRange = Math.min(400, w.chainRange + 45); } },
     { name: evolutionNames.session!, pair: ["session", "logout"], apply: () => { w.aura += 18; w.speed = Math.min(340, w.speed * 1.12); } },
+    { name: evolutionNames.plaintext!, pair: ["plaintext", "passwordsheet"], apply: () => { w.damage += 20; w.magnet = Math.min(420, w.magnet + 55); } },
+    { name: evolutionNames.prepared!, pair: ["prepared", "sqlstring"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
+    { name: evolutionNames.sanitize!, pair: ["sanitize", "trusthtml"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainRange = Math.min(400, w.chainRange + 45); } },
+    { name: evolutionNames.lottery!, pair: ["lottery", "attachment"], apply: () => { w.multiplier += 0.45; w.aura += 16; } },
+    { name: evolutionNames.secretlog!, pair: ["secretlog", "publicchat"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 18; } },
   ];
   for (const recipe of recipes)
     if (
