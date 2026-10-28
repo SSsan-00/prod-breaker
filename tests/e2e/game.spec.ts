@@ -342,6 +342,7 @@ test("duration choices start the correct timer", async ({ page }, info) => {
   for (const [name, timer] of [
     ["STANDARD", "3:00"],
     ["CHAOS", "5:00"],
+    ["ENDLESS", "30:00"],
     ["QUICK", "1:30"],
   ]) {
     await page.getByRole("button", { name: new RegExp(name) }).click();
@@ -499,8 +500,8 @@ test("home controls fit without vertical scrolling on compact and landscape phon
     expect(
       Math.max(...dimensions.controls.map((c) => c.bottom)),
     ).toBeLessThanOrEqual(dimensions.viewport);
-    await page.getByRole("button", { name: /CHAOS/ }).click();
-    await expect(page.getByRole("button", { name: /CHAOS/ })).toHaveAttribute(
+    await page.getByRole("button", { name: /ENDLESS/ }).click();
+    await expect(page.getByRole("button", { name: /ENDLESS/ })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

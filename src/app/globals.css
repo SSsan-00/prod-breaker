@@ -1145,7 +1145,8 @@ footer {
   max-width: 400px;
 }
 .duration-options button {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   text-align: left;
   padding: 10px;
   border-color: #40504a;
@@ -1995,4 +1996,11 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   .chain-cutin, .evolution-notice { box-shadow: none; }
   .chain-cutin strong, .evolution-notice strong { text-shadow: none; }
+}
+
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+  .survivor .title-screen .duration-options { gap: 4px; }
+  .survivor .title-screen .duration-options button { padding-inline: 5px; }
+  .survivor .title-screen .duration-options b,
+  .survivor .title-screen .duration-options span { font-size: 9px; white-space: nowrap; }
 }

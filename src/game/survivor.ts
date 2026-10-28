@@ -665,7 +665,7 @@ function spawnServer(w: World) {
 export function createWorld(seed = 42, duration = RUN_SECONDS): World {
   const w: World = {
     seed,
-    duration: [90, 180, 300].includes(duration) ? duration : 90,
+    duration: [90, 180, 300, 1800].includes(duration) ? duration : 90,
     evolutions: [],
     bossWave: 0,
     rng: seed >>> 0,

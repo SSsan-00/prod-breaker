@@ -454,7 +454,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.20.5</span>
+              SURVIVOR EDITION <span>↗ V2.21.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -471,6 +471,7 @@ export default function Game() {
                 { seconds: 90, label: "QUICK", time: "90秒" },
                 { seconds: 180, label: "STANDARD", time: "3分" },
                 { seconds: 300, label: "CHAOS", time: "5分" },
+                { seconds: 1800, label: "ENDLESS", time: "最大30分" },
               ].map((option) => (
                 <button
                   key={option.seconds}
@@ -754,7 +755,7 @@ export default function Game() {
           <section className="result">
             <div className="eyebrow">INCIDENT CLOSED / SURVIVOR RUN</div>
             <h1 className="result-title">
-              {w.phase === "won" ? `${w.duration} SECONDS.` : "BUG TERMINATED."}
+              {w.phase === "won" ? (w.duration === 1800 ? "ENDLESS CLEARED." : `${w.duration} SECONDS.`) : "BUG TERMINATED."}
               <br />
               <span>
                 {w.phase === "won" ? "PROD IN RUINS." : "DEPLOY AGAIN."}
@@ -798,7 +799,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.20.5</span>
+          <span>PROD BREAKER / SURVIVOR V2.21.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

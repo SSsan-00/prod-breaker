@@ -29,7 +29,7 @@ describe("survivor fixed-step engine", () => {
     if (w.combo >= 10) expect(w.effects.some((e) => e.kind === "milestone")).toBe(true);
   });
   it("supports all durations and finishes at the selected time", () => {
-    for (const duration of [90, 180, 300]) {
+    for (const duration of [90, 180, 300, 1800]) {
       const w = createWorld(42, duration);
       expect(w.duration).toBe(duration);
       w.time = duration - STEP / 2;
@@ -524,6 +524,17 @@ describe("survivor fixed-step engine", () => {
       expect(new Set(bosses.map((e) => e.id)).size).toBe(waveNumber - 1);
       expect(next.entities.length).toBeLessThanOrEqual(100);
     }
+  });
+  it("keeps the existing wave scaling in the final endless wave", () => {
+    const w = createWorld(42, 1800);
+    w.time = 1770 - STEP / 2; w.bossWave = 58;
+    w.entities = []; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+    const next = stepWorld(w, { x: 0, y: 0 });
+    const cores = next.entities.filter((entity) => entity.kind === "boss");
+    expect(wave(next)).toBe(60);
+    expect(cores).toHaveLength(59);
+    expect(cores[0].maxHp).toBe(Math.round((330 + 59 * 250) * (1 + 58 * 0.2)));
+    expect(next.entities.length).toBeLessThanOrEqual(100);
   });
   it("spawns cores across the map safely, including when the player is at the edge", () => {
     const positions = [[1000, 1000], [28, 28], [1972, 28], [28, 1972], [1972, 1972], [1000, 28], [28, 1000]];
