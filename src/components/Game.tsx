@@ -425,7 +425,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.16.0</span>
+              SURVIVOR EDITION <span>↗ V2.16.1</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -591,7 +591,6 @@ export default function Game() {
                       ? "⚠ REPAIR BOTS DEPLOYED"
                       : "● FAULT SPREADING"}
                 </span>
-                <span>SEED {w.seed}</span>
               </div>
               {w.time < 5 && w.phase === "playing" && (
                 <div className="move-hint">
@@ -745,7 +744,6 @@ export default function Game() {
               </div>
             </div>
             <article className="report">
-              <div className="eyebrow">POSTMORTEM / SEED {w.seed}</div>
               <h2>{incident.title}</h2>
               <p>
                 障害概要：暴走バグが{w.destroyed}台の架空サーバーを破壊。復旧BOT{" "}
@@ -768,7 +766,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.16.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.16.1</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

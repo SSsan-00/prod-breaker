@@ -122,6 +122,8 @@ test("real-time movement, auto fire, upgrades, panic, pause, saved settings and 
   }
   await expect(page.locator(".result")).toBeVisible();
   await expect(page.locator(".report")).toContainText("再発防止策");
+  await expect(page.locator(".report")).not.toContainText("POSTMORTEM");
+  await expect(page.locator(".report")).not.toContainText("SEED");
   if (info.project.name === "mobile") {
     for (const viewport of [{ width: 320, height: 480 }, { width: 393, height: 851 }, { width: 851, height: 393 }]) {
       await page.setViewportSize(viewport);
