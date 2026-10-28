@@ -1721,3 +1721,44 @@ footer {
 .reduced .overdrive-badge { text-shadow: none; }
 @media (max-width: 700px) { .overdrive-badge { top: 86px; right: 10px; font-size: 10px; } .overdrive-badge span { font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { .overdrive-badge { text-shadow: none; } }
+
+/* Milestones punctuate the action without intercepting input or stopping play. */
+.chain-cutin { position:absolute; z-index:2; pointer-events:none; left:50%; top:38%; width:min(70%, 370px); padding:8px 16px; transform:translate(-50%,-50%) skew(-8deg); background:linear-gradient(100deg,#182b26ee,#335b35ed,#16282bee); border-block:2px solid #c7f55e; box-shadow:0 0 28px #c9ff4d66; text-align:center; animation:cutin-burst 1.2s ease-out both; }
+.chain-cutin small, .chain-cutin strong, .chain-cutin span { display:block; transform:skew(8deg); }
+.chain-cutin small { color:#abdd90; font:bold 9px monospace; letter-spacing:3px; }
+.chain-cutin strong { color:#efffbd; font:bold clamp(18px,4vw,30px) monospace; text-shadow:2px 2px #17291b; }
+.chain-cutin span { color:#fff3ba; font:bold 10px sans-serif; }
+@keyframes cutin-burst { 0% { opacity:0; transform:translate(-65%,-50%) skew(-8deg) scale(.85); } 16%,75% { opacity:1; transform:translate(-50%,-50%) skew(-8deg) scale(1); } 100% { opacity:0; transform:translate(-45%,-50%) skew(-8deg); } }
+.reduced .chain-cutin { animation:none; box-shadow:none; }
+@media (prefers-reduced-motion: reduce) { .chain-cutin { animation:none; box-shadow:none; } }
+@media (max-width:700px), (hover:none) and (pointer:coarse) {
+  html:has(.survivor .result), body:has(.survivor .result) { height:100%; overflow:hidden; overscroll-behavior:none; }
+  .survivor:has(.result) { height:100svh; overflow:hidden; }
+  .survivor:has(.result) .site-header { height:48px; }
+  .survivor:has(.result) > footer { display:none; }
+  .survivor .result { height:calc(100svh - 48px); margin:0 auto; padding:6px 0; display:flex; flex-direction:column; justify-content:space-evenly; gap:3px; }
+  .survivor .result-title { font-size:clamp(23px,5.4vh,36px); margin:0; line-height:1; }
+  .survivor .result-score { font-size:clamp(30px,6vh,48px); line-height:1; }
+  .survivor .result-score small { font-size:13px; }
+  .survivor .stats { margin:2px 0; }
+  .survivor .stats > div { padding:5px 3px; font-size:7px; }
+  .survivor .stats b { font-size:clamp(14px,3vh,21px); margin-top:2px; }
+  .survivor .report { padding:7px 9px; margin:0; }
+  .survivor .report .eyebrow { font-size:8px; }
+  .survivor .report h2 { font-size:clamp(13px,2.8vh,18px); margin:4px 0; }
+  .survivor .report p { font-size:clamp(9px,1.9vh,11px); line-height:1.35; margin:2px 0; overflow-wrap:anywhere; }
+  .survivor .report small { font-size:8px; line-height:1.15; display:block; }
+  .survivor .result > .primary { min-height:38px; padding:7px 12px; }
+  .survivor .result > .muted { margin:0; font-size:9px; line-height:1.2; }
+}
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (max-height:500px) {
+  .survivor:has(.result) .site-header { height:40px; }
+  .survivor .result { height:calc(100svh - 40px); display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto auto 1fr auto auto; gap:3px 14px; align-content:center; }
+  .survivor .result > .eyebrow { grid-area:1 / 1 / 2 / 3; }
+  .survivor .result-title { grid-area:2 / 1; align-self:center; }
+  .survivor .result-score { grid-area:3 / 1; }
+  .survivor .stats { grid-area:4 / 1; align-self:center; }
+  .survivor .report { grid-area:2 / 2 / 6 / 3; align-self:center; }
+  .survivor .result > .primary { grid-area:5 / 1; }
+  .survivor .result > .muted { grid-area:6 / 1 / 7 / 3; }
+}

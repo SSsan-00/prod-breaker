@@ -149,15 +149,15 @@ describe("survivor fixed-step engine", () => {
     w = chooseUpgrade(w, w.choices[0]);
     w.xp = 1000;
     const banked = w.xp;
-    for (let i = 0; i < 330; i++) {
+    for (let i = 0; i < 270; i++) {
       w = stepWorld(w, { x: 0, y: 0 });
       expect(w.phase).toBe("playing");
     }
     expect(w.xp).toBeGreaterThanOrEqual(banked);
-    while (w.phase === "playing" && w.time < firstTime + 13)
+    while (w.phase === "playing" && w.time < firstTime + 11)
       w = stepWorld(w, { x: 0, y: 0 });
     expect(w.phase).toBe("upgrade");
-    expect(w.time - firstTime).toBeGreaterThanOrEqual(12);
+    expect(w.time - firstTime).toBeGreaterThanOrEqual(10);
     expect(w.xp).toBeGreaterThan(0);
   });
   it("keeps banked XP from causing back-to-back upgrades after 30 seconds", () => {
@@ -169,14 +169,14 @@ describe("survivor fixed-step engine", () => {
     expect(w.phase).toBe("upgrade");
     const firstTime = w.time;
     w = chooseUpgrade(w, w.choices[0]);
-    for (let i = 0; i < 210; i++) {
+    for (let i = 0; i < 150; i++) {
       w = stepWorld(w, { x: 0, y: 0 });
       expect(w.phase).toBe("playing");
     }
-    while (w.phase === "playing" && w.time < firstTime + 9)
+    while (w.phase === "playing" && w.time < firstTime + 7)
       w = stepWorld(w, { x: 0, y: 0 });
     expect(w.phase).toBe("upgrade");
-    expect(w.time - firstTime).toBeGreaterThanOrEqual(8);
+    expect(w.time - firstTime).toBeGreaterThanOrEqual(6);
     expect(w.xp).toBeGreaterThan(0);
   });
   it("activates a temporary faster firing burst at a chain milestone", () => {

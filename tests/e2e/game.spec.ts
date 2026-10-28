@@ -117,6 +117,24 @@ test("real-time movement, auto fire, upgrades, panic, pause, saved settings and 
   }
   await expect(page.locator(".result")).toBeVisible();
   await expect(page.locator(".report")).toContainText("再発防止策");
+  if (info.project.name === "mobile") {
+    for (const viewport of [{ width: 320, height: 480 }, { width: 393, height: 851 }, { width: 851, height: 393 }]) {
+      await page.setViewportSize(viewport);
+      const layout = await page.locator(".result").evaluate((el) => ({
+        pageHeight: document.documentElement.scrollHeight,
+        viewport: innerHeight,
+        reportBottom: el.querySelector(".report")!.getBoundingClientRect().bottom,
+        buttonBottom: el.querySelector("button")!.getBoundingClientRect().bottom,
+        overlap: (() => { const a = el.querySelector(".report")!.getBoundingClientRect(); const b = el.querySelector("button")!.getBoundingClientRect(); return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; })(),
+        reportOverflow: el.querySelector(".report")!.scrollHeight > el.querySelector(".report")!.clientHeight,
+      }));
+      expect(layout.pageHeight).toBeLessThanOrEqual(layout.viewport);
+      expect(layout.reportBottom).toBeLessThanOrEqual(layout.viewport);
+      expect(layout.buttonBottom).toBeLessThanOrEqual(layout.viewport);
+      expect(layout.reportOverflow).toBe(false);
+      expect(layout.overlap).toBe(false);
+    }
+  }
   expect(
     await page.evaluate(() =>
       Number(JSON.parse(localStorage.getItem("pb-survivor-high-90") || "0")),
@@ -521,6 +539,8 @@ test("chain milestone triggers a visible overdrive without another pause", async
   await page.clock.runFor(300);
   const dialog = page.getByRole("dialog", { name: "レベルアップ" });
   await expect(dialog).toBeVisible();
+  await expect(page.locator(".chain-cutin")).toBeVisible();
+  expect(await page.locator(".chain-cutin").evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   await dialog.locator(".upgrade-card").first().click();
   await expect(page.getByText("OVERDRIVE", { exact: true })).toBeVisible();
   await page.clock.runFor(1000);
