@@ -1932,7 +1932,12 @@ footer {
   border: 1px solid #20341466;
   border-radius: 2px;
   background: #263f171a;
-  font-size: 14px;
+  flex: 0 0 26px;
+}
+.survivor .title-screen .start .start-icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
 }
 .survivor .title-screen .text-button,
 .survivor .modal .text-button {
