@@ -1266,12 +1266,19 @@ export function stepWorld(state: World, input: Input): World {
     const count = w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
     const coreHp = Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2));
+    // Reinforcements arrive in a 90-degree sector, leaving an escape direction.
+    // Near the boundary, face the sector inward to avoid clamping onto the player.
+    const nearEdge = w.player.x < 450 || w.player.x > 1550 || w.player.y < 450 || w.player.y > 1550;
+    const heading = nearEdge
+      ? Math.atan2(1000 - w.player.y, 1000 - w.player.x)
+      : ((w.seed ^ Math.imul(w.bossWave, 0x9e3779b1)) >>> 0) / 0x100000000 * Math.PI * 2;
     for (let i = 0; i < count; i++) {
-      const angle = (i * Math.PI * 2) / count;
+      const angle = heading + (count === 1 ? 0 : (i / (count - 1) - 0.5) * Math.PI / 2);
+      const radius = 350 + (i % 2) * 55;
       w.entities.push({
         id: id(w),
-        x: clamp(w.player.x + Math.cos(angle) * 350, 40, 1960),
-        y: clamp(w.player.y + Math.sin(angle) * 350, 40, 1960),
+        x: clamp(w.player.x + Math.cos(angle) * radius, 40, 1960),
+        y: clamp(w.player.y + Math.sin(angle) * radius, 40, 1960),
         hp: coreHp,
         maxHp: coreHp,
         kind: "boss",
