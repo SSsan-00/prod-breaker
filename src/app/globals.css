@@ -1762,3 +1762,10 @@ footer {
   .survivor .result > .primary { grid-area:5 / 1; }
   .survivor .result > .muted { grid-area:6 / 1 / 7 / 3; }
 }
+
+/* A visible, text-labelled recommendation appears only for an available evolution. */
+.upgrade-card.evolution-ready { border-color:#ffc674; background:linear-gradient(145deg,#46351d,#1b2824); box-shadow:inset 0 0 0 1px #ffc67488, 0 0 18px #ff9d3f55; }
+.upgrade-card.evolution-ready .card-top small, .upgrade-card.evolution-ready .evolution-hint { color:#ffe09d; font-weight:700; }
+.upgrade-card.evolution-ready .choose-label { color:#ffe09d; }
+.reduced .upgrade-card.evolution-ready { box-shadow:inset 0 0 0 1px #ffc67488; }
+@media (prefers-reduced-motion: reduce) { .upgrade-card.evolution-ready { box-shadow:inset 0 0 0 1px #ffc67488; } }

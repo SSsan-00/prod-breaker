@@ -547,3 +547,32 @@ test("chain milestone triggers a visible overdrive without another pause", async
   await expect(dialog).toBeHidden();
   await expect(page.getByText("OVERDRIVE", { exact: true })).toBeVisible();
 });
+
+test("available evolution is highlighted and selecting it unlocks the combination", async ({ page }, info) => {
+  await page.clock.install();
+  await page.goto("/?seed=40");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await page.clock.runFor(100);
+  await page.locator(".panic").click();
+  await page.clock.runFor(300);
+  const dialog = page.getByRole("dialog", { name: "レベルアップ" });
+  await dialog.getByRole("button", { name: /フラグ全部ON/ }).click();
+  await page.clock.runFor(8200);
+  await expect(dialog).toBeVisible();
+  const card = dialog.getByRole("button", { name: /カナリア全量配信/ });
+  await expect(card).toHaveClass(/evolution-ready/);
+  await expect(card).toContainText("進化可能");
+  await expect(card).toContainText("選ぶと進化");
+  if (info.project.name === "mobile") {
+    for (const viewport of [{ width: 320, height: 568 }, { width: 851, height: 393 }]) {
+      await page.setViewportSize(viewport);
+      const bounds = await dialog.evaluate((el) => ({ scroll: el.scrollHeight, height: el.clientHeight, bottom: el.getBoundingClientRect().bottom, viewport: innerHeight }));
+      expect(bounds.scroll).toBeLessThanOrEqual(bounds.height);
+      expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewport);
+      await expect(card).toBeVisible();
+    }
+  }
+  await card.click();
+  await expect(page.locator(".evolution-notice")).toContainText("全員カナリア");
+});

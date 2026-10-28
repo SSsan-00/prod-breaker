@@ -473,6 +473,30 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   terraform: "manual", manual: "terraform",
 };
 
+export const evolutionNames: Partial<Record<UpgradeId, string>> = {
+  retry: "リトライストーム", timeout: "リトライストーム",
+  nplus: "コネクション枯渇祭り", leak: "コネクション枯渇祭り",
+  hotfix: "週末リリース", friday: "週末リリース",
+  threshold: "完全に正常", flush: "完全に正常",
+  select: "全件フルスキャン", where: "全件フルスキャン",
+  force: "本番直編集", config: "本番直編集",
+  oncall: "真夜中の復旧会議", rollback: "真夜中の復旧会議",
+  spec: "動くから仕様", local: "動くから仕様",
+  cron: "二重起動フェスティバル", batch: "二重起動フェスティバル",
+  migration: "ロック待ちの行列", index: "ロック待ちの行列",
+  feature: "全員カナリア", canary: "全員カナリア",
+  cert: "期限切れタイムリープ", clock: "期限切れタイムリープ",
+  approval: "承認済みということにする", review: "承認済みということにする",
+  autoscale: "無限スケール上限", quota: "無限スケール上限",
+  schema: "互換性は来世で", contract: "互換性は来世で",
+  meeting: "再起動の承認会議", reboot: "再起動の承認会議",
+  staging: "環境差分パラダイス", drift: "環境差分パラダイス",
+  lockfile: "再現不能ビルド", latest: "再現不能ビルド",
+  timezone: "世界同時バッチ祭り", midnight: "世界同時バッチ祭り",
+  secrets: "秘伝の設定コピペ", clipboard: "秘伝の設定コピペ",
+  terraform: "存在しないインフラ", manual: "存在しないインフラ",
+};
+
 export type World = {
   seed: number;
   duration: number;
@@ -519,6 +543,13 @@ export type World = {
   panicUses: number;
   bossSpawned: boolean;
 };
+/** True only when choosing this card will unlock an evolution now. */
+export function evolutionReady(w: Pick<World, "build" | "evolutions">, id: UpgradeId): boolean {
+  const partner = evolutionPartners[id];
+  const name = evolutionNames[id];
+  return !!partner && !!name && w.build.includes(partner) && !w.evolutions.includes(name);
+}
+
 export type Input = { x: number; y: number; panic?: boolean };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -880,56 +911,49 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
   }
   const recipes: { name: string; pair: UpgradeId[]; apply: () => void }[] = [
     {
-      name: "リトライストーム",
-      pair: ["retry", "timeout"],
+      name: evolutionNames.retry!, pair: ["retry", "timeout"],
       apply: () => {
         w.chainRange = Math.min(400, w.chainRange + 80);
         w.chainDamage += 25;
       },
     },
     {
-      name: "コネクション枯渇祭り",
-      pair: ["nplus", "leak"],
+      name: evolutionNames.nplus!, pair: ["nplus", "leak"],
       apply: () => {
         w.multishot = Math.min(6, w.multishot + 2);
         w.aura += 20;
       },
     },
     {
-      name: "週末リリース",
-      pair: ["hotfix", "friday"],
+      name: evolutionNames.hotfix!, pair: ["hotfix", "friday"],
       apply: () => {
         w.multiplier += 0.8;
         w.fireInterval = Math.max(0.12, w.fireInterval * 0.7);
       },
     },
     {
-      name: "完全に正常",
-      pair: ["threshold", "flush"],
+      name: evolutionNames.threshold!, pair: ["threshold", "flush"],
       apply: () => {
         w.aura += 25;
         w.slow = Math.max(0.4, w.slow * 0.75);
       },
     },
     {
-      name: "全件フルスキャン",
-      pair: ["select", "where"],
+      name: evolutionNames.select!, pair: ["select", "where"],
       apply: () => {
         w.pierce = Math.min(8, w.pierce + 2);
         w.chainRange = Math.min(400, w.chainRange + 70);
       },
     },
     {
-      name: "本番直編集",
-      pair: ["force", "config"],
+      name: evolutionNames.force!, pair: ["force", "config"],
       apply: () => {
         w.damage += 35;
         w.speed = Math.min(340, w.speed * 1.2);
       },
     },
     {
-      name: "真夜中の復旧会議",
-      pair: ["oncall", "rollback"],
+      name: evolutionNames.oncall!, pair: ["oncall", "rollback"],
       apply: () => {
         w.player.maxHp += 40;
         w.player.hp = w.player.maxHp;
@@ -937,8 +961,7 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       },
     },
     {
-      name: "動くから仕様",
-      pair: ["spec", "local"],
+      name: evolutionNames.spec!, pair: ["spec", "local"],
       apply: () => {
         w.player.maxHp += 50;
         w.player.hp = w.player.maxHp;
@@ -947,40 +970,35 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     },
 
     {
-      name: "二重起動フェスティバル",
-      pair: ["cron", "batch"],
+      name: evolutionNames.cron!, pair: ["cron", "batch"],
       apply: () => {
         w.aura += 20;
         w.chainDamage += 20;
       },
     },
     {
-      name: "ロック待ちの行列",
-      pair: ["migration", "index"],
+      name: evolutionNames.migration!, pair: ["migration", "index"],
       apply: () => {
         w.pierce = Math.min(8, w.pierce + 2);
         w.chainRange = Math.min(400, w.chainRange + 60);
       },
     },
     {
-      name: "全員カナリア",
-      pair: ["feature", "canary"],
+      name: evolutionNames.feature!, pair: ["feature", "canary"],
       apply: () => {
         w.multishot = Math.min(6, w.multishot + 1);
         w.fireInterval = Math.max(0.12, w.fireInterval * 0.75);
       },
     },
     {
-      name: "期限切れタイムリープ",
-      pair: ["cert", "clock"],
+      name: evolutionNames.cert!, pair: ["cert", "clock"],
       apply: () => {
         w.aura += 20;
         w.slow = Math.max(0.4, w.slow * 0.8);
       },
     },
     {
-      name: "承認済みということにする",
-      pair: ["approval", "review"],
+      name: evolutionNames.approval!, pair: ["approval", "review"],
       apply: () => {
         w.player.maxHp += 40;
         w.player.hp = w.player.maxHp;
@@ -988,24 +1006,21 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       },
     },
     {
-      name: "無限スケール上限",
-      pair: ["autoscale", "quota"],
+      name: evolutionNames.autoscale!, pair: ["autoscale", "quota"],
       apply: () => {
         w.multishot = Math.min(6, w.multishot + 1);
         w.aura += 18;
       },
     },
     {
-      name: "互換性は来世で",
-      pair: ["schema", "contract"],
+      name: evolutionNames.schema!, pair: ["schema", "contract"],
       apply: () => {
         w.pierce = Math.min(8, w.pierce + 2);
         w.damage += 22;
       },
     },
     {
-      name: "再起動の承認会議",
-      pair: ["meeting", "reboot"],
+      name: evolutionNames.meeting!, pair: ["meeting", "reboot"],
       apply: () => {
         w.player.maxHp += 30;
         w.player.hp = w.player.maxHp;
@@ -1013,17 +1028,16 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       },
     },
     {
-      name: "環境差分パラダイス",
-      pair: ["staging", "drift"],
+      name: evolutionNames.staging!, pair: ["staging", "drift"],
       apply: () => {
         w.chainRange = Math.min(400, w.chainRange + 65);
         w.multiplier += 0.5;
       },
     },
-    { name: "再現不能ビルド", pair: ["lockfile", "latest"], apply: () => { w.damage += 25; w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
-    { name: "世界同時バッチ祭り", pair: ["timezone", "midnight"], apply: () => { w.chainRange = Math.min(400, w.chainRange + 60); w.aura += 18; } },
-    { name: "秘伝の設定コピペ", pair: ["secrets", "clipboard"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 20; } },
-    { name: "存在しないインフラ", pair: ["terraform", "manual"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.multiplier += 0.5; } },
+    { name: evolutionNames.lockfile!, pair: ["lockfile", "latest"], apply: () => { w.damage += 25; w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
+    { name: evolutionNames.timezone!, pair: ["timezone", "midnight"], apply: () => { w.chainRange = Math.min(400, w.chainRange + 60); w.aura += 18; } },
+    { name: evolutionNames.secrets!, pair: ["secrets", "clipboard"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 20; } },
+    { name: evolutionNames.terraform!, pair: ["terraform", "manual"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.multiplier += 0.5; } },
   ];
   for (const recipe of recipes)
     if (
@@ -1234,7 +1248,7 @@ export function stepWorld(state: World, input: Input): World {
     w.xp -= w.nextXp;
     w.level++;
     // Retain earned XP while giving the player uninterrupted time between choices.
-    w.nextUpgradeAt = w.time + (w.time < 30 ? 10 : 6);
+    w.nextUpgradeAt = w.time + (w.time < 30 ? 8 : 5);
     w.nextXp = Math.round(w.nextXp * 1.25 + 2);
     w.choices = choices(w);
     w.phase = "upgrade";

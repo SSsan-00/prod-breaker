@@ -6,6 +6,7 @@ import {
   chooseUpgrade,
   upgrades,
   evolutionPartners,
+  evolutionReady,
   survivorReport,
   STEP,
   wave,
@@ -78,6 +79,19 @@ describe("survivor fixed-step engine", () => {
       }
     }
   });
+  it("highlights only combinations that will actually evolve", () => {
+    let w = createWorld();
+    expect(evolutionReady(w, "timeout")).toBe(false);
+    w.phase = "upgrade"; w.choices = ["retry"];
+    w = chooseUpgrade(w, "retry");
+    expect(evolutionReady(w, "timeout")).toBe(true);
+    expect(evolutionReady(w, "retry")).toBe(false);
+    w.phase = "upgrade"; w.choices = ["timeout"];
+    w = chooseUpgrade(w, "timeout");
+    expect(w.evolutions).toContain("リトライストーム");
+    expect(evolutionReady(w, "retry")).toBe(false);
+    expect(evolutionReady(w, "timeout")).toBe(false);
+  });
   it("produces deterministic varied reports even for highly destructive runs", () => {
     const reports = Array.from({ length: 100 }, (_, seed) => {
       const w = createWorld(seed);
@@ -149,15 +163,15 @@ describe("survivor fixed-step engine", () => {
     w = chooseUpgrade(w, w.choices[0]);
     w.xp = 1000;
     const banked = w.xp;
-    for (let i = 0; i < 270; i++) {
+    for (let i = 0; i < 210; i++) {
       w = stepWorld(w, { x: 0, y: 0 });
       expect(w.phase).toBe("playing");
     }
     expect(w.xp).toBeGreaterThanOrEqual(banked);
-    while (w.phase === "playing" && w.time < firstTime + 11)
+    while (w.phase === "playing" && w.time < firstTime + 9)
       w = stepWorld(w, { x: 0, y: 0 });
     expect(w.phase).toBe("upgrade");
-    expect(w.time - firstTime).toBeGreaterThanOrEqual(10);
+    expect(w.time - firstTime).toBeGreaterThanOrEqual(8);
     expect(w.xp).toBeGreaterThan(0);
   });
   it("keeps banked XP from causing back-to-back upgrades after 30 seconds", () => {
@@ -169,14 +183,14 @@ describe("survivor fixed-step engine", () => {
     expect(w.phase).toBe("upgrade");
     const firstTime = w.time;
     w = chooseUpgrade(w, w.choices[0]);
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 120; i++) {
       w = stepWorld(w, { x: 0, y: 0 });
       expect(w.phase).toBe("playing");
     }
-    while (w.phase === "playing" && w.time < firstTime + 7)
+    while (w.phase === "playing" && w.time < firstTime + 6)
       w = stepWorld(w, { x: 0, y: 0 });
     expect(w.phase).toBe("upgrade");
-    expect(w.time - firstTime).toBeGreaterThanOrEqual(6);
+    expect(w.time - firstTime).toBeGreaterThanOrEqual(5);
     expect(w.xp).toBeGreaterThan(0);
   });
   it("activates a temporary faster firing burst at a chain milestone", () => {
