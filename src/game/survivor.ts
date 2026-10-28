@@ -1266,15 +1266,18 @@ export function stepWorld(state: World, input: Input): World {
     const count = w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
     const coreHp = Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2));
-    // Reinforcements arrive in a 90-degree sector, leaving an escape direction.
-    // Near the boundary, face the sector inward to avoid clamping onto the player.
+    // Pick a random approach direction while leaving room to escape.
+    // Near the edge, aim inward with a small random offset.
     const nearEdge = w.player.x < 450 || w.player.x > 1550 || w.player.y < 450 || w.player.y > 1550;
     const heading = nearEdge
-      ? Math.atan2(1000 - w.player.y, 1000 - w.player.x)
-      : ((w.seed ^ Math.imul(w.bossWave, 0x9e3779b1)) >>> 0) / 0x100000000 * Math.PI * 2;
+      ? Math.atan2(1000 - w.player.y, 1000 - w.player.x) + (random(w) - 0.5) * Math.PI / 12
+      : random(w) * Math.PI * 2;
+    const spread = nearEdge ? Math.PI * 7 / 18 : Math.PI * 4 / 9;
     for (let i = 0; i < count; i++) {
-      const angle = heading + (count === 1 ? 0 : (i / (count - 1) - 0.5) * Math.PI / 2);
-      const radius = 350 + (i % 2) * 55;
+      const offset = count === 1 ? 0 : (i / (count - 1) - 0.5) * spread;
+      const jitter = count === 1 ? 0 : (random(w) - 0.5) * spread / (count - 1) * 0.1;
+      const angle = heading + offset + jitter;
+      const radius = 345 + (i % 2) * 55 + random(w) * 25;
       w.entities.push({
         id: id(w),
         x: clamp(w.player.x + Math.cos(angle) * radius, 40, 1960),

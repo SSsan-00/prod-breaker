@@ -512,6 +512,17 @@ describe("survivor fixed-step engine", () => {
       expect(stepWorld(w, { x: 0, y: 0 }).entities).toEqual(next.entities);
     }
   });
+  it("varies core spawn locations by seed while remaining reproducible", () => {
+    const spawn = (seed: number) => {
+      const w = createWorld(seed, 300);
+      w.time = 90 - STEP / 2; w.bossWave = 2;
+      w.entities = []; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      return stepWorld(w, { x: 0, y: 0 }).entities.filter((e) => e.kind === "boss").map(({ x, y }) => [x, y]);
+    };
+    expect(spawn(42)).toEqual(spawn(42));
+    expect(spawn(42)).not.toEqual(spawn(43));
+    expect(new Set(Array.from({ length: 8 }, (_, seed) => JSON.stringify(spawn(seed)))).size).toBe(8);
+  });
   it("wins at 90 seconds and freezes terminal states", () => {
     const a = createWorld();
     a.time = RUN_SECONDS - STEP / 2;
