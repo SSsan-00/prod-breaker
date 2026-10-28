@@ -216,7 +216,7 @@ export default function Game() {
       );
       if (milestone && !settingsRef.current.mute)
         sound(
-          milestone === 10 ? "hit" : milestone === 30 ? "deploy" : "panic",
+          "milestone",
           settingsRef.current.volume,
         );
       oldCombo = w.combo;
@@ -373,7 +373,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.5.0</span>
+              SURVIVOR EDITION <span>↗ V2.6.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -553,6 +553,7 @@ export default function Game() {
                 >
                   <b key={w.combo}>{w.combo}</b> CHAIN
                   {w.combo >= 10 && <em>連鎖ダメージ ×{w.combo >= 30 ? "1.5" : "1.25"}</em>}
+                  <div className="chain-timer" aria-label="連鎖の残り時間"><i style={{ width: `${Math.max(0, Math.min(100, (w.comboUntil - w.time) / 2.8 * 100))}%` }} /></div>
                   <span>
                     {w.combo >= 100
                       ? "PRODUCTION OBLITERATED"
@@ -593,7 +594,7 @@ export default function Game() {
                 {w.panicCooldown > 0
                   ? `PANIC / ${Math.ceil(w.panicCooldown)}s`
                   : "PANIC / 緊急マージ"}
-                <small>周囲を爆破＋ログ全回収 / SPACE</small>
+                <small>周囲を爆破＋ログ全回収 / 10・30・100連鎖で短縮</small>
               </button>
             </div>
             {w.phase === "upgrade" && !modal && (
@@ -701,7 +702,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.5.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.6.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

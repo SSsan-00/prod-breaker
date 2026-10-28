@@ -1703,3 +1703,15 @@ footer {
 @keyframes chain-pop { from { transform: scale(1.3); } to { transform: scale(1); } }
 .reduced .chain-badge b { animation: none; }
 @media (prefers-reduced-motion: reduce) { .chain-badge b { animation: none; } }
+
+.chain-timer { width: 94px; height: 3px; margin: 5px 0; background: #344c3c; }
+.chain-timer i { display: block; height: 100%; background: #d4fa53; }
+.level-dialog { animation: reward-entrance 220ms ease-out; }
+.upgrade-card { animation: reward-entrance 260ms ease-out both; }
+.upgrade-card:nth-child(2) { animation-delay: 45ms; }
+.upgrade-card:nth-child(3) { animation-delay: 90ms; }
+.evolution-notice { animation: evolution-entrance 300ms ease-out; }
+@keyframes reward-entrance { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes evolution-entrance { from { opacity: 0; transform: translate(-50%, -50%) scale(.85); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.reduced .level-dialog, .reduced .upgrade-card, .reduced .evolution-notice { animation: none; }
+@media (prefers-reduced-motion: reduce) { .level-dialog, .upgrade-card, .evolution-notice { animation: none; } }

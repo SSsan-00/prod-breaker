@@ -1,11 +1,26 @@
 let context: AudioContext | undefined;
 export function sound(
-  kind: "deploy" | "hit" | "destroy" | "panic",
+  kind: "deploy" | "hit" | "destroy" | "panic" | "milestone",
   volume: number,
 ) {
   try {
     context ??= new AudioContext();
     void context.resume().catch(() => {});
+    if (kind === "milestone") {
+      const now = context.currentTime;
+      [523.25, 659.25, 783.99].forEach((note, i) => {
+        const tone = context!.createOscillator(), envelope = context!.createGain();
+        tone.type = "triangle";
+        tone.frequency.value = note;
+        envelope.gain.setValueAtTime(0.001, now + i * 0.055);
+        envelope.gain.linearRampToValueAtTime(volume * 0.045, now + i * 0.055 + 0.015);
+        envelope.gain.exponentialRampToValueAtTime(0.001, now + i * 0.055 + 0.22);
+        tone.connect(envelope).connect(context!.destination);
+        tone.start(now + i * 0.055);
+        tone.stop(now + i * 0.055 + 0.23);
+      });
+      return;
+    }
     const osc = context.createOscillator(),
       gain = context.createGain();
     osc.type = kind === "destroy" ? "sawtooth" : "square";

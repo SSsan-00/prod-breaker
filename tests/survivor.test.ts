@@ -160,6 +160,12 @@ describe("survivor fixed-step engine", () => {
     expect(w.time - firstTime).toBeGreaterThanOrEqual(6);
     expect(w.xp).toBeGreaterThan(0);
   });
+  it("recharges PANIC at chain milestones without going negative", () => {
+    const w = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
+    expect(w.combo).toBeGreaterThanOrEqual(10);
+    expect(w.panicCooldown).toBeLessThanOrEqual(20);
+    expect(w.panicCooldown).toBeGreaterThanOrEqual(0);
+  });
   it("prevents repeated panic during cooldown", () => {
     let a = stepWorld(createWorld(), { x: 0, y: 0, panic: true });
     a = chooseUpgrade(a, a.choices[0]);
@@ -168,7 +174,7 @@ describe("survivor fixed-step engine", () => {
       a = stepWorld(a, { x: 0, y: 0, panic: true });
     }
     expect(a.panicUses).toBe(1);
-    expect(a.panicCooldown).toBeGreaterThan(20);
+    expect(a.panicCooldown).toBeGreaterThan(0);
   });
   it("pauses simulation during upgrade and validates choices", () => {
     const a = stepWorld(createWorld(), { x: 0, y: 0, panic: true });

@@ -644,8 +644,11 @@ function killChain(w: World, first: Entity, damage: number) {
         (1 + Math.min(w.combo, 50) * 0.06),
     );
     w.score = Math.min(Number.MAX_SAFE_INTEGER, w.score + bonus);
-    if ([10, 30, 100].includes(w.combo))
+    if ([10, 30, 100].includes(w.combo)) {
+      // Milestones recharge PANIC once per crossing, including during a cascade.
+      w.panicCooldown = Math.max(0, w.panicCooldown - 2);
       fx(w, target, "milestone", w.combo === 100 ? "SYSTEM MELTDOWN" : w.combo === 30 ? "OVERLOAD x1.5" : "OVERLOAD x1.25");
+    }
     if (target.kind === "server") w.destroyed++;
     else w.kills++;
     fx(

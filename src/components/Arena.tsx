@@ -340,6 +340,13 @@ export default function Arena({
             ctx.lineTo(midx + Math.sin(e.id) * 14, midy - 10);
             ctx.lineTo(e.to.x, e.to.y);
             ctx.stroke();
+            if (!reduced) {
+              const t = Math.min(1, progress * 1.5);
+              ctx.fillStyle = "#ecffff";
+              ctx.beginPath();
+              ctx.arc(e.x + (e.to.x - e.x) * t, e.y + (e.to.y - e.y) * t, 3, 0, Math.PI * 2);
+              ctx.fill();
+            }
           } else if (e.kind === "explosion") {
             if (!reduced) {
               if (brightBursts++ < (width < 600 ? 3 : 8)) {
@@ -363,6 +370,11 @@ export default function Arena({
               ctx.lineWidth = 3 * (1 - progress);
               ctx.beginPath();
               ctx.arc(e.x, e.y, 12 + progress * 65, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.strokeStyle = "#ffe9a4";
+              ctx.lineWidth = 2 * (1 - progress);
+              ctx.beginPath();
+              ctx.arc(e.x, e.y, 6 + progress * 42, 0, Math.PI * 2);
               ctx.stroke();
               const count = width < 600 ? 12 : 22;
               for (let i = 0; i < count; i++) {
@@ -393,6 +405,17 @@ export default function Arena({
               ctx.beginPath();
               ctx.arc(e.x, e.y, 15 + progress * 95, 0, Math.PI * 2);
               ctx.stroke();
+              const rays = width < 600 ? 8 : 14;
+              for (let i = 0; i < rays; i++) {
+                const angle = i * Math.PI * 2 / rays + e.id;
+                const radius = 35 + progress * 95;
+                ctx.strokeStyle = i % 2 ? "#ffe4a0" : "#a4f2ff";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(e.x + Math.cos(angle) * radius, e.y + Math.sin(angle) * radius);
+                ctx.lineTo(e.x + Math.cos(angle) * (radius + 14 * (1 - progress)), e.y + Math.sin(angle) * (radius + 14 * (1 - progress)));
+                ctx.stroke();
+              }
             }
             ctx.fillStyle = "#efffb4";
             ctx.font = "bold 18px monospace";
