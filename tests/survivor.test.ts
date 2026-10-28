@@ -490,7 +490,7 @@ describe("survivor fixed-step engine", () => {
       expect(next.entities.length).toBeLessThanOrEqual(100);
     }
   });
-  it("spawns each wave of cores within one sector, including at the map edge", () => {
+  it("spawns cores across the map safely, including when the player is at the edge", () => {
     const positions = [[1000, 1000], [28, 28], [1972, 28], [28, 1972], [1972, 1972], [1000, 28], [28, 1000]];
     for (const [x, y] of positions) {
       const w = createWorld(42, 300);
@@ -501,13 +501,12 @@ describe("survivor fixed-step engine", () => {
       const cores = next.entities.filter((e) => e.kind === "boss");
       expect(cores).toHaveLength(9);
       for (const core of cores) {
-        expect(Math.hypot(core.x - x, core.y - y)).toBeGreaterThan(300);
+        expect(Math.hypot(core.x - x, core.y - y)).toBeGreaterThan(275);
         expect(core.x).toBeGreaterThanOrEqual(28); expect(core.x).toBeLessThanOrEqual(1972);
         expect(core.y).toBeGreaterThanOrEqual(28); expect(core.y).toBeLessThanOrEqual(1972);
       }
-      for (const a of cores) for (const b of cores) {
-        const ax = a.x - x, ay = a.y - y, bx = b.x - x, by = b.y - y;
-        expect((ax * bx + ay * by) / (Math.hypot(ax, ay) * Math.hypot(bx, by))).toBeGreaterThan(-0.02);
+      for (let i = 0; i < cores.length; i++) for (let j = i + 1; j < cores.length; j++) {
+        expect(Math.hypot(cores[i].x - cores[j].x, cores[i].y - cores[j].y)).toBeGreaterThan(85);
       }
       expect(stepWorld(w, { x: 0, y: 0 }).entities).toEqual(next.entities);
     }

@@ -1266,22 +1266,30 @@ export function stepWorld(state: World, input: Input): World {
     const count = w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
     const coreHp = Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2));
-    // Pick a random approach direction while leaving room to escape.
-    // Near the edge, aim inward with a small random offset.
-    const nearEdge = w.player.x < 450 || w.player.x > 1550 || w.player.y < 450 || w.player.y > 1550;
-    const heading = nearEdge
-      ? Math.atan2(1000 - w.player.y, 1000 - w.player.x) + (random(w) - 0.5) * Math.PI / 12
-      : random(w) * Math.PI * 2;
-    const spread = nearEdge ? Math.PI * 7 / 18 : Math.PI * 4 / 9;
+    // Each core gets its own seeded position anywhere on the map.
+    // Keep initial distance from the player and other newly spawned cores.
+    const positions: Vec[] = [];
+    const clearance = (p: Vec) => Math.min(
+      distance(p, w.player) - 280,
+      ...positions.map((other) => distance(p, other) - 90),
+    );
     for (let i = 0; i < count; i++) {
-      const offset = count === 1 ? 0 : (i / (count - 1) - 0.5) * spread;
-      const jitter = count === 1 ? 0 : (random(w) - 0.5) * spread / (count - 1) * 0.1;
-      const angle = heading + offset + jitter;
-      const radius = 345 + (i % 2) * 55 + random(w) * 25;
+      let location: Vec | undefined;
+      for (let attempt = 0; attempt < 32; attempt++) {
+        const candidate = { x: 40 + random(w) * 1920, y: 40 + random(w) * 1920 };
+        if (clearance(candidate) >= 0) { location = candidate; break; }
+      }
+      // A bounded deterministic fallback handles unusually crowded placements.
+      if (!location) {
+        const grid: Vec[] = [];
+        for (let x = 200; x <= 1800; x += 400)
+          for (let y = 200; y <= 1800; y += 400) grid.push({ x, y });
+        location = grid.reduce((best, p) => clearance(p) > clearance(best) ? p : best);
+      }
+      positions.push(location);
       w.entities.push({
         id: id(w),
-        x: clamp(w.player.x + Math.cos(angle) * radius, 40, 1960),
-        y: clamp(w.player.y + Math.sin(angle) * radius, 40, 1960),
+        ...location,
         hp: coreHp,
         maxHp: coreHp,
         kind: "boss",
