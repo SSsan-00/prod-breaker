@@ -76,7 +76,9 @@ export type UpgradeId =
   | "meeting"
   | "reboot"
   | "staging"
-  | "drift";
+  | "drift"
+  | "lockfile" | "latest" | "timezone" | "midnight"
+  | "secrets" | "clipboard" | "terraform" | "manual";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -421,6 +423,14 @@ export const upgrades: {
     icon: "⇄",
     description: "連鎖範囲 +30、ログ回収 +30。いつの間にか差分が。",
   },
+  { id: "lockfile", name: "ロックファイルの置き忘れ", type: "BUG", icon: "⌑", description: "攻撃力 +10、連鎖ダメージ +8。昨日と同じ依存関係とは限らない。" },
+  { id: "latest", name: "最新版なら安心", type: "BOOST", icon: "↑", description: "攻撃速度 +10%、BP倍率 +10%。破壊的変更は明日読む。" },
+  { id: "timezone", name: "時差を無視した日付", type: "CHAIN", icon: "◷", description: "連鎖範囲 +25、敵速度 -8%。今日はもう昨日。" },
+  { id: "midnight", name: "午前零時の定期実行", type: "BUG", icon: "☾", description: "持続ダメージ +8、連鎖ダメージ +8。全リージョンで同時開催。" },
+  { id: "secrets", name: "秘密の置き場所", type: "BOOST", icon: "▣", description: "最大HP +20、HP回復 +20。誰でも見つけられる安心設計。" },
+  { id: "clipboard", name: "コピペで設定完了", type: "CHAIN", icon: "▤", description: "連鎖範囲 +25、攻撃力 +8。コメントも一緒に引き継ぐ。" },
+  { id: "terraform", name: "手元だけの構成変更", type: "BUG", icon: "◇", description: "貫通 +1、攻撃力 +8。差分はなかったことに。" },
+  { id: "manual", name: "職人の手作業", type: "BOOST", icon: "✦", description: "移動速度 +8%、BP倍率 +20%。手順は記憶の中。" },
 ];
 export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   retry: "timeout",
@@ -457,6 +467,10 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   reboot: "meeting",
   staging: "drift",
   drift: "staging",
+  lockfile: "latest", latest: "lockfile",
+  timezone: "midnight", midnight: "timezone",
+  secrets: "clipboard", clipboard: "secrets",
+  terraform: "manual", manual: "terraform",
 };
 
 export type World = {
@@ -837,6 +851,22 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.chainRange = Math.min(400, w.chainRange + 30);
       w.magnet = Math.min(420, w.magnet + 30);
       break;
+    case "lockfile":
+      w.damage += 10; w.chainDamage += 8; break;
+    case "latest":
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.9); w.multiplier += 0.1; break;
+    case "timezone":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.slow = Math.max(0.4, w.slow * 0.92); break;
+    case "midnight":
+      w.aura += 8; w.chainDamage += 8; break;
+    case "secrets":
+      w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
+    case "clipboard":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 8; break;
+    case "terraform":
+      w.pierce = Math.min(8, w.pierce + 1); w.damage += 8; break;
+    case "manual":
+      w.speed = Math.min(340, w.speed * 1.08); w.multiplier += 0.2; break;
     case "env":
       w.speed = Math.min(340, w.speed * 1.15);
       break;
@@ -983,6 +1013,10 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
         w.multiplier += 0.5;
       },
     },
+    { name: "再現不能ビルド", pair: ["lockfile", "latest"], apply: () => { w.damage += 25; w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
+    { name: "世界同時バッチ祭り", pair: ["timezone", "midnight"], apply: () => { w.chainRange = Math.min(400, w.chainRange + 60); w.aura += 18; } },
+    { name: "秘伝の設定コピペ", pair: ["secrets", "clipboard"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 20; } },
+    { name: "存在しないインフラ", pair: ["terraform", "manual"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.multiplier += 0.5; } },
   ];
   for (const recipe of recipes)
     if (
@@ -1220,6 +1254,16 @@ export function survivorReport(w: World) {
     "本番への善意の一括変更",
     "期限切れを誰も見ていなかった証明書",
     "仕様書にない仕様への完全対応",
+    "最新版なら大丈夫という根拠のない確信",
+    "タイムゾーンを考慮しなかった午前零時",
+    "作業者の記憶にしか存在しない設定",
+    "コピペ元に残っていた検証用の値",
+    "存在しないはずのインフラの手動変更",
+    "誰も読まなかった破壊的変更の告知",
+    "一時的な対応として永住した設定",
+    "戻せると思っていた片道のマイグレーション",
+    "再現条件が会議室に置き忘れられた不具合",
+    "全員が別の人が確認したと思っていた設定",
   ];
   const preventions = [
     "金曜日を廃止する。",
@@ -1242,6 +1286,16 @@ export function survivorReport(w: World) {
     "影響範囲の欄を「たぶん」以外で埋める。",
     "原因調査中のまま祝勝会を始めない。",
     "バックアップの復元方法もバックアップする。",
+    "「一時対応」に賞味期限を設定する。",
+    "タイムゾーンを会議の参加者として招待する。",
+    "コピペ元にもレビューを受けてもらう。",
+    "手作業の前に未来の自分へ手紙を書く。",
+    "最新版の説明を更新ボタンより大きく表示する。",
+    "変更履歴の空欄に事情聴取を行う。",
+    "本番と検証環境を定期的に自己紹介させる。",
+    "「誰がやったか」より先に「何が起きたか」を書く。",
+    "ロックファイルにもチームの一員として席を用意する。",
+    "無限リトライの前に有限のお茶休憩を入れる。",
   ];
   const titles =
     w.destroyed >= 80
@@ -1252,6 +1306,7 @@ export function survivorReport(w: World) {
           "全件更新の覇者",
           "SLA解体職人",
           "データセンターの伝説",
+          "稼働率の天敵", "本番炎上マエストロ", "SLOの最終面接官", "障害予算の使い手", "全サービス同時多発の匠",
         ]
       : w.destroyed >= 25
         ? [
@@ -1259,14 +1314,14 @@ export function survivorReport(w: World) {
             "キャッシュを消す者",
             "影響範囲は全サービス",
             "秘密の障害職人",
-            "手順書の冒険者",
+            "手順書の冒険者", "差分を生む者", "デプロイの風雲児", "深夜アラートの名付け親",
           ]
         : [
             "原因は調査中",
             "本番は見ていない",
             "ヨシ！の達人",
             "ログの海の漂流者",
-            "再起動見習い",
+            "再起動見習い", "小さな変更の大冒険", "設定値の旅人", "影響調査の新人",
           ];
   if (w.maxCombo >= 20) titles.push("無限リトライの使者", "連鎖反応の支配者");
   if (w.maxCombo >= 100) titles.push("終わらない障害対応", "アラートの大洪水");
@@ -1276,6 +1331,9 @@ export function survivorReport(w: World) {
   if (w.panicUses >= 3) titles.push("緊急マージの達人", "再起動ボタンの守護者");
   if (w.evolutions.length >= 1)
     titles.push("進化したレガシーコード", "複雑性の錬金術師");
+  if (w.build.includes("timezone")) titles.push("時差の支配者", "昨日と明日の境界線");
+  if (w.build.includes("lockfile")) titles.push("依存関係の漂流者", "再現不能の建築家");
+  if (w.build.includes("manual")) titles.push("手順書なき職人", "記憶だけが真実");
   if (w.phase === "won")
     titles.push("90秒を超えた何か", "本番を生き延びたバグ");
   const mix = (salt: number) => {

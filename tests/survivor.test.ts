@@ -54,9 +54,13 @@ describe("survivor fixed-step engine", () => {
       ["schema", "contract", "互換性は来世で"],
       ["meeting", "reboot", "再起動の承認会議"],
       ["staging", "drift", "環境差分パラダイス"],
+      ["lockfile", "latest", "再現不能ビルド"],
+      ["timezone", "midnight", "世界同時バッチ祭り"],
+      ["secrets", "clipboard", "秘伝の設定コピペ"],
+      ["terraform", "manual", "存在しないインフラ"],
     ] as const;
-    expect(recipes).toHaveLength(17);
-    expect(upgrades).toHaveLength(48);
+    expect(recipes).toHaveLength(21);
+    expect(upgrades).toHaveLength(56);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);
