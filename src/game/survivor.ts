@@ -9,6 +9,7 @@ export type Entity = Vec & {
   kind: "server" | "drone" | "repair" | "boss";
   label: string;
   flash: number;
+  chainGuardUntil?: number;
 };
 export type Shot = Vec & {
   id: number;
@@ -675,7 +676,7 @@ export function chainPower(combo: number) {
   return combo >= 30 ? 1.5 : combo >= 10 ? 1.25 : 1;
 }
 function killChain(w: World, first: Entity, damage: number) {
-  const queue = [{ target: first.id, damage }];
+  const queue = [{ target: first.id, damage, propagated: false }];
   const visits = new Map<number, number>();
   let processed = 0;
   while (queue.length && processed++ < 200) {
@@ -684,8 +685,15 @@ function killChain(w: World, first: Entity, damage: number) {
     if (!target || target.hp <= 0 || (visits.get(target.id) || 0) >= 2)
       continue;
     visits.set(target.id, (visits.get(target.id) || 0) + 1);
-    const actual = Math.min(target.hp, hit.damage);
-    target.hp = Math.max(0, target.hp - hit.damage);
+    let damage = hit.damage;
+    if (target.kind === "boss" && hit.propagated) {
+      // Repeated explosions in the same burst cannot erase a core instantly.
+      if (w.time < (target.chainGuardUntil ?? 0)) continue;
+      target.chainGuardUntil = w.time + 0.25;
+      damage = Math.min(damage, target.maxHp * 0.2);
+    }
+    const actual = Math.min(target.hp, damage);
+    target.hp = Math.max(0, target.hp - actual);
     target.flash = 0.15;
     w.score = Math.min(
       Number.MAX_SAFE_INTEGER,
@@ -731,6 +739,7 @@ function killChain(w: World, first: Entity, damage: number) {
         queue.push({
           target: next.id,
           damage: w.chainDamage * chainPower(w.combo) * (target.kind === "boss" ? 2 : 1),
+          propagated: true,
         });
       }
     }

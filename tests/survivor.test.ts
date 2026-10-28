@@ -421,6 +421,34 @@ describe("survivor fixed-step engine", () => {
     ];
     expect(stepWorld(a, { x: 0, y: 0 }).entities[0].hp).toBeGreaterThan(10);
   });
+  it("limits repeated chain damage to cores while direct attacks remain effective", () => {
+    const w = createWorld();
+    w.chainDamage = 10000;
+    w.shotTimer = 10;
+    w.entities = [
+      { id: 900, x: 1020, y: 1000, hp: 1, maxHp: 1, kind: "server", label: "WEB", flash: 0 },
+      { id: 901, x: 1030, y: 1000, hp: 1, maxHp: 1, kind: "server", label: "API", flash: 0 },
+      { id: 902, x: 1040, y: 1000, hp: 500, maxHp: 500, kind: "boss", label: "SRE CORE", flash: 0 },
+    ];
+    const after = stepWorld(w, { x: 0, y: 0, panic: true });
+    const core = after.entities.find((e) => e.id === 902);
+    expect(core?.hp).toBe(300); // One chain hit at 20% plus PANIC's direct 100.
+    expect(after.destroyed).toBe(2);
+    expect(after.score).toBeGreaterThan(0);
+    expect(core?.chainGuardUntil).toBeGreaterThan(after.time);
+    const later = structuredClone(after);
+    later.phase = "playing";
+    later.time = core!.chainGuardUntil!;
+    later.shotTimer = 10;
+    later.entities.push({ id: 904, x: 1100, y: 1000, hp: 1, maxHp: 1, kind: "server", label: "DB", flash: 0 });
+    later.shots = [{ id: 905, x: 1100, y: 1000, vx: 0, vy: 0, life: 1, damage: 1, pierce: 0, hit: [] }];
+    expect(stepWorld(later, { x: 0, y: 0 }).entities.find((e) => e.id === 902)?.hp).toBe(200);
+    const direct = createWorld();
+    direct.shotTimer = 10;
+    direct.entities = [{ id: 902, x: 1020, y: 1000, hp: 50, maxHp: 500, kind: "boss", label: "SRE CORE", flash: 0, chainGuardUntil: 100 }];
+    direct.shots = [{ id: 903, x: 1020, y: 1000, vx: 0, vy: 0, life: 1, damage: 50, pierce: 0, hit: [] }];
+    expect(stepWorld(direct, { x: 0, y: 0 }).entities.some((e) => e.id === 902)).toBe(false);
+  });
   it("advances waves and spawns the increasing number of bosses once", () => {
     let a = createWorld();
     a.time = 60 - STEP;
