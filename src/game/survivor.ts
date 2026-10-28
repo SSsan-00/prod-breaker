@@ -1446,7 +1446,7 @@ export function stepWorld(state: World, input: Input): World {
     const d = distance(e, goal),
       speed =
         (e.kind === "boss"
-          ? 65
+          ? 71.5
           : e.kind === "repair"
             ? 64
             : 65 + wave(w) * 12 + Math.min(10, Math.max(0, wave(w) - 1) * 2)) * w.slow;

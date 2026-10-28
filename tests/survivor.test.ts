@@ -405,10 +405,10 @@ describe("survivor fixed-step engine", () => {
     w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
     w.entities = [{ id: 999, x: 1300, y: 1000, hp: 500, maxHp: 500, kind: "boss", label: "SRE CORE", flash: 0 }];
     const normal = stepWorld(w, { x: 0, y: 0 });
-    expect(1300 - normal.entities[0].x).toBeCloseTo(65 * STEP);
+    expect(1300 - normal.entities[0].x).toBeCloseTo(71.5 * STEP);
     w.slow = 0.5;
     const slowed = stepWorld(w, { x: 0, y: 0 });
-    expect(1300 - slowed.entities[0].x).toBeCloseTo(32.5 * STEP);
+    expect(1300 - slowed.entities[0].x).toBeCloseTo(35.75 * STEP);
   });
   it("chasing enemies cause contact damage with an immunity window", () => {
     const a = createWorld();
