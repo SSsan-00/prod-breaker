@@ -560,6 +560,7 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
   await dialog.getByRole("button", { name: /フラグ全部ON/ }).click();
   await page.clock.runFor(8200);
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("強化を1つ選択。選択中はゲームが止まります。" )).toHaveCount(0);
   const card = dialog.getByRole("button", { name: /カナリア全量配信/ });
   await expect(card).toHaveClass(/evolution-ready/);
   await expect(card).toContainText("進化可能");

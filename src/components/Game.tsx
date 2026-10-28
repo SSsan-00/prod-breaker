@@ -374,7 +374,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.8.1</span>
+              SURVIVOR EDITION <span>↗ V2.8.2</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -621,9 +621,6 @@ export default function Game() {
                     LEVEL {w.level}
                     <span>もっと、壊せる。</span>
                   </h2>
-                  <p className="muted">
-                    強化を1つ選択。選択中はゲームが止まります。
-                  </p>
                   <div className="upgrade-cards">
                     {w.choices.map((id) => {
                       const u = upgrades.find((u) => u.id === id)!;
@@ -714,7 +711,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.8.1</span>
+          <span>PROD BREAKER / SURVIVOR V2.8.2</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
