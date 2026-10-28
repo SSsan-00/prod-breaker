@@ -669,10 +669,14 @@ test("result collapse plays after the score and respects reduced motion", async 
   const result = page.locator(".result");
   await expect(result).toBeVisible();
   await expect(result.locator(".result-score")).toBeVisible();
-  const animation = await result.evaluate((el) => getComputedStyle(el).animationName);
+  const impact = result.locator(".result-impact");
+  const animation = await impact.evaluate((el) => getComputedStyle(el).animationName);
   expect(animation).toBe(info.project.name === "mobile" ? "none" : "result-collapse");
-  await page.clock.runFor(2500);
+  await impact.evaluate((el) => el.getAnimations().forEach((animation) => animation.finish()));
   expect(await result.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+  const transform = await impact.evaluate((el) => getComputedStyle(el).transform);
+  if (info.project.name === "mobile") expect(transform).toBe("none");
+  else expect(transform).not.toBe("none");
   await page.getByRole("button", { name: "もう一度プレイ ↻" }).click();
   await expect(page.getByTestId("health")).toHaveText("100 / 100");
 });

@@ -44,25 +44,59 @@ export function sound(
     /* Audio failure never blocks play. */
   }
 }
+/** A compact, looping synth groove; all voices share a stoppable music bus. */
 export function startMusic(volume: number) {
-  let beat = 0;
-  const notes = [55, 82.41, 65.41, 73.42, 55, 110, 82.41, 73.42];
-  const tick = () => {
-    try {
-      context ??= new AudioContext();
-      void context.resume().catch(() => {});
-      const osc = context.createOscillator(),
-        gain = context.createGain();
-      osc.type = "triangle";
-      osc.frequency.value = notes[beat++ % notes.length];
-      gain.gain.setValueAtTime(volume * 0.035, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.32);
-      osc.connect(gain).connect(context.destination);
-      osc.start();
-      osc.stop(context.currentTime + 0.35);
-    } catch {}
-  };
-  tick();
-  const timer = setInterval(tick, 370);
-  return () => clearInterval(timer);
+  try {
+    context ??= new AudioContext();
+    const audio = context;
+    void audio.resume().catch(() => {});
+    const bus = audio.createGain();
+    bus.gain.value = Math.max(0, Math.min(1, volume)) * 0.18;
+    bus.connect(audio.destination);
+    const bass = [55, 0, 55, 82.41, 65.41, 0, 73.42, 82.41, 55, 0, 110, 82.41, 73.42, 65.41, 61.74, 0];
+    const lead = [220, 0, 261.63, 0, 329.63, 0, 293.66, 0, 220, 0, 261.63, 329.63, 392, 0, 329.63, 293.66];
+    let step = 0;
+    let next = audio.currentTime + 0.04;
+    let stopped = false;
+    const tone = (frequency: number, at: number, length: number, type: OscillatorType, level: number, endFrequency = frequency) => {
+      const oscillator = audio.createOscillator();
+      const envelope = audio.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, at);
+      oscillator.frequency.exponentialRampToValueAtTime(endFrequency, at + length);
+      envelope.gain.setValueAtTime(0.0001, at);
+      envelope.gain.exponentialRampToValueAtTime(level, at + 0.008);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, at + length);
+      oscillator.connect(envelope).connect(bus);
+      oscillator.start(at);
+      oscillator.stop(at + length + 0.01);
+    };
+    const schedule = () => {
+      if (stopped || audio.state !== "running") return;
+      // Avoid scheduling a backlog after a suspended tab or delayed timer.
+      next = Math.max(next, audio.currentTime + 0.01);
+      while (next < audio.currentTime + 0.18) {
+        const index = step % 16;
+        if (bass[index]) tone(bass[index], next, 0.23, "triangle", 0.45);
+        if (lead[index]) tone(lead[index], next, 0.12, "square", 0.08);
+        if (index % 4 === 0) tone(130, next, 0.16, "sine", 0.5, 42);
+        if (index % 4 === 2) tone(190, next, 0.08, "triangle", 0.18, 75);
+        tone(2200, next, 0.025, "square", index % 2 ? 0.035 : 0.055, 1200);
+        next += 60 / 132 / 2;
+        step++;
+      }
+    };
+    schedule();
+    const timer = setInterval(schedule, 100);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      bus.gain.cancelScheduledValues(audio.currentTime);
+      bus.gain.setValueAtTime(0, audio.currentTime);
+      bus.disconnect();
+    };
+  } catch {
+    // Audio failure never blocks play.
+    return () => {};
+  }
 }
