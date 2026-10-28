@@ -1231,6 +1231,37 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
   w.phase = "playing";
   return w;
 }
+/** Preview the actual extra evolution bonus after this upgrade, including caps. */
+export function evolutionBonus(state: World, id: UpgradeId): string[] {
+  if (!evolutionReady(state, id) || state.phase !== "upgrade" || !state.choices.includes(id)) return [];
+  const withoutEvolution = structuredClone(state);
+  withoutEvolution.evolutions = [...new Set([...withoutEvolution.evolutions, ...Object.values(evolutionNames).filter((name): name is string => !!name)])];
+  const base = chooseUpgrade(withoutEvolution, id);
+  const evolved = chooseUpgrade(state, id);
+  const result: string[] = [];
+  const delta = (label: string, before: number, after: number) => {
+    const change = Math.round((after - before) * 100) / 100;
+    if (change > 0) result.push(`${label}+${change}`);
+  };
+  delta("攻撃", base.damage, evolved.damage);
+  delta("連鎖", base.chainDamage, evolved.chainDamage);
+  delta("連鎖範囲", base.chainRange, evolved.chainRange);
+  delta("貫通", base.pierce, evolved.pierce);
+  delta("発射数", base.multishot, evolved.multishot);
+  delta("持続", base.aura, evolved.aura);
+  delta("回収範囲", base.magnet, evolved.magnet);
+  delta("最大HP", base.player.maxHp, evolved.player.maxHp);
+  delta("HP回復", base.player.hp, evolved.player.hp);
+  delta("BP倍率", base.multiplier, evolved.multiplier);
+  if (evolved.fireInterval < base.fireInterval - 1e-9)
+    result.push(`攻撃間隔-${Math.round((1 - evolved.fireInterval / base.fireInterval) * 100)}%`);
+  if (evolved.speed > base.speed + 1e-9)
+    result.push(`移動速度+${Math.round((evolved.speed / base.speed - 1) * 100)}%`);
+  if (evolved.slow < base.slow - 1e-9)
+    result.push(`敵速度-${Math.round((1 - evolved.slow / base.slow) * 100)}%`);
+  return result.length ? result : ["能力は上限に到達"];
+}
+
 export function wave(w: World) {
   return Math.min(w.duration / 30, Math.floor(w.time / 30) + 1);
 }

@@ -7,6 +7,7 @@ import {
   upgrades,
   evolutionPartners,
   evolutionReady,
+  evolutionBonus,
   survivorReport,
   STEP,
   wave,
@@ -113,6 +114,18 @@ describe("survivor fixed-step engine", () => {
     expect(w.evolutions).toContain("リトライストーム");
     expect(evolutionReady(w, "retry")).toBe(false);
     expect(evolutionReady(w, "timeout")).toBe(false);
+  });
+  it("previews only the actual extra evolution bonus without mutating the world", () => {
+    const w = createWorld();
+    w.build = ["prepared"];
+    w.phase = "upgrade"; w.choices = ["sqlstring"];
+    const before = structuredClone(w);
+    expect(evolutionBonus(w, "sqlstring")).toEqual(["連鎖+20", "貫通+2"]);
+    expect(w).toEqual(before);
+    w.pierce = 8;
+    expect(evolutionBonus(w, "sqlstring")).toEqual(["連鎖+20"]);
+    w.evolutions = ["SQLインジェクション発生！"];
+    expect(evolutionBonus(w, "sqlstring")).toEqual([]);
   });
   it("offers an unfinished evolution partner while keeping three distinct choices", () => {
     let offered = 0;

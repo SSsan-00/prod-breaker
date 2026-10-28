@@ -9,6 +9,7 @@ import {
   evolutionPartners,
   evolutionNames,
   evolutionReady,
+  evolutionBonus,
   wave,
   survivorReport,
   STEP,
@@ -47,10 +48,11 @@ export default function Game() {
       reduced: false,
     }),
     [high, setHigh] = useState(0),
-    [evolutionNotice, setEvolutionNotice] = useState("");
+    [evolutionNotice, setEvolutionNotice] = useState(""),
+    [evolutionBonusNotice, setEvolutionBonusNotice] = useState<string[]>([]);
   useEffect(() => {
     if (!evolutionNotice) return;
-    const timer = setTimeout(() => setEvolutionNotice(""), 2000);
+    const timer = setTimeout(() => setEvolutionNotice(""), 3000);
     return () => clearTimeout(timer);
   }, [evolutionNotice]);
   useEffect(() => () => {
@@ -289,6 +291,7 @@ export default function Game() {
     world.current = createWorld(seed, duration);
     setSnapshot(world.current);
     setEvolutionNotice("");
+    setEvolutionBonusNotice([]);
     setModal(null);
     setScreen("run");
     if (!settings.mute) sound("deploy", settings.volume);
@@ -296,9 +299,12 @@ export default function Game() {
   function select(id: UpgradeId) {
     if (world.current.phase !== "upgrade") return;
     const previous = world.current.evolutions.length;
+    const bonus = evolutionBonus(world.current, id);
     world.current = chooseUpgrade(world.current, id);
-    if (world.current.evolutions.length > previous)
+    if (world.current.evolutions.length > previous) {
+      setEvolutionBonusNotice(bonus);
       setEvolutionNotice(world.current.evolutions.at(-1)!);
+    }
     clearInput();
     setSnapshot(world.current);
     if (!settings.mute) sound("deploy", settings.volume);
@@ -425,7 +431,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.18.1</span>
+              SURVIVOR EDITION <span>↗ V2.19.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -635,6 +641,7 @@ export default function Game() {
                 <div className="evolution-notice" role="status">
                   <small>EVOLUTION UNLOCKED</small>
                   <strong>{evolutionNotice}</strong>
+                  <span className="evolution-bonus-notice">{evolutionBonusNotice.join(" / ")}</span>
                 </div>
               )}
               <div className="arena-bottomline">
@@ -696,7 +703,9 @@ export default function Game() {
                           <div className="card-art">{u.icon}</div>
                           <h3>{u.name}</h3>
                           <p>{u.description}</p>
-                          {evolutionPartners[id] && (
+                          {ready ? (
+                            <small className="evolution-hint evolution-bonus">進化: {evolutionBonus(w, id).join(" / ")}</small>
+                          ) : evolutionPartners[id] && (
                             <small className="evolution-hint">
                               ✦{" "}
                               {
@@ -766,7 +775,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.18.1</span>
+          <span>PROD BREAKER / SURVIVOR V2.19.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

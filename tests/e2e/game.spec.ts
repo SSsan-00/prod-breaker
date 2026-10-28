@@ -589,9 +589,10 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
   const card = dialog.getByRole("button", { name: /SQLは文字列でつなぐ/ });
   await expect(card).toHaveClass(/evolution-ready/);
   await expect(card).toContainText("選ぶと進化！");
-  await expect(card).toContainText("選ぶと進化");
+  await expect(card.locator(".evolution-bonus")).toContainText("貫通+2");
+  await expect(card.locator(".evolution-bonus")).toContainText("連鎖+20");
   if (info.project.name === "mobile") {
-    for (const viewport of [{ width: 320, height: 568 }, { width: 851, height: 393 }]) {
+    for (const viewport of [{ width: 320, height: 480 }, { width: 320, height: 568 }, { width: 851, height: 393 }]) {
       await page.setViewportSize(viewport);
       const bounds = await dialog.evaluate((el) => ({ scroll: el.scrollHeight, height: el.clientHeight, bottom: el.getBoundingClientRect().bottom, viewport: innerHeight }));
       expect(bounds.scroll).toBeLessThanOrEqual(bounds.height);
@@ -601,6 +602,8 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
   }
   await card.click();
   await expect(page.locator(".evolution-notice")).toContainText("SQLインジェクション発生！");
+  await expect(page.locator(".evolution-bonus-notice")).toContainText("貫通+2");
+  await expect(page.locator(".evolution-bonus-notice")).toContainText("連鎖+20");
 });
 
 
