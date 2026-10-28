@@ -1869,3 +1869,92 @@ footer {
   .chain-cutin small, .evolution-notice small { font-size: 7px; }
   .chain-cutin span, .evolution-bonus-notice { font-size: 8px; }
 }
+
+/* Navigation and menu controls: restrained industrial hardware details. */
+.survivor:not(:has(.game)) .header-right button,
+.survivor .modal .close {
+  border: 1px solid #52665b;
+  border-radius: 3px;
+  background: linear-gradient(145deg, #1c2c2b, #101a1c);
+  box-shadow: inset 0 1px #d5f4bb18, 0 2px 0 #050c0b;
+  color: #e4f1de;
+}
+.survivor .modal .close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+.survivor .title-screen .duration-options button {
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  border-color: #40554c;
+  background: linear-gradient(150deg, #192724, #0d1819);
+  box-shadow: inset 0 1px #e3ffbb12, 0 2px 0 #050a0a;
+  color: #d8e6d4;
+}
+.survivor .title-screen .duration-options button[aria-pressed="true"] {
+  color: #eaffb2;
+  border-color: #c4ec59;
+  background: linear-gradient(135deg, #38552c, #18291e 78%);
+  box-shadow: inset 0 0 0 1px #c5ef5b55, inset 0 1px #ecffaf38, 0 0 14px #baf4511c;
+}
+.survivor .title-screen .duration-options button[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: #d4fa53;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+}
+.survivor .title-screen .duration-options button[aria-pressed="true"] span { color: #d2e6a9; }
+.survivor .title-screen .start,
+.survivor .result > .primary,
+.survivor .modal > .primary {
+  position: relative;
+  border-radius: 3px;
+  border-color: #dfff8b;
+  background: linear-gradient(110deg, #e5ff9a 0%, #d4fa53 48%, #bce33b 100%);
+  color: #14200d;
+  box-shadow: inset 0 1px #faffd5aa, 0 3px 0 #749628, 0 8px 22px #b9ef3030;
+}
+.survivor .title-screen .start span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #20341466;
+  border-radius: 2px;
+  background: #263f171a;
+  font-size: 14px;
+}
+.survivor .title-screen .text-button,
+.survivor .modal .text-button {
+  color: #c8d8c5;
+  border-bottom: 1px solid #516a54;
+  box-shadow: inset 0 -1px #080e0c;
+  transition: color .18s, border-color .18s;
+}
+.survivor .title-screen .text-button span { color: #d4fa53; }
+@media (hover: hover) and (pointer: fine) {
+  .survivor:not(:has(.game)) .header-right button:hover,
+  .survivor .modal .close:hover,
+  .survivor .title-screen .duration-options button:hover {
+    border-color: #d4fa53;
+    box-shadow: inset 0 1px #e8ffca33, 0 0 14px #c9fa4a24;
+  }
+  .survivor .title-screen .start:hover,
+  .survivor .result > .primary:hover,
+  .survivor .modal > .primary:hover {
+    background: linear-gradient(110deg, #f1ffc7, #e0ff70 52%, #c7f14b);
+    box-shadow: inset 0 1px #fff, 0 3px 0 #91b838, 0 8px 26px #b9ef3050;
+  }
+  .survivor .title-screen .text-button:hover,
+  .survivor .modal .text-button:hover { color: #eeffc1; border-color: #d4fa53; }
+}
