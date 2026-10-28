@@ -716,6 +716,13 @@ function choices(w: World) {
     const at = Math.floor(random(w) * pool.length);
     result.push(pool.splice(at, 1)[0].id);
   }
+  // Offer one unfinished combination when available, keeping two free choices.
+  const eligible = upgrades.filter((card) => evolutionReady(w, card.id));
+  if (eligible.length && !result.some((id) => evolutionReady(w, id))) {
+    const candidate = eligible[Math.floor(random(w) * eligible.length)].id;
+    const slot = Math.floor(random(w) * result.length);
+    result[slot] = candidate;
+  }
   return result;
 }
 export function chooseUpgrade(state: World, upgrade: UpgradeId): World {

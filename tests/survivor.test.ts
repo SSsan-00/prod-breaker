@@ -92,6 +92,27 @@ describe("survivor fixed-step engine", () => {
     expect(evolutionReady(w, "retry")).toBe(false);
     expect(evolutionReady(w, "timeout")).toBe(false);
   });
+  it("offers an unfinished evolution partner while keeping three distinct choices", () => {
+    for (let seed = 0; seed < 60; seed++) {
+      const w = createWorld(seed);
+      w.build = ["retry"];
+      w.xp = 1000;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(next.phase).toBe("upgrade");
+      expect(next.choices).toHaveLength(3);
+      expect(new Set(next.choices).size).toBe(3);
+      expect(next.choices).toContain("timeout");
+      expect(next.choices.some((id) => evolutionReady(next, id))).toBe(true);
+      expect(stepWorld(w, { x: 0, y: 0 }).choices).toEqual(next.choices);
+    }
+    const completed = createWorld(8);
+    completed.build = ["retry", "timeout"];
+    completed.evolutions = ["リトライストーム"];
+    completed.xp = 1000;
+    const next = stepWorld(completed, { x: 0, y: 0 });
+    expect(next.choices.some((id) => evolutionReady(next, id))).toBe(false);
+    expect(new Set(next.choices).size).toBe(3);
+  });
   it("produces deterministic varied reports even for highly destructive runs", () => {
     const reports = Array.from({ length: 100 }, (_, seed) => {
       const w = createWorld(seed);
