@@ -567,6 +567,12 @@ test("chain milestone triggers a visible overdrive without another pause", async
   await expect(page.locator(".chain-cutin")).toBeVisible();
   expect(await page.locator(".chain-cutin").evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   await dialog.locator(".upgrade-card").first().click();
+  const centerCovered = await page.locator(".chain-cutin").evaluate((el) => {
+    const box = el.getBoundingClientRect(), arena = document.querySelector("canvas")!.getBoundingClientRect();
+    const x = arena.x + arena.width / 2, y = arena.y + arena.height / 2;
+    return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+  });
+  expect(centerCovered).toBe(false);
   await expect(page.getByText("OVERDRIVE", { exact: true })).toBeVisible();
   await page.clock.runFor(1000);
   await expect(dialog).toBeHidden();
@@ -604,6 +610,12 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
   await expect(page.locator(".evolution-notice")).toContainText("SQLインジェクション発生！");
   await expect(page.locator(".evolution-bonus-notice")).toContainText("貫通+2");
   await expect(page.locator(".evolution-bonus-notice")).toContainText("連鎖+20");
+  const centerCovered = await page.locator(".evolution-notice").evaluate((el) => {
+    const box = el.getBoundingClientRect(), arena = document.querySelector("canvas")!.getBoundingClientRect();
+    const x = arena.x + arena.width / 2, y = arena.y + arena.height / 2;
+    return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+  });
+  expect(centerCovered).toBe(false);
 });
 
 

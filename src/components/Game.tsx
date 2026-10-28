@@ -431,7 +431,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.19.2</span>
+              SURVIVOR EDITION <span>↗ V2.19.3</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -622,12 +622,12 @@ export default function Game() {
                   </span>
                 </div>
               )}
-              {w.effects.filter((effect) => effect.kind === "wave").slice(-1).map((effect) => (
+              {!evolutionNotice && w.effects.filter((effect) => effect.kind === "wave").slice(-1).map((effect) => (
                 <div className="chain-cutin wave-cutin" key={effect.id} role="status" data-testid="wave-cutin">
                   <small>INCOMING INCIDENT</small><strong>{effect.text}</strong><span>復旧部隊、増援到着。</span>
                 </div>
               ))}
-              {!w.effects.some((effect) => effect.kind === "wave") && w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
+              {!evolutionNotice && !w.effects.some((effect) => effect.kind === "wave") && w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
                 <div className="chain-cutin" key={effect.id} aria-hidden="true">
                   <small>CHAIN REACTION</small><strong>{effect.text}</strong><span>本番、炎上中。</span>
                 </div>
@@ -775,7 +775,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.19.2</span>
+          <span>PROD BREAKER / SURVIVOR V2.19.3</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
