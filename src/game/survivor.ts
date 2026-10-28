@@ -22,7 +22,7 @@ export type Shot = Vec & {
 export type Pickup = Vec & { id: number; value: number };
 export type Fx = Vec & {
   id: number;
-  kind: "explosion" | "arc" | "hit" | "panic" | "heal" | "milestone";
+  kind: "explosion" | "arc" | "hit" | "panic" | "heal" | "milestone" | "wave";
   life: number;
   maxLife: number;
   text: string;
@@ -588,7 +588,7 @@ function id(w: World) {
   return ++w.serial;
 }
 function fx(w: World, p: Vec, kind: Fx["kind"], text = "", to?: Vec) {
-  const life = kind === "milestone" ? 1.2 : kind === "panic" ? 0.9 : kind === "explosion" ? 0.65 : 0.35;
+  const life = kind === "wave" ? 1.5 : kind === "milestone" ? 1.2 : kind === "panic" ? 0.9 : kind === "explosion" ? 0.65 : 0.35;
   w.effects.push({ ...p, id: id(w), kind, text, life, maxLife: life, to });
 }
 function server(w: World, p: Vec) {
@@ -606,7 +606,7 @@ function server(w: World, p: Vec) {
 }
 function spawnServer(w: World) {
   const angle = random(w) * Math.PI * 2,
-    radius = 160 + random(w) * 380;
+    radius = 160 + random(w) * (w.time >= 60 ? 320 : 380);
   server(w, {
     x: clamp(w.player.x + Math.cos(angle) * radius, 50, 1950),
     y: clamp(w.player.y + Math.sin(angle) * radius, 50, 1950),
@@ -1215,12 +1215,13 @@ export function stepWorld(state: World, input: Input): World {
     ))
       killChain(w, e, w.aura);
   }
+  let enteredWave = false;
   w.spawnTimer -= dt;
   if (w.spawnTimer <= 0) {
-    w.spawnTimer = Math.max(0.38, 1.4 - w.time * 0.012);
+    w.spawnTimer = Math.max(0.36, (w.time >= 30 ? 1.32 : 1.4) - w.time * 0.012);
     const angle = random(w) * Math.PI * 2;
     const kind = w.time > 15 && random(w) < 0.18 ? "repair" : "drone";
-    const hp = kind === "repair" ? 30 : 22 + wave(w) * 7;
+    const hp = kind === "repair" ? 30 : 22 + wave(w) * 7 + Math.min(12, Math.max(0, wave(w) - 1) * 2);
     w.entities.push({
       id: id(w),
       x: clamp(w.player.x + Math.cos(angle) * 460, 20, 1980),
@@ -1248,12 +1249,13 @@ export function stepWorld(state: World, input: Input): World {
   ) {
     w.bossWave = Math.floor(w.time / 30);
     w.bossSpawned = true;
+    enteredWave = true;
     w.entities.push({
       id: id(w),
       x: clamp(w.player.x + 350, 40, 1960),
       y: w.player.y,
-      hp: 250 + w.bossWave * 200,
-      maxHp: 250 + w.bossWave * 200,
+      hp: 275 + w.bossWave * 210,
+      maxHp: 275 + w.bossWave * 210,
       kind: "boss",
       label: "SRE CORE",
       flash: 0,
@@ -1279,7 +1281,7 @@ export function stepWorld(state: World, input: Input): World {
           ? 61
           : e.kind === "repair"
             ? 64
-            : 65 + wave(w) * 12) * w.slow;
+            : 65 + wave(w) * 12 + Math.min(10, Math.max(0, wave(w) - 1) * 2)) * w.slow;
     if (d > 1) {
       e.x += ((goal.x - e.x) / d) * speed * dt;
       e.y += ((goal.y - e.y) / d) * speed * dt;
@@ -1303,7 +1305,10 @@ export function stepWorld(state: World, input: Input): World {
   if (w.serverTimer <= 0) {
     w.serverTimer = 1.0;
     const servers = w.entities.filter((e) => e.kind === "server").length;
-    for (let i = 0; i < Math.min(4, 40 - servers); i++) spawnServer(w);
+    const extra = Math.min(18, Math.max(0, wave(w) - 1) * 3);
+    const batch = 4 + Math.min(2, Math.max(0, wave(w) - 1));
+    const count = Math.min(batch, 40 + extra - servers, 100 - w.entities.length);
+    for (let i = 0; i < count; i++) spawnServer(w);
   }
   for (const p of w.pickups) {
     const d = distance(p, w.player);
@@ -1321,6 +1326,7 @@ export function stepWorld(state: World, input: Input): World {
     .filter((p) => p.value > 0 && distance(p, w.player) < 900)
     .slice(-160);
   w.effects = w.effects.slice(-100);
+  if (enteredWave) fx(w, w.player, "wave", `WAVE ${String(wave(w)).padStart(2, "0")}`);
   if (w.player.hp <= 0) w.phase = "lost";
   else if (w.time >= w.duration) w.phase = "won";
   else if (w.xp >= w.nextXp && w.time >= w.nextUpgradeAt) {

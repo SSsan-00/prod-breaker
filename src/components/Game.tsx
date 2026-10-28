@@ -180,6 +180,7 @@ export default function Game() {
       lastSound = 0;
     let oldCombo = 0;
     let oldDestroyed = world.current.destroyed;
+    let oldBossWave = world.current.bossWave;
     const frame = (now: number) => {
       if (document.hidden) {
         last = 0;
@@ -213,6 +214,9 @@ export default function Game() {
         changed = true;
       }
       const w = world.current;
+      if (w.bossWave > oldBossWave && !settingsRef.current.mute)
+        sound("deploy", settingsRef.current.volume);
+      oldBossWave = w.bossWave;
       const milestone = [100, 30, 10].find(
         (value) => w.combo >= value && oldCombo < value,
       );
@@ -375,7 +379,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.11.0</span>
+              SURVIVOR EDITION <span>↗ V2.12.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -535,9 +539,9 @@ export default function Game() {
               <div className="arena-topline">
                 <span>
                   PROD / TOKYO{" "}
-                  {w.time >= 60
+                  {w.time >= 30
                     ? "⚠ SRE CORE ONLINE"
-                    : w.time >= 30
+                    : w.time >= 15
                       ? "⚠ REPAIR BOTS DEPLOYED"
                       : "● FAULT SPREADING"}
                 </span>
@@ -567,7 +571,12 @@ export default function Game() {
                   </span>
                 </div>
               )}
-              {w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
+              {w.effects.filter((effect) => effect.kind === "wave").slice(-1).map((effect) => (
+                <div className="chain-cutin wave-cutin" key={effect.id} role="status" data-testid="wave-cutin">
+                  <small>INCOMING INCIDENT</small><strong>{effect.text}</strong><span>復旧部隊、増援到着。</span>
+                </div>
+              ))}
+              {!w.effects.some((effect) => effect.kind === "wave") && w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
                 <div className="chain-cutin" key={effect.id} aria-hidden="true">
                   <small>CHAIN REACTION</small><strong>{effect.text}</strong><span>本番、炎上中。</span>
                 </div>
@@ -713,7 +722,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.11.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.12.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

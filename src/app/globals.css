@@ -1812,3 +1812,8 @@ footer {
   .chain-cutin::before, .chain-cutin::after, .evolution-notice::before, .evolution-notice::after { animation:none; display:none; }
   .chain-cutin strong, .evolution-notice strong { animation:none; text-shadow:none; }
 }
+
+.wave-cutin { border-color:#ffad77; background:linear-gradient(105deg,#21151cf5,#703826f5,#273125f5); box-shadow:0 0 20px #ff835b88,0 0 42px #ff603d55; animation-duration:1.5s; }
+.wave-cutin small { color:#ffd4a4; }
+.reduced .wave-cutin { box-shadow:none; }
+@media (prefers-reduced-motion:reduce) { .wave-cutin { box-shadow:none; } }

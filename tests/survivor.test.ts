@@ -252,9 +252,36 @@ describe("survivor fixed-step engine", () => {
     w.time = 35; w.bossWave = 1; w.spawnTimer = 0; w.serverTimer = 0;
     const beforeServers = w.entities.filter((e) => e.kind === "server").length;
     const next = stepWorld(w, { x: 0, y: 0 });
-    expect(next.entities.filter((e) => e.kind === "server").length).toBe(beforeServers + 4);
+    expect(next.entities.filter((e) => e.kind === "server").length).toBe(beforeServers + 5);
     expect(next.entities.filter((e) => e.kind === "drone" || e.kind === "repair").length).toBe(2);
     expect(next.entities.length).toBeLessThanOrEqual(100);
+  });
+  it("adds more nearby targets as waves advance without exceeding the entity cap", () => {
+    const early = createWorld(42, 300);
+    early.shotTimer = 10; early.serverTimer = 0; early.spawnTimer = 10;
+    const earlyCount = stepWorld(early, { x: 0, y: 0 }).entities.filter((e) => e.kind === "server").length;
+    const later = createWorld(42, 300);
+    later.time = 90; later.bossWave = 3; later.shotTimer = 10; later.serverTimer = 0; later.spawnTimer = 10;
+    const next = stepWorld(later, { x: 0, y: 0 });
+    expect(next.entities.filter((e) => e.kind === "server").length).toBeGreaterThan(earlyCount);
+    expect(next.entities.length).toBeLessThanOrEqual(100);
+  });
+  it("announces a new wave once, with modestly stronger reinforcements", () => {
+    const w = createWorld(42, 90);
+    w.time = 30 - STEP / 2;
+    w.spawnTimer = 0;
+    w.shotTimer = 10;
+    const next = stepWorld(w, { x: 0, y: 0 });
+    expect(wave(next)).toBe(2);
+    expect(next.effects.filter((e) => e.kind === "wave").map((e) => e.text)).toEqual(["WAVE 02"]);
+    expect(next.entities.find((e) => e.kind === "boss")?.maxHp).toBe(485);
+    const drone = next.entities.find((e) => e.kind === "drone");
+    expect(drone?.maxHp).toBe(38);
+    const after = stepWorld(next, { x: 0, y: 0 });
+    expect(after.effects.filter((e) => e.kind === "wave")).toHaveLength(1);
+    const end = createWorld(42, 90);
+    end.time = 90 - STEP / 2;
+    expect(stepWorld(end, { x: 0, y: 0 }).effects.some((e) => e.kind === "wave")).toBe(false);
   });
   it("activates a temporary faster firing burst at a chain milestone", () => {
     const triggered = stepWorld(createWorld(), { x: 0, y: 0, panic: true });

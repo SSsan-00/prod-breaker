@@ -174,6 +174,7 @@ test("90-second moving run reaches wave 3 with bounded rendering and no browser 
   await page.getByRole("button", { name: /QUICK/ }).click();
   await page.getByRole("button", { name: /GAME START/ }).click();
   let maxTime = 0;
+  const seenWaves = new Set<string>();
   for (let i = 0; i < 110; i++) {
     await choose(page);
     if (await page.locator(".result").isVisible()) break;
@@ -188,6 +189,11 @@ test("90-second moving run reaches wave 3 with bounded rendering and no browser 
     await page.keyboard.down(key);
     await page.clock.runFor(1000);
     await page.keyboard.up(key);
+    const cutin = page.getByTestId("wave-cutin");
+    if (await cutin.isVisible()) {
+      seenWaves.add(await cutin.locator("strong").innerText());
+      expect(await cutin.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+    }
     const elapsed = await page
       .getByTestId("arena")
       .evaluateAll(
@@ -200,6 +206,7 @@ test("90-second moving run reaches wave 3 with bounded rendering and no browser 
     }
   }
   console.log(`Survivor moving run simulated ${maxTime.toFixed(1)} seconds`);
+  expect([...seenWaves]).toEqual(expect.arrayContaining(["WAVE 02", "WAVE 03"]));
   await expect(page.locator(".result")).toBeVisible();
   await expect(page.locator(".result-title")).toContainText("90 SECONDS.");
   await page.screenshot({
