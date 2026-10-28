@@ -382,8 +382,11 @@ export default function Game() {
                 onPointerUp={cancelPauseHold}
                 onPointerCancel={cancelPauseHold}
                 onLostPointerCapture={cancelPauseHold}
-                onClick={(event) => {
-                  if (event.detail !== 0 && suppressPauseClick.current) {
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") suppressPauseClick.current = false;
+                }}
+                onClick={() => {
+                  if (suppressPauseClick.current) {
                     suppressPauseClick.current = false;
                     return;
                   }
@@ -420,7 +423,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.13.1</span>
+              SURVIVOR EDITION <span>↗ V2.13.2</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -763,7 +766,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.13.1</span>
+          <span>PROD BREAKER / SURVIVOR V2.13.2</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
