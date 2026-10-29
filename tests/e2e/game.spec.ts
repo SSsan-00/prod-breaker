@@ -696,7 +696,7 @@ test("scoreboard supports editable saved names and mode filtering", async ({ pag
   await expect(input).not.toHaveValue("");
   await input.fill("金曜日の魔術師");
   await dialog.getByRole("button", { name: "名前を保存" }).click();
-  await expect(dialog.getByText("名前を保存しました。")).toBeVisible();
+  await expect(dialog.getByText("名前を保存しました。次回からこの名前で登録されます。")).toBeVisible();
   await dialog.getByRole("button", { name: "ENDLESS" }).click();
   await expect.poll(() => requests.some((url) => url.includes("duration=1800"))).toBe(true);
   await page.keyboard.press("Escape");
@@ -705,7 +705,7 @@ test("scoreboard supports editable saved names and mode filtering", async ({ pag
   await expect(page.getByLabel("プレイヤー名")).toHaveValue("金曜日の魔術師");
 });
 
-test("result score is shared only after an explicit submission", async ({ page }, info) => {
+test("result score is shared automatically", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   let posted: { name: string; duration: number; score: number; runId: string } | undefined;
   await page.route("**/api/leaderboard**", async (route) => {
@@ -717,6 +717,11 @@ test("result score is shared only after an explicit submission", async ({ page }
   await page.clock.install();
   await page.goto("/?seed=42");
   await page.clock.runFor(100);
+  await page.getByRole("button", { name: "スコアボード", exact: true }).click();
+  await page.clock.runFor(50);
+  await page.getByLabel("プレイヤー名").fill("本番の破壊神");
+  await page.getByRole("button", { name: "名前を保存" }).click();
+  await page.getByRole("button", { name: "閉じる" }).click();
   await page.getByRole("button", { name: /QUICK/ }).click();
   await page.getByRole("button", { name: /GAME START/ }).click();
   for (let i = 0; i < 110; i++) {
@@ -725,18 +730,10 @@ test("result score is shared only after an explicit submission", async ({ page }
     await page.clock.runFor(1000);
   }
   await expect(page.locator(".result")).toBeVisible();
-  expect(posted).toBeUndefined();
-  await page.getByRole("button", { name: /スコアを登録/ }).click();
-  const dialog = page.getByRole("dialog", { name: "スコアボード" });
-  await page.clock.runFor(50);
-  await dialog.getByLabel("プレイヤー名").fill("本番の破壊神");
-  await dialog.getByRole("button", { name: /今回の.*BP を登録/ }).click();
-  await expect(dialog.getByRole("button", { name: "登録済み ✓" })).toBeDisabled();
-  expect(posted?.name).toBe("本番の破壊神");
+  await expect.poll(() => posted?.name).toBe("本番の破壊神");
   expect(posted?.duration).toBe(90);
   expect(posted?.score).toBeGreaterThan(0);
   expect(posted?.runId).toMatch(/^[0-9a-f-]{36}$/);
-  await dialog.getByRole("button", { name: "閉じる" }).click();
-  await page.getByRole("button", { name: /スコアを登録/ }).click();
-  await expect(page.getByRole("button", { name: "登録済み ✓" })).toBeDisabled();
+  await page.getByRole("button", { name: /ランキング →/ }).click();
+  await expect(page.getByRole("dialog", { name: "スコアボード" })).toBeVisible();
 });
