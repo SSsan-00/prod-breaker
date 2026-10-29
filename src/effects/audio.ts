@@ -1,3 +1,5 @@
+import { escalationStep } from "../game/survivor";
+
 let context: AudioContext | undefined;
 export function sound(
   kind: "deploy" | "hit" | "destroy" | "panic" | "milestone",
@@ -44,14 +46,14 @@ export function sound(
     /* Audio failure never blocks play. */
   }
 }
-/** Keep the original groove through WAVE 49, then rise gently once per wave. */
-export function musicParameters(waveNumber: number) {
+/** Keep the original groove until the later waves, then rise gently each wave. */
+export function musicParameters(waveNumber: number, duration = 1800) {
   const safeWave = Number.isFinite(waveNumber) ? Math.floor(waveNumber) : 1;
-  const late = Math.max(0, Math.min(11, safeWave - 49));
+  const late = escalationStep(safeWave, duration);
   return { bpm: 132 + late, pitch: Math.pow(2, late / 120) };
 }
 /** A compact, looping synth groove; all voices share a stoppable music bus. */
-export function startMusic(volume: number, currentWave: () => number = () => 1) {
+export function startMusic(volume: number, currentWave: () => number = () => 1, currentDuration: () => number = () => 1800) {
   try {
     context ??= new AudioContext();
     const audio = context;
@@ -83,7 +85,7 @@ export function startMusic(volume: number, currentWave: () => number = () => 1) 
       next = Math.max(next, audio.currentTime + 0.01);
       while (next < audio.currentTime + 0.18) {
         const index = step % 16;
-        const { bpm, pitch } = musicParameters(currentWave());
+        const { bpm, pitch } = musicParameters(currentWave(), currentDuration());
         if (bass[index]) tone(bass[index] * pitch, next, 0.23, "triangle", 0.45);
         if (lead[index]) tone(lead[index] * pitch, next, 0.12, "square", 0.08);
         if (index % 4 === 0) tone(130 * pitch, next, 0.16, "sine", 0.5, 42 * pitch);

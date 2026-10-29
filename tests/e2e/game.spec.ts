@@ -1,6 +1,47 @@
 import { test, expect, type Page } from "@playwright/test";
 import { evolutionNames } from "../../src/game/survivor";
 
+test("quick mode raises music pitch at wave two without restarting it", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.addInitScript(() => {
+    const frequencies: number[] = [];
+    let disconnects = 0;
+    Object.defineProperty(window, "waveMusicProbe", { get: () => ({ frequencies, disconnects }) });
+    const setValue = AudioParam.prototype.setValueAtTime;
+    AudioParam.prototype.setValueAtTime = function (value, time) {
+      if (value > 2000) frequencies.push(value);
+      return setValue.call(this, value, time);
+    };
+    const disconnect = AudioNode.prototype.disconnect;
+    Object.defineProperty(AudioNode.prototype, "disconnect", { configurable: true, writable: true,
+      value: function (this: AudioNode, ...args: unknown[]) {
+        if (this instanceof GainNode) disconnects++;
+        return Reflect.apply(disconnect, this, args);
+      },
+    });
+  });
+  const probe = () => page.evaluate(() => Reflect.get(window, "waveMusicProbe") as { frequencies: number[]; disconnects: number });
+  await page.clock.install();
+  await page.goto("/?seed=42");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: "ミュート切替" }).click();
+  await page.getByRole("button", { name: /QUICK/ }).click();
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  for (let i = 0; i < 40; i++) {
+    await choose(page);
+    if (Number(await page.getByTestId("arena").getAttribute("data-time")) >= 30) break;
+    await page.clock.runFor(1000);
+  }
+  expect(Number(await page.getByTestId("arena").getAttribute("data-time"))).toBeGreaterThanOrEqual(30);
+  await choose(page);
+  // Web Audio uses real time even while Playwright's page clock is simulated.
+  await new Promise(resolve => setTimeout(resolve, 600));
+  await page.clock.runFor(1000);
+  const result = await probe();
+  expect(result.frequencies.some(hz => Math.abs(hz - 2200 * Math.pow(2, 1 / 120)) < 0.01)).toBe(true);
+  expect(result.disconnects).toBe(0);
+});
+
 test("music continues through upgrade selection and stops when muted", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   await page.addInitScript(() => {

@@ -468,9 +468,9 @@ describe("survivor fixed-step engine", () => {
     const next = stepWorld(w, { x: 0, y: 0 });
     expect(wave(next)).toBe(2);
     expect(next.effects.filter((e) => e.kind === "wave").map((e) => e.text)).toEqual(["WAVE 02"]);
-    expect(next.entities.find((e) => e.kind === "boss")?.maxHp).toBe(580);
+    expect(next.entities.find((e) => e.kind === "boss")?.maxHp).toBe(586);
     const drone = next.entities.find((e) => e.kind === "drone");
-    expect(drone?.maxHp).toBe(38);
+    expect(drone?.maxHp).toBe(39);
     const after = stepWorld(next, { x: 0, y: 0 });
     expect(after.effects.filter((e) => e.kind === "wave")).toHaveLength(1);
     const end = createWorld(42, 90);
@@ -676,7 +676,7 @@ describe("survivor fixed-step engine", () => {
     const earlyCore = early.entities.find((e) => e.kind === "boss")!;
     const lateCore = late.entities.find((e) => e.kind === "boss")!;
     expect(earlyCore.maxHp).toBe(580);
-    expect(lateCore.maxHp).toBe(2788);
+    expect(lateCore.maxHp).toBe(2872);
     const earlyEnemy = early.entities.find((e) => e.kind === "drone")!;
     const lateEnemy = late.entities.find((e) => e.kind === "drone")!;
     expect(lateEnemy.maxHp).toBeGreaterThan(earlyEnemy.maxHp);
@@ -722,6 +722,31 @@ describe("survivor fixed-step engine", () => {
     }
     expect(lateWaveFactors(60).hp).toBeCloseTo(1.11);
     expect(lateWaveFactors(60).speed).toBeCloseTo(1.044);
+  });
+  it("starts the same gentle scaling at the selected wave of each shorter mode", () => {
+    for (const [duration, start, startHp, endHp] of [[90, 2, 586, 1016], [180, 4, 1527, 2171], [300, 6, 2371, 2619]]) {
+      expect(lateWaveFactors(start - 1, duration)).toEqual({ hp: 1, speed: 1 });
+      expect(lateWaveFactors(start, duration).hp).toBeCloseTo(1.01);
+      expect(lateWaveFactors(start, duration).speed).toBeCloseTo(1.004);
+      expect(lateWaveFactors(start + 1, duration).hp).toBeCloseTo(1.02);
+      expect(lateWaveFactors(start + 1, duration).speed).toBeCloseTo(1.008);
+      for (const [number, hp] of [[start, startHp], [start + 1, endHp]]) {
+        const w = createWorld(42, duration);
+        w.time = (number - 1) * 30 - STEP / 2; w.bossWave = number - 2;
+        w.entities = []; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+        expect(stepWorld(w, { x: 0, y: 0 }).entities.find(e => e.kind === "boss")?.maxHp).toBe(hp);
+      }
+    }
+  });
+  it("keeps scaling through the final wave of each shorter mode", () => {
+    for (const [duration, finalWave, coreHp] of [[90, 3, 1016], [180, 6, 2418], [300, 10, 3389]]) {
+      const w = createWorld(42, duration);
+      w.time = (finalWave - 1) * 30 - STEP / 2; w.bossWave = finalWave - 2;
+      w.entities = []; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(wave(next)).toBe(finalWave);
+      expect(next.entities.find(e => e.kind === "boss")?.maxHp).toBe(coreHp);
+    }
   });
   it("increases repair-bot health every late wave even with integer rounding", () => {
     for (let waveNumber = 49; waveNumber <= 60; waveNumber++) {

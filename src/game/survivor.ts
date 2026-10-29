@@ -1497,9 +1497,16 @@ export function evolutionBonus(state: World, id: UpgradeId): string[] {
   return result.length ? result : ["能力は上限に到達"];
 }
 
-/** Gentle late-ENDLESS scaling, starting at WAVE 50 and capped at WAVE 60. */
-export function lateWaveFactors(waveNumber: number) {
-  const late = Math.max(0, Math.min(11, Math.floor(waveNumber) - 49));
+/** Number of late-wave difficulty/music steps for a selected game duration. */
+export function escalationStep(waveNumber: number, duration: number): number {
+  const totalWaves = Math.floor(duration / 30);
+  const startWave = duration === 1800 ? 50 : duration === 300 ? 6 : duration === 180 ? 4 : 2;
+  return Math.max(0, Math.min(totalWaves, Math.floor(waveNumber)) - startWave + 1);
+}
+
+/** Gentle scaling in the later waves of each mode. */
+export function lateWaveFactors(waveNumber: number, duration = 1800) {
+  const late = escalationStep(waveNumber, duration);
   return { hp: 1 + late * 0.01, speed: 1 + late * 0.004 };
 }
 
@@ -1545,7 +1552,7 @@ export function stepWorld(state: World, input: Input): World {
   const w = copyForStep(state),
     dt = STEP;
   w.time = Math.min(w.duration, w.time + dt);
-  const difficulty = lateWaveFactors(wave(w));
+  const difficulty = lateWaveFactors(wave(w), w.duration);
   w.player.invulnerable = Math.max(0, w.player.invulnerable - dt);
   w.panicCooldown = Math.max(0, w.panicCooldown - dt);
   for (const e of w.entities) e.flash = Math.max(0, e.flash - dt);
@@ -1643,7 +1650,7 @@ export function stepWorld(state: World, input: Input): World {
       ? 30 + Math.min(28, lateWave * 4)
       : 22 + wave(w) * 7 + Math.min(12, Math.max(0, wave(w) - 1) * 2) + lateWave * 3;
     // Small repair bots also gain at least one HP per late wave despite rounding.
-    const hp = Math.max(Math.round(baseHp * difficulty.hp), baseHp + Math.max(0, wave(w) - 49));
+    const hp = Math.max(Math.round(baseHp * difficulty.hp), baseHp + escalationStep(wave(w), w.duration));
     w.entities.push({
       id: id(w),
       x: clamp(w.player.x + Math.cos(angle) * 460, 20, 1980),
