@@ -84,16 +84,16 @@ describe("survivor fixed-step engine", () => {
     expect(scoreAt(1790).score).toBe(116);
     expect(scoreAt(1810).score).toBe(232);
   });
-  it("continues spawning cores above 70 while honoring the existing 100-entity cap", () => {
+  it("continues spawning cores above 70 while honoring the secret-mode entity cap", () => {
     const w = createWorld(42, ENDLESS_SECONDS);
     w.time = 1830 - STEP / 2; w.bossWave = 60;
     w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
-    w.entities = Array.from({ length: 80 }, (_, i) => ({
+    w.entities = Array.from({ length: 100 }, (_, i) => ({
       id: 10000 + i, x: 100, y: 100, hp: 100, maxHp: 100,
       kind: "boss" as const, label: "SRE CORE", flash: 0,
     }));
     const next = stepWorld(w, { x: 0, y: 0 });
-    expect(next.entities).toHaveLength(100);
+    expect(next.entities).toHaveLength(150);
     expect(next.entities.filter(e => e.id < 10000)).toHaveLength(61);
   });
   it("increases secret core health and speed while keeping enemies and entity counts bounded", () => {
@@ -110,7 +110,7 @@ describe("survivor fixed-step engine", () => {
     expect(last.entities[0].maxHp).toBeGreaterThan(first.entities[0].maxHp);
     for (const w of [first, last]) {
       expect(w.entities.every(e => e.kind === "boss")).toBe(true);
-      expect(w.entities.length).toBeLessThanOrEqual(100);
+      expect(w.entities.length).toBeLessThanOrEqual(150);
     }
     const speedAt = (time: number) => {
       const w = createWorld(42, ENDLESS_SECONDS);

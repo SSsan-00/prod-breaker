@@ -1635,13 +1635,14 @@ export function stepWorld(state: World, input: Input): World {
     shot.y += shot.vy * dt;
     shot.life -= dt;
     for (const e of w.entities) {
-      if (e.hp <= 0 || shot.hit.includes(e.id)) continue;
+      if (e.hp <= 0) continue;
       const radius = e.kind === "boss" ? 35 : e.kind === "server" ? 24 : 18;
       // A target outside the enclosing square cannot intersect the hit circle.
       // Keep the original distance calculation for possible hits and their edges.
       if (
         Math.abs(shot.x - e.x) < radius &&
         Math.abs(shot.y - e.y) < radius &&
+        !shot.hit.includes(e.id) &&
         distance(shot, e) < radius
       ) {
         shot.hit.push(e.id);
@@ -1780,13 +1781,14 @@ export function stepWorld(state: World, input: Input): World {
     }
   }
   // Keep distant entities and logs bounded, and populate the region being explored.
+  const entityLimit = secret ? 150 : 100;
   const nearby = w.entities.filter(
     (e) => e.hp > 0 && (e.kind === "boss" || distance(e, w.player) < 850),
   );
-  if (nearby.length > 100) {
-    const bosses = nearby.filter((e) => e.kind === "boss").slice(-100);
+  if (nearby.length > entityLimit) {
+    const bosses = nearby.filter((e) => e.kind === "boss").slice(-entityLimit);
     const others = nearby.filter((e) => e.kind !== "boss");
-    const remaining = 100 - bosses.length;
+    const remaining = entityLimit - bosses.length;
     w.entities = [...(remaining ? others.slice(-remaining) : []), ...bosses];
   } else w.entities = nearby;
   w.serverTimer -= dt;
@@ -1795,7 +1797,7 @@ export function stepWorld(state: World, input: Input): World {
     const servers = w.entities.filter((e) => e.kind === "server").length;
     const extra = Math.min(18, Math.max(0, wave(w) - 1) * 3);
     const batch = 4 + Math.min(2, Math.max(0, wave(w) - 1));
-    const count = Math.min(batch, 40 + extra - servers, 100 - w.entities.length);
+    const count = Math.min(batch, 40 + extra - servers, entityLimit - w.entities.length);
     for (let i = 0; i < count; i++) spawnServer(w);
   }
   for (const p of w.pickups) {

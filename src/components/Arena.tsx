@@ -28,6 +28,48 @@ export default function Arena({
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
+    // The core's armor and face are identical for every enemy. Rasterize them
+    // once at high resolution instead of rebuilding paths and text per core.
+    const coreSprite = document.createElement("canvas");
+    coreSprite.width = coreSprite.height = 256;
+    const core = coreSprite.getContext("2d");
+    if (!core) return;
+    core.translate(128, 128);
+    core.scale(2, 2);
+    const armor = core.createLinearGradient(-36, -36, 36, 36);
+    armor.addColorStop(0, "#8e4650");
+    armor.addColorStop(0.4, "#39141e");
+    armor.addColorStop(1, "#110c15");
+    core.fillStyle = armor;
+    core.strokeStyle = colors.red;
+    core.lineWidth = 3;
+    core.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      const x = Math.cos(a) * 36, y = Math.sin(a) * 36;
+      if (i === 0) core.moveTo(x, y);
+      else core.lineTo(x, y);
+    }
+    core.closePath();
+    core.fill();
+    core.stroke();
+    core.fillStyle = "#1c1018";
+    core.fillRect(-18, -16, 36, 30);
+    core.strokeStyle = "#c45b63";
+    core.lineWidth = 1;
+    core.strokeRect(-18, -16, 36, 30);
+    core.fillStyle = "#ff6570";
+    core.fillRect(-12, -7, 8, 4);
+    core.fillRect(4, -7, 8, 4);
+    core.fillStyle = "#ffb49b";
+    core.fillRect(-10, -7, 4, 2);
+    core.fillRect(6, -7, 4, 2);
+    core.fillStyle = "#773b43";
+    core.fillRect(-9, 5, 18, 2);
+    core.font = "bold 10px monospace";
+    core.textAlign = "center";
+    core.fillStyle = "#ff9aa7";
+    core.fillText("SRE CORE", 0, -49);
     let frame = 0;
     let width = 0, height = 0;
     let renderedWorld: World | undefined;
@@ -209,41 +251,7 @@ export default function Arena({
             ctx.textAlign = "center";
             ctx.fillText(e.label, 0, 39);
           } else if (e.kind === "boss") {
-            const armor = ctx.createLinearGradient(-36, -36, 36, 36);
-            armor.addColorStop(0, "#8e4650");
-            armor.addColorStop(0.4, "#39141e");
-            armor.addColorStop(1, "#110c15");
-            ctx.fillStyle = armor;
-            ctx.strokeStyle = colors.red;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            for (let i = 0; i < 8; i++) {
-              const a = (i * Math.PI) / 4;
-              const x = Math.cos(a) * 36,
-                y = Math.sin(a) * 36;
-              if (i === 0) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            ctx.fillStyle = "#1c1018";
-            ctx.fillRect(-18, -16, 36, 30);
-            ctx.strokeStyle = "#c45b63";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(-18, -16, 36, 30);
-            ctx.fillStyle = "#ff6570";
-            ctx.fillRect(-12, -7, 8, 4);
-            ctx.fillRect(4, -7, 8, 4);
-            ctx.fillStyle = "#ffb49b";
-            ctx.fillRect(-10, -7, 4, 2);
-            ctx.fillRect(6, -7, 4, 2);
-            ctx.fillStyle = "#773b43";
-            ctx.fillRect(-9, 5, 18, 2);
-            ctx.font = "bold 10px monospace";
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#ff9aa7";
-            ctx.fillText("SRE CORE", 0, -49);
+            ctx.drawImage(coreSprite, -64, -64, 128, 128);
           } else {
             ctx.fillStyle = e.kind === "repair" ? "#13352f" : "#331925";
             ctx.fillRect(-14, -14, 28, 28);
