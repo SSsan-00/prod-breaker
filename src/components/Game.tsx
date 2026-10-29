@@ -301,16 +301,11 @@ export default function Game() {
     frameRef.current = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(frameRef.current);
   }, [screen, modal, runId]);
+  const musicPhaseActive = snapshot.phase === "playing" || snapshot.phase === "upgrade";
   useEffect(() => {
-    if (
-      screen !== "run" ||
-      modal ||
-      snapshot.phase !== "playing" ||
-      settings.mute
-    )
-      return;
+    if (screen !== "run" || modal || !musicPhaseActive || settings.mute) return;
     return startMusic(settings.volume);
-  }, [screen, modal, snapshot.phase, settings.mute, settings.volume]);
+  }, [screen, modal, musicPhaseActive, settings.mute, settings.volume]);
   function updateSettings(patch: Partial<Settings>) {
     const next = { ...settings, ...patch };
     setSettings(next);
@@ -468,7 +463,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.22.8</span>
+              SURVIVOR EDITION <span>↗ V2.22.9</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -814,7 +809,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.22.8</span>
+          <span>PROD BREAKER / SURVIVOR V2.22.9</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

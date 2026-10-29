@@ -1,6 +1,51 @@
 import { test, expect, type Page } from "@playwright/test";
 import { evolutionNames } from "../../src/game/survivor";
 
+test("music continues through upgrade selection and stops when muted", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.addInitScript(() => {
+    let starts = 0, disconnects = 0;
+    Object.defineProperty(window, "musicProbe", { get: () => ({ starts, disconnects }) });
+    const start = OscillatorNode.prototype.start;
+    OscillatorNode.prototype.start = function (...args) { starts++; return start.apply(this, args); };
+    const disconnect = AudioNode.prototype.disconnect;
+    Object.defineProperty(AudioNode.prototype, "disconnect", { configurable: true, writable: true,
+      value: function (this: AudioNode, ...args: unknown[]) {
+        if (this instanceof GainNode) disconnects++;
+        return Reflect.apply(disconnect, this, args);
+      },
+    });
+  });
+  const probe = () => page.evaluate(() => Reflect.get(window, "musicProbe") as { starts: number; disconnects: number });
+  await page.goto("/?seed=13");
+  await page.getByRole("button", { name: "ミュート切替" }).click();
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await expect.poll(async () => (await probe()).starts).toBeGreaterThan(0);
+  await page.locator(".panic").click();
+  const dialog = page.getByRole("dialog", { name: "レベルアップ" });
+  await expect(dialog).toBeVisible();
+  await page.waitForTimeout(300);
+  const before = await probe();
+  expect(before.disconnects).toBe(0);
+  await page.waitForTimeout(800);
+  const during = await probe();
+  expect(during.disconnects).toBe(0);
+  expect(during.starts).toBeGreaterThan(before.starts);
+  await dialog.locator(".upgrade-card").first().click();
+  await expect(dialog).toBeHidden();
+  expect((await probe()).disconnects).toBe(0);
+  await page.getByRole("button", { name: "ミュート切替" }).click();
+  await expect.poll(async () => (await probe()).disconnects).toBe(1);
+  await page.getByRole("button", { name: "ミュート切替" }).click();
+  const unmuted = await probe();
+  await expect.poll(async () => (await probe()).starts).toBeGreaterThan(unmuted.starts);
+  await page.getByRole("button", { name: "一時停止", exact: true }).click();
+  await expect.poll(async () => (await probe()).disconnects).toBe(2);
+  await page.getByRole("button", { name: "ゲームに戻る →" }).click();
+  const resumed = await probe();
+  await expect.poll(async () => (await probe()).starts).toBeGreaterThan(resumed.starts);
+});
+
 test("canvas reuses paused frames and redraws after resize and resume", async ({ page }) => {
   await page.addInitScript(() => {
     let draws = 0;
