@@ -6,6 +6,7 @@ import {
   chooseUpgrade,
   upgrades,
   evolutionPartners,
+  evolutionNames,
   evolutionReady,
   evolutionBonus,
   upgradeOverflowBonus,
@@ -244,6 +245,28 @@ describe("survivor fixed-step engine", () => {
     const next = stepWorld(completed, { x: 0, y: 0 });
     expect(next.choices.some((id) => evolutionReady(next, id))).toBe(false);
     expect(new Set(next.choices).size).toBe(3);
+  });
+  it("offers unacquired upgrades more often while retaining repeats and deterministic choices", () => {
+    const owned = upgrades.slice(0, upgrades.length / 2).map(card => card.id);
+    const ownedSet = new Set(owned);
+    let repeated = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const w = createWorld(seed);
+      w.build = owned;
+      w.evolutions = [...new Set(Object.values(evolutionNames).filter((name): name is string => !!name))];
+      w.xp = 1000;
+      const options = stepWorld(w, { x: 0, y: 0 }).choices;
+      expect(options).toEqual(stepWorld(w, { x: 0, y: 0 }).choices);
+      expect(new Set(options).size).toBe(3);
+      repeated += options.filter(id => ownedSet.has(id)).length;
+    }
+    expect(repeated).toBeGreaterThan(30);
+    expect(repeated).toBeLessThan(180);
+    const completed = createWorld(7);
+    completed.build = upgrades.map(card => card.id);
+    completed.evolutions = [...new Set(Object.values(evolutionNames).filter((name): name is string => !!name))];
+    completed.xp = 1000;
+    expect(new Set(stepWorld(completed, { x: 0, y: 0 }).choices).size).toBe(3);
   });
   it("offers a possible evolution starter in every opening choice", () => {
     for (let seed = 0; seed < 100; seed++) {

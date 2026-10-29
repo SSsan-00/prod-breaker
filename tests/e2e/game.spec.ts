@@ -316,7 +316,7 @@ test("actual touch input and hidden-tab pause", async ({
   await page.clock.runFor(100);
   const topButton = page.getByRole("button", { name: "一時停止" });
   await expect(page.getByRole("button", { name: "設定", exact: true })).toBeHidden();
-  await expect(topButton).toContainText("長押し");
+  await expect(topButton).not.toContainText("長押し");
   expect(
     await topButton.evaluate((el) => getComputedStyle(el).userSelect),
   ).toBe("none");
@@ -339,29 +339,20 @@ test("actual touch input and hidden-tab pause", async ({
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
   await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
   await topButton.tap();
+  await expect(page.getByRole("dialog", { name: "一時停止" })).toBeVisible();
+  await page.getByRole("button", { name: "ゲームに戻る →" }).click();
+  await page.clock.runFor(100);
+  const canvasBox = (await page.locator("canvas").boundingBox())!;
+  await page.touchscreen.tap(canvasBox.x + canvasBox.width * 0.4, canvasBox.y + canvasBox.height * 0.6);
   await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
   const buttonBox = (await topButton.boundingBox())!;
-  const touch = await context.newCDPSession(page);
-  const point = {
-    x: buttonBox.x + buttonBox.width / 2,
-    y: buttonBox.y + buttonBox.height / 2,
-    id: 3,
-  };
-  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
-  await page.clock.runFor(100);
-  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const gesture = await context.newCDPSession(page);
+  const start = { x: buttonBox.x + buttonBox.width / 2, y: buttonBox.y + buttonBox.height / 2, id: 3 };
+  await gesture.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
+  await gesture.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...start, x: buttonBox.x - 40 }] });
+  await gesture.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await page.clock.runFor(100);
   await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
-  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
-  await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ ...point, x: point.x - 35 }] });
-  await page.clock.runFor(700);
-  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await expect(page.getByRole("dialog", { name: "一時停止" })).toHaveCount(0);
-  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
-  await page.clock.runFor(700);
-  await expect(page.getByRole("dialog", { name: "一時停止" })).toBeVisible();
-  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await page.getByRole("button", { name: "ゲームに戻る →" }).click();
   expect(await page.evaluate(() => String(window.getSelection()))).toBe("");
   await choose(page);
   const initial = Number(

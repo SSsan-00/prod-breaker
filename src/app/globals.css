@@ -1818,12 +1818,10 @@ footer {
 .reduced .wave-cutin { box-shadow:none; }
 @media (prefers-reduced-motion:reduce) { .wave-cutin { box-shadow:none; } }
 
-.hold-hint { display:none; }
 @media (hover:none) and (pointer:coarse) {
   .survivor:has(.game) .header-sound, .survivor:has(.game) .header-settings { display:none; }
   .survivor:has(.game) .brand:disabled { opacity:1; pointer-events:none; }
-  .survivor:has(.game) .header-pause { touch-action:none; min-width:58px; }
-  .survivor:has(.game) .hold-hint { display:block; font:9px sans-serif; margin-top:2px; }
+  .survivor:has(.game) .header-pause { touch-action:manipulation; min-width:58px; }
 }
 
 .evolution-bonus { color:#ffe6a4; font-weight:700; letter-spacing:0; }

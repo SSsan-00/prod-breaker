@@ -886,8 +886,16 @@ function killChain(w: World, first: Entity, damage: number) {
 function choices(w: World) {
   const pool = [...upgrades];
   const result: UpgradeId[] = [];
+  const acquired = new Set(w.build);
   for (let i = 0; i < 3; i++) {
-    const at = Math.floor(random(w) * pool.length);
+    // Previously acquired upgrades remain available, but new ones are four times as likely.
+    const total = pool.reduce((sum, card) => sum + (acquired.has(card.id) ? 1 : 4), 0);
+    let ticket = Math.floor(random(w) * total);
+    let at = 0;
+    for (; at < pool.length - 1; at++) {
+      ticket -= acquired.has(pool[at].id) ? 1 : 4;
+      if (ticket < 0) break;
+    }
     result.push(pool.splice(at, 1)[0].id);
   }
   // Keep a route to evolution in the choices without removing player agency.
@@ -899,7 +907,7 @@ function choices(w: World) {
   } else if (!eligible.length) {
     const starters = upgrades.filter((card) => {
       const name = evolutionNames[card.id];
-      return !!evolutionPartners[card.id] && !!name && !w.evolutions.includes(name);
+      return !acquired.has(card.id) && !!evolutionPartners[card.id] && !!name && !w.evolutions.includes(name);
     });
     if (starters.length && !result.some((id) => starters.some((card) => card.id === id))) {
       const candidate = starters[Math.floor(random(w) * starters.length)].id;

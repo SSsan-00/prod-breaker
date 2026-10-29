@@ -64,10 +64,7 @@ export default function Game() {
     }),
     keys = useRef(new Set<string>()),
     panicPending = useRef(false),
-    frameRef = useRef(0),
-    pauseHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
-    pauseTouch = useRef<{ x: number; y: number } | null>(null),
-    suppressPauseClick = useRef(false);
+    frameRef = useRef(0);
   const [snapshot, setSnapshot] = useState<World>(initialWorld),
     [screen, setScreen] = useState<Screen>("title"),
     [modal, setModal] = useState<Modal>(null),
@@ -90,14 +87,6 @@ export default function Game() {
     const timer = setTimeout(() => setEvolutionNotice(""), 3000);
     return () => clearTimeout(timer);
   }, [evolutionNotice]);
-  useEffect(() => () => {
-    if (pauseHoldTimer.current) clearTimeout(pauseHoldTimer.current);
-  }, []);
-  function cancelPauseHold() {
-    if (pauseHoldTimer.current) clearTimeout(pauseHoldTimer.current);
-    pauseHoldTimer.current = null;
-    pauseTouch.current = null;
-  }
   const settingsRef = useRef(settings);
   const screenRef = useRef(screen);
   const modalRef = useRef(modal);
@@ -209,7 +198,6 @@ export default function Game() {
       // Mobile browsers can emit blur during ordinary touch and focus changes.
       // Clear movement, but only pause automatically when the page is hidden.
       clearInput();
-      cancelPauseHold();
     }
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -402,41 +390,12 @@ export default function Game() {
               <button
                 className="header-pause"
                 aria-label="一時停止"
-                onPointerDown={(event) => {
-                  cancelPauseHold();
-                  suppressPauseClick.current = event.pointerType === "touch";
-                  if (event.pointerType !== "touch") return;
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  pauseTouch.current = { x: event.clientX, y: event.clientY };
-                  pauseHoldTimer.current = setTimeout(() => {
-                    pauseHoldTimer.current = null;
-                    pauseTouch.current = null;
-                    clearInput();
-                    setModal("pause");
-                  }, 600);
-                }}
-                onPointerMove={(event) => {
-                  const start = pauseTouch.current;
-                  if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 14)
-                    cancelPauseHold();
-                }}
-                onPointerUp={cancelPauseHold}
-                onPointerCancel={cancelPauseHold}
-                onLostPointerCapture={cancelPauseHold}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") suppressPauseClick.current = false;
-                }}
                 onClick={() => {
-                  if (suppressPauseClick.current) {
-                    suppressPauseClick.current = false;
-                    return;
-                  }
-                  suppressPauseClick.current = false;
                   clearInput();
                   setModal("pause");
                 }}
               >
-                Ⅱ<span className="hold-hint">長押し</span>
+                Ⅱ
               </button>
             )}
             <button
@@ -464,7 +423,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.23.0</span>
+              SURVIVOR EDITION <span>↗ V2.23.1</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -812,7 +771,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.23.0</span>
+          <span>PROD BREAKER / SURVIVOR V2.23.1</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
