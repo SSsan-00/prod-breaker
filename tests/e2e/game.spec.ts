@@ -371,19 +371,24 @@ test("actual touch input and hidden-tab pause", async ({
   const x = box.x + box.width * 0.4,
     y = box.y + box.height * 0.6;
   const cdp = await context.newCDPSession(page);
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [{ x, y, id: 1 }],
-  });
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchMove",
-    touchPoints: [{ x: x + 65, y, id: 1 }],
-  });
-  await page.clock.runFor(500);
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchEnd",
-    touchPoints: [],
-  });
+  // A newly earned upgrade can interrupt a drag; select it and retry the gesture.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x, y, id: 1 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: x + 65, y, id: 1 }],
+    });
+    await page.clock.runFor(500);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await choose(page);
+    if (Number(await page.getByTestId("arena").getAttribute("data-player-x")) > initial + 40) break;
+  }
   expect(
     Number(await page.getByTestId("arena").getAttribute("data-player-x")),
   ).toBeGreaterThan(initial + 40);
