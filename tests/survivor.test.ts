@@ -64,7 +64,7 @@ describe("survivor fixed-step engine", () => {
     expect(next.entities.some(e => e.id === 902)).toBe(true);
     expect(next.entities.some(e => e.kind === "drone" || e.kind === "repair")).toBe(false);
     expect(next.effects.some(e => e.kind === "wave" && e.text === "SECRET MODE")).toBe(true);
-    expect(next.entities.filter(e => e.kind === "boss")).toHaveLength(21);
+    expect(next.entities.filter(e => e.kind === "boss")).toHaveLength(61);
     expect(stepWorld(w, { x: 0, y: 0 })).toEqual(next);
     const final = { ...next, time: runEndTime(next) - STEP / 2, bossWave: 69, entities: [], player: { ...next.player, hp: 100 } };
     expect(runEndTime(final)).toBe(ENDLESS_SECONDS + SECRET_SECONDS);
@@ -84,6 +84,18 @@ describe("survivor fixed-step engine", () => {
     expect(scoreAt(1790).score).toBe(116);
     expect(scoreAt(1810).score).toBe(232);
   });
+  it("continues spawning cores above 70 while honoring the existing 100-entity cap", () => {
+    const w = createWorld(42, ENDLESS_SECONDS);
+    w.time = 1830 - STEP / 2; w.bossWave = 60;
+    w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+    w.entities = Array.from({ length: 80 }, (_, i) => ({
+      id: 10000 + i, x: 100, y: 100, hp: 100, maxHp: 100,
+      kind: "boss" as const, label: "SRE CORE", flash: 0,
+    }));
+    const next = stepWorld(w, { x: 0, y: 0 });
+    expect(next.entities).toHaveLength(100);
+    expect(next.entities.filter(e => e.id < 10000)).toHaveLength(61);
+  });
   it("increases secret core health and speed while keeping enemies and entity counts bounded", () => {
     const sample = (waveNumber: number) => {
       const w = createWorld(42, ENDLESS_SECONDS);
@@ -92,11 +104,13 @@ describe("survivor fixed-step engine", () => {
       return stepWorld(w, { x: 0, y: 0 });
     };
     const normal = sample(60), first = sample(61), last = sample(70);
+    expect(first.entities.filter(e => e.kind === "boss")).toHaveLength(60);
+    expect(last.entities.filter(e => e.kind === "boss")).toHaveLength(69);
     expect(first.entities[0].maxHp).toBeGreaterThan(normal.entities.find(e => e.kind === "boss")!.maxHp * 1.35);
     expect(last.entities[0].maxHp).toBeGreaterThan(first.entities[0].maxHp);
     for (const w of [first, last]) {
       expect(w.entities.every(e => e.kind === "boss")).toBe(true);
-      expect(w.entities.length).toBeLessThanOrEqual(70);
+      expect(w.entities.length).toBeLessThanOrEqual(100);
     }
     const speedAt = (time: number) => {
       const w = createWorld(42, ENDLESS_SECONDS);

@@ -434,7 +434,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.23.9</span>
+              SURVIVOR EDITION <span>↗ V2.23.10</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">

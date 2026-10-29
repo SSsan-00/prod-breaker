@@ -1703,9 +1703,7 @@ export function stepWorld(state: World, input: Input): World {
     w.bossSpawned = true;
     enteredWave = true;
     // Wave 2 brings one core, wave 3 brings two, and so on.
-    const count = secret
-      ? Math.min(20, Math.max(0, 70 - w.entities.filter((e) => e.kind === "boss" && e.hp > 0).length))
-      : w.bossWave;
+    const count = w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
     const baseCoreHp = w.bossWave <= 4
       ? Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2))
