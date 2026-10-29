@@ -60,7 +60,7 @@ export default function Leaderboard({ duration, score, runId, submitted, onSubmi
     <div className="eyebrow">PRODUCTION INCIDENTS / GLOBAL</div><h2>SCOREBOARD</h2>
     <label className="player-name"><span>プレイヤー名</span><input autoFocus aria-label="プレイヤー名" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} /></label>
     <button className="primary leaderboard-submit" disabled={pending || submitted} onClick={submit}>{submitted ? "登録済み ✓" : score === undefined ? "名前を保存" : `今回の ${score.toLocaleString()} BP を登録`}</button>
-    <p className="leaderboard-note">名前とスコアは全員に公開されます。本人確認・スコアの検証はありません。</p>
+    <p className="leaderboard-note">名前とスコアは全員に公開されます。</p>
     <div className="leaderboard-modes" role="group" aria-label="ランキングのモード">{durations.map((d) => <button key={d} aria-pressed={mode === d} onClick={() => setMode(d)}>{modeLabel[d]}</button>)}</div>
     <div className="leaderboard-list" aria-live="polite">{message ? <p>{message}</p> : <ol>{scores.map((entry, i) => <li key={`${entry.created_at}-${i}`}><span>{i + 1}</span><b>{entry.player_name}</b><strong>{Number(entry.score).toLocaleString()} BP</strong></li>)}</ol>}</div>
   </section></div>;
