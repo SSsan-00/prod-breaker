@@ -10,6 +10,8 @@
 
 **ソース:** https://github.com/SSsan-00/prod-breaker
 
+ゲームの紹介や遊び方は[サイト紹介ドキュメント](docs/site-introduction.md)をご覧ください。
+
 ゲーム中の破壊対象はすべて架空の環境です。共有スコアボードは、プレイ終了時の名前とスコアをNeonのデータベースに保存します。
 
 ![PROD BREAKER SURVIVOR](docs/game.png)
