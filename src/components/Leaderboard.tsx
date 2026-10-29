@@ -43,9 +43,9 @@ export default function Leaderboard({ duration, onClose }: Props) {
     setName(cleaned); savePlayerName(cleaned); setMessage("名前を保存しました。次回からこの名前で登録されます。");
   }
   return <div className="modal-backdrop leaderboard-backdrop"><section ref={dialogRef} className="modal leaderboard" role="dialog" aria-modal="true" aria-label="スコアボード">
-    <button className="close" aria-label="閉じる" onClick={onClose}>×</button>
+    <button autoFocus className="close" aria-label="閉じる" onClick={onClose}>×</button>
     <div className="eyebrow">PRODUCTION INCIDENTS / GLOBAL</div><h2>SCOREBOARD</h2>
-    <label className="player-name"><span>プレイヤー名</span><input autoFocus aria-label="プレイヤー名" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} /></label>
+    <label className="player-name"><span>プレイヤー名</span><input aria-label="プレイヤー名" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} /></label>
     <button className="primary leaderboard-submit" onClick={submit}>名前を保存</button>
     <p className="leaderboard-note">スコアはプレイ終了時に名前とともに自動公開されます。</p>
     <div className="leaderboard-modes" role="group" aria-label="ランキングのモード">{durations.map((d) => <button key={d} aria-pressed={mode === d} onClick={() => setMode(d)}>{modeLabel[d]}</button>)}</div>

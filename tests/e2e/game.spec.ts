@@ -694,6 +694,15 @@ test("scoreboard supports editable saved names and mode filtering", async ({ pag
   await expect(dialog.getByText("本番環境の破壊神")).toBeVisible();
   const input = dialog.getByLabel("プレイヤー名");
   await expect(input).not.toHaveValue("");
+  await expect(input).not.toBeFocused();
+  await expect(dialog.getByRole("button", { name: "閉じる" })).toBeFocused();
+  const layout = await dialog.evaluate((el) => {
+    const label = el.querySelector(".player-name span")!;
+    const range = document.createRange(); range.selectNodeContents(label);
+    return { lines: range.getClientRects().length, buttonWidth: el.querySelector(".leaderboard-submit")!.getBoundingClientRect().width, dialogWidth: el.getBoundingClientRect().width };
+  });
+  expect(layout.lines).toBe(1);
+  expect(layout.buttonWidth).toBeLessThan(layout.dialogWidth / 2);
   await input.fill("金曜日の魔術師");
   await dialog.getByRole("button", { name: "名前を保存" }).click();
   await expect(dialog.getByText("名前を保存しました。次回からこの名前で登録されます。")).toBeVisible();
