@@ -6,22 +6,22 @@ describe("late-wave music", () => {
   it("keeps the original music through wave 49, then increases gently each wave", () => {
     expect(musicParameters(49)).toEqual({ bpm: 132, pitch: 1 });
     for (let wave = 50; wave <= 60; wave++) {
-      expect(musicParameters(wave).bpm).toBe(musicParameters(wave - 1).bpm + 1.5);
+      expect(musicParameters(wave).bpm).toBe(musicParameters(wave - 1).bpm + 2);
       expect(musicParameters(wave).pitch).toBeGreaterThan(musicParameters(wave - 1).pitch);
     }
-    expect(musicParameters(60).bpm).toBe(148.5);
-    expect(musicParameters(60).pitch).toBeCloseTo(Math.pow(2, 11 / 80));
+    expect(musicParameters(60).bpm).toBe(154);
+    expect(musicParameters(60).pitch).toBeCloseTo(Math.pow(2, 11 / 60));
   });
   it("starts the same musical progression in the later waves of every mode", () => {
     for (const [duration, start] of [[90, 2], [180, 4], [300, 6], [1800, 50]]) {
       expect(musicParameters(start - 1, duration)).toEqual({ bpm: 132, pitch: 1 });
-      expect(musicParameters(start, duration).bpm).toBe(133.5);
-      expect(musicParameters(start + 1, duration).bpm).toBe(135);
+      expect(musicParameters(start, duration).bpm).toBe(134);
+      expect(musicParameters(start + 1, duration).bpm).toBe(136);
       expect(musicParameters(start + 1, duration).pitch).toBeGreaterThan(musicParameters(start, duration).pitch);
     }
-    expect(musicParameters(3, 90).bpm).toBe(135);
-    expect(musicParameters(6, 180).bpm).toBe(136.5);
-    expect(musicParameters(10, 300).bpm).toBe(139.5);
+    expect(musicParameters(3, 90).bpm).toBe(136);
+    expect(musicParameters(6, 180).bpm).toBe(138);
+    expect(musicParameters(10, 300).bpm).toBe(142);
   });
   it("updates pitch and tempo in the same music session without disconnecting", async () => {
     vi.useFakeTimers();
@@ -62,13 +62,13 @@ describe("late-wave music", () => {
     vi.advanceTimersByTime(1000);
     const newHats = notes.filter(note => Math.abs(note.hz - 2200 * musicParameters(50).pitch) < 1e-7);
     expect(newHats.length).toBeGreaterThan(2);
-    expect(newHats[1].at - newHats[0].at).toBeCloseTo(60 / 133.5 / 2);
+    expect(newHats[1].at - newHats[0].at).toBeCloseTo(60 / 134 / 2);
     expect(disconnects).toBe(0);
     wave = 3; duration = 90;
     vi.advanceTimersByTime(1000);
     const quickHats = notes.filter(note => Math.abs(note.hz - 2200 * musicParameters(3, 90).pitch) < 1e-7);
     expect(quickHats.length).toBeGreaterThan(2);
-    expect(quickHats[1].at - quickHats[0].at).toBeCloseTo(60 / 135 / 2);
+    expect(quickHats[1].at - quickHats[0].at).toBeCloseTo(60 / 136 / 2);
     expect(disconnects).toBe(0);
     stop();
     expect(disconnects).toBe(1);
