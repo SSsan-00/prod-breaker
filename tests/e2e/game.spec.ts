@@ -714,6 +714,9 @@ test("chain milestone triggers a visible overdrive without another pause", async
   const dialog = page.getByRole("dialog", { name: "レベルアップ" });
   await expect(dialog).toBeVisible();
   await expect(page.locator(".chain-cutin")).toBeVisible();
+  await expect(page.locator(".overdrive-badge")).toContainText("10s");
+  await page.clock.runFor(500);
+  await expect(page.locator(".overdrive-badge")).toContainText("10s");
   expect(await page.locator(".chain-cutin").evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
   await dialog.locator(".upgrade-card").first().click();
   const centerCovered = await page.locator(".chain-cutin").evaluate((el) => {

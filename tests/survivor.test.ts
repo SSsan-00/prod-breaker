@@ -200,6 +200,26 @@ describe("survivor fixed-step engine", () => {
       expect(later.panicCooldown).toBeCloseTo(next.panicCooldown - STEP);
     }
   });
+  it("grants ten seconds of overdrive and refreshes the full duration at another milestone", () => {
+    const w = createWorld();
+    w.combo = 9; w.comboUntil = 100;
+    w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+    w.entities = [{ id: 901, x: 1020, y: 1000, hp: 1, maxHp: 1, kind: "server", label: "DB", flash: 0 }];
+    w.shots = [{ id: 902, x: 1020, y: 1000, vx: 0, vy: 0, life: 1, damage: 1, pierce: 0, hit: [] }];
+    const first = stepWorld(w, { x: 0, y: 0 });
+    expect(first.combo).toBe(10);
+    expect(first.overdriveUntil - first.time).toBeCloseTo(10);
+    const active = structuredClone(first);
+    active.time += 2; active.combo = 29; active.comboUntil = 100;
+    active.entities = [{ id: 903, x: 1020, y: 1000, hp: 1, maxHp: 1, kind: "server", label: "DB", flash: 0 }];
+    active.shots = [{ id: 904, x: 1020, y: 1000, vx: 0, vy: 0, life: 1, damage: 1, pierce: 0, hit: [] }];
+    const refreshed = stepWorld(active, { x: 0, y: 0 });
+    expect(refreshed.combo).toBe(30);
+    expect(refreshed.overdriveUntil - refreshed.time).toBeCloseTo(10);
+    const paused = { ...refreshed, phase: "upgrade" as const };
+    expect(stepWorld(paused, { x: 0, y: 0 })).toBe(paused);
+    expect(paused.overdriveUntil - paused.time).toBeCloseTo(10);
+  });
   it("gives PANIC a proportional core hit and boosts damage during overdrive", () => {
     const w = createWorld();
     w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;

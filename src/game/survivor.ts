@@ -853,10 +853,10 @@ function killChain(w: World, first: Entity, damage: number) {
       (w.combo >= 1000 && w.combo % 1000 === 0)) {
       // Milestones recharge PANIC once per crossing, including during a cascade.
       w.panicCooldown = Math.max(0, w.panicCooldown - (w.combo >= 1000 ? 4 : 2));
-      // A short automatic burst rewards a chain without interrupting movement.
+      // Each milestone grants a full ten seconds, without interrupting movement.
       const tier = w.combo >= 10000 ? 1.65 : w.combo >= 3000 ? 1.5 : w.combo >= 300 ? 1.35 : 1.25;
       w.overdrivePower = Math.max(w.time < w.overdriveUntil ? w.overdrivePower : 1.25, tier);
-      w.overdriveUntil = Math.min(w.time + 10, Math.max(w.overdriveUntil, w.time) + (w.combo === 10 ? 5 : 3));
+      w.overdriveUntil = w.time + 10;
       fx(w, target, "milestone", w.combo >= 300 ? `${w.combo} CHAIN` : w.combo === 100 ? "SYSTEM MELTDOWN" : w.combo === 30 ? "OVERLOAD x1.5" : "OVERLOAD x1.25");
     }
     if (target.kind === "server") w.destroyed++;
