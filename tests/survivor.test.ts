@@ -83,6 +83,9 @@ describe("survivor fixed-step engine", () => {
       ["lottery", "attachment", "至急の当選通知"],
       ["secretlog", "publicchat", "秘密の全体共有"],
       ["shoulder", "privacyfilter", "ショルダーハック発生！"],
+      ["quickfix", "todo", "永久に一時対応"],
+      ["estimate", "scopecreep", "終わらないスプリント"],
+      ["mysterycode", "gitblame", "犯人は自分だった"],
       ["fridaydeploy", "vacation", "誰もいない週末障害"],
       ["disabletest", "greenci", "テスト全件成功！"],
       ["directdb", "nobackup", "復元できない直接修正"],
@@ -92,8 +95,8 @@ describe("survivor fixed-step engine", () => {
       ["kiss", "clever", "解読不能な簡単実装"],
       ["dry", "copypaste", "共通化されたコピペ"],
     ] as const;
-    expect(recipes).toHaveLength(52);
-    expect(upgrades).toHaveLength(104);
+    expect(recipes).toHaveLength(55);
+    expect(upgrades).toHaveLength(110);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);

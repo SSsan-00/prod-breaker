@@ -89,7 +89,8 @@ export type UpgradeId =
   | "sanitize" | "trusthtml" | "lottery" | "attachment"
   | "secretlog" | "publicchat" | "shoulder" | "privacyfilter"
   | "yagni" | "futureproof" | "solid" | "interface" | "kiss" | "clever" | "dry" | "copypaste"
-  | "fridaydeploy" | "vacation" | "disabletest" | "greenci" | "directdb" | "nobackup" | "ignoreerror" | "emptycatch";
+  | "fridaydeploy" | "vacation" | "disabletest" | "greenci" | "directdb" | "nobackup" | "ignoreerror" | "emptycatch"
+  | "quickfix" | "todo" | "estimate" | "scopecreep" | "mysterycode" | "gitblame";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -471,6 +472,12 @@ export const upgrades: {
   { id: "lottery", name: "宝くじ当選メール", type: "BOOST", icon: "✉", description: "BP倍率 +20%、移動速度 +8%。応募した覚えはない。" },
   { id: "attachment", name: "急ぎの添付ファイル", type: "BUG", icon: "▣", description: "持続ダメージ +8、攻撃力 +6。件名には【至急】。" },
   { id: "secretlog", name: "秘密もログに出す", type: "CHAIN", icon: "≋", description: "ログ回収 +35、連鎖ダメージ +8。デバッグは正直者。" },
+  { id: "quickfix", name: "一時しのぎの修正", type: "BUG", icon: "↯", description: "攻撃力 +10、貫通 +1。恒久対応は次のスプリント。" },
+  { id: "todo", name: "TODO: あとで直す", type: "CHAIN", icon: "☑", description: "連鎖範囲 +25、連鎖ダメージ +8。コメントは3年前から元気。" },
+  { id: "estimate", name: "見積もりは楽観的に", type: "BOOST", icon: "◷", description: "BP倍率 +20%、移動速度 +8%。調査時間は含まない。" },
+  { id: "scopecreep", name: "ついでに仕様追加", type: "BUG", icon: "+", description: "同時発射 +1、攻撃力 +4。簡単な変更がもうひとつ。" },
+  { id: "mysterycode", name: "触ると壊れる謎コード", type: "CHAIN", icon: "?", description: "連鎖範囲 +25、持続ダメージ +8。誰も仕組みを知らない。" },
+  { id: "gitblame", name: "git blameで犯人探し", type: "BOOST", icon: "⌕", description: "最大HP +20、HP回復 +20。犯人は過去の自分。" },
   { id: "fridaydeploy", name: "金曜夜の大型リリース", type: "BOOST", icon: "☾", description: "BP倍率 +20%、攻撃力 +6。週末の予定は本番次第。" },
   { id: "vacation", name: "担当者は全員休暇中", type: "CHAIN", icon: "☎", description: "連鎖範囲 +25、連鎖ダメージ +7。引き継ぎは来週。" },
   { id: "disabletest", name: "落ちるテストを削除", type: "BUG", icon: "✕", description: "攻撃力 +10、貫通 +1。失敗しなければ成功。" },
@@ -543,6 +550,7 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   sanitize: "trusthtml", trusthtml: "sanitize", lottery: "attachment", attachment: "lottery",
   secretlog: "publicchat", publicchat: "secretlog",
   shoulder: "privacyfilter", privacyfilter: "shoulder",
+  quickfix: "todo", todo: "quickfix", estimate: "scopecreep", scopecreep: "estimate", mysterycode: "gitblame", gitblame: "mysterycode",
   fridaydeploy: "vacation", vacation: "fridaydeploy", disabletest: "greenci", greenci: "disabletest",
   directdb: "nobackup", nobackup: "directdb", ignoreerror: "emptycatch", emptycatch: "ignoreerror",
   yagni: "futureproof", futureproof: "yagni", solid: "interface", interface: "solid",
@@ -584,6 +592,9 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   lottery: "至急の当選通知", attachment: "至急の当選通知",
   secretlog: "秘密の全体共有", publicchat: "秘密の全体共有",
   shoulder: "ショルダーハック発生！", privacyfilter: "ショルダーハック発生！",
+  quickfix: "永久に一時対応", todo: "永久に一時対応",
+  estimate: "終わらないスプリント", scopecreep: "終わらないスプリント",
+  mysterycode: "犯人は自分だった", gitblame: "犯人は自分だった",
   fridaydeploy: "誰もいない週末障害", vacation: "誰もいない週末障害",
   disabletest: "テスト全件成功！", greenci: "テスト全件成功！",
   directdb: "復元できない直接修正", nobackup: "復元できない直接修正",
@@ -1095,6 +1106,18 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.aura += 8; w.damage += 6; break;
     case "secretlog":
       w.magnet = Math.min(420, w.magnet + 35); w.chainDamage += 8; break;
+    case "quickfix":
+      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+    case "todo":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
+    case "estimate":
+      w.multiplier += 0.2; w.speed = Math.min(340, w.speed * 1.08); break;
+    case "scopecreep":
+      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+    case "mysterycode":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 8; break;
+    case "gitblame":
+      w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "fridaydeploy":
       w.multiplier += 0.2; w.damage += 6; break;
     case "vacation":
@@ -1287,6 +1310,9 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.prepared!, pair: ["prepared", "sqlstring"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
     { name: evolutionNames.sanitize!, pair: ["sanitize", "trusthtml"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainRange = Math.min(400, w.chainRange + 45); } },
     { name: evolutionNames.lottery!, pair: ["lottery", "attachment"], apply: () => { w.multiplier += 0.45; w.aura += 16; } },
+    { name: evolutionNames.quickfix!, pair: ["quickfix", "todo"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
+    { name: evolutionNames.estimate!, pair: ["estimate", "scopecreep"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.multiplier += 0.4; } },
+    { name: evolutionNames.mysterycode!, pair: ["mysterycode", "gitblame"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.aura += 16; } },
     { name: evolutionNames.fridaydeploy!, pair: ["fridaydeploy", "vacation"], apply: () => { w.multiplier += 0.4; w.chainRange = Math.min(400, w.chainRange + 45); } },
     { name: evolutionNames.disabletest!, pair: ["disabletest", "greenci"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
     { name: evolutionNames.directdb!, pair: ["directdb", "nobackup"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
