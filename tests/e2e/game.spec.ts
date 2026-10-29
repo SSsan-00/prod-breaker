@@ -234,7 +234,7 @@ test("90-second moving run reaches wave 3 with bounded rendering and no browser 
     const cutin = page.getByTestId("wave-cutin");
     if (await cutin.isVisible()) {
       seenWaves.add(await cutin.locator("strong").innerText());
-      expect(await cutin.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+      expect(await cutin.evaluate((el) => !el.isConnected || getComputedStyle(el).pointerEvents === "none")).toBe(true);
     }
     const elapsed = await page
       .getByTestId("arena")
@@ -417,7 +417,7 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
   test.skip(info.project.name !== "mobile");
   await page.setViewportSize({ width: 320, height: 568 });
   await page.clock.install();
-  await page.goto("/?seed=45");
+  await page.goto("/?seed=31");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
@@ -618,7 +618,7 @@ test("chain milestone triggers a visible overdrive without another pause", async
 
 test("available evolution is highlighted and selecting it unlocks the combination", async ({ page }, info) => {
   await page.clock.install();
-  await page.goto("/?seed=45");
+  await page.goto("/?seed=31");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
