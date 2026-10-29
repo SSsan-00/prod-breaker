@@ -83,6 +83,16 @@ describe("survivor fixed-step engine", () => {
       ["lottery", "attachment", "至急の当選通知"],
       ["secretlog", "publicchat", "秘密の全体共有"],
       ["shoulder", "privacyfilter", "ショルダーハック発生！"],
+      ["weakpin", "pinlabel", "PINは端末の隣"],
+      ["phishing", "urlcheck", "そっくりログイン画面"],
+      ["openredirect", "trustedlink", "どこでも公式リンク"],
+      ["dependencyrisk", "typosquat", "依存先がすり替わった"],
+      ["usbunknown", "autorun", "拾得物から自動実行"],
+      ["alertstorm", "alertfatigue", "鳴り止まない当番電話"],
+      ["runbookold", "tribalknowledge", "誰も知らない復旧手順"],
+      ["diskfull", "logrotate", "ログで満杯のディスク"],
+      ["failover", "standby", "切替先もお休み中"],
+      ["capacity", "trafficspike", "想定外の大盛況"],
       ["quickfix", "todo", "永久に一時対応"],
       ["estimate", "scopecreep", "終わらないスプリント"],
       ["mysterycode", "gitblame", "犯人は自分だった"],
@@ -95,8 +105,8 @@ describe("survivor fixed-step engine", () => {
       ["kiss", "clever", "解読不能な簡単実装"],
       ["dry", "copypaste", "共通化されたコピペ"],
     ] as const;
-    expect(recipes).toHaveLength(55);
-    expect(upgrades).toHaveLength(110);
+    expect(recipes).toHaveLength(65);
+    expect(upgrades).toHaveLength(130);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);
