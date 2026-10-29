@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { durations, modeLabel, validName, type ScoreEntry } from "@/lib/leaderboard";
-import { enqueueScore, playerName, savePlayerName } from "@/lib/score-submission";
+import { enqueueScore, savePlayerName } from "@/lib/score-submission";
 
-type Props = { duration: number; currentScore?: { runId: string; duration: number; score: number }; onClose: () => void };
-export default function Leaderboard({ duration, currentScore, onClose }: Props) {
+type Props = { initialName: string; duration: number; currentScore?: { runId: string; duration: number; score: number }; onClose: () => void };
+export default function Leaderboard({ initialName, duration, currentScore, onClose }: Props) {
   const dialogRef = useRef<HTMLElement>(null);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
   const [mode, setMode] = useState(duration);
   const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [message, setMessage] = useState("読み込み中…");
@@ -23,12 +23,6 @@ export default function Leaderboard({ duration, currentScore, onClose }: Props) 
     document.addEventListener("keydown", handleKey);
     return () => { document.removeEventListener("keydown", handleKey); previous?.focus(); };
   }, [onClose]);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setName(playerName());
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
   useEffect(() => {
     const controller = new AbortController();
     fetch(`/api/leaderboard?duration=${mode}`, { signal: controller.signal, cache: "no-store" })

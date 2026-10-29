@@ -866,6 +866,24 @@ test("scoreboard supports editable saved names and mode filtering", async ({ pag
   await expect(page.getByLabel("プレイヤー名")).toHaveValue("金曜日の魔術師");
 });
 
+test("scoreboard name is ready immediately and does not overwrite edits", async ({ page }) => {
+  await page.route("**/api/leaderboard?*", route => route.fulfill({ json: { scores: [] } }));
+  await page.clock.install();
+  await page.goto("/");
+  await page.evaluate(() => localStorage.setItem("pb-player-name", JSON.stringify("本番の破壊神")));
+  await page.getByRole("button", { name: "スコアボード", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "スコアボード" });
+  const input = dialog.getByLabel("プレイヤー名");
+  await expect(input).toHaveValue("本番の破壊神");
+  await input.fill("新しい破壊神");
+  await page.clock.runFor(100);
+  await expect(input).toHaveValue("新しい破壊神");
+  await dialog.getByRole("button", { name: "名前を保存" }).click();
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+  await page.getByRole("button", { name: "スコアボード", exact: true }).click();
+  await expect(page.getByLabel("プレイヤー名")).toHaveValue("新しい破壊神");
+});
+
 test("scoreboard keeps its height across empty, populated and error states", async ({ page }, info) => {
   await page.route("**/api/leaderboard?*", async route => {
     const duration = new URL(route.request().url()).searchParams.get("duration");

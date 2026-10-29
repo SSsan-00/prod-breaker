@@ -20,7 +20,7 @@ import {
 } from "@/game/survivor";
 import Arena, { type Stick } from "./Arena";
 import Leaderboard from "./Leaderboard";
-import { enqueueScore, flushScores } from "@/lib/score-submission";
+import { enqueueScore, flushScores, playerName } from "@/lib/score-submission";
 import { read, write } from "@/lib/storage";
 import { sound, startMusic } from "@/effects/audio";
 const levelUpMessages = [
@@ -52,8 +52,13 @@ type Modal = "settings" | "help" | "pause" | null;
 export default function Game() {
   const [duration, setDuration] = useState(180);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [leaderboardName, setLeaderboardName] = useState("");
   const [runId, setRunId] = useState("");
   const closeLeaderboard = useCallback(() => setLeaderboardOpen(false), []);
+  function openLeaderboard() {
+    setLeaderboardName(playerName());
+    setLeaderboardOpen(true);
+  }
   const [initialWorld] = useState(() => createWorld());
   const world = useRef<World>(initialWorld),
     input = useRef<Vec>({ x: 0, y: 0 }),
@@ -381,7 +386,7 @@ export default function Game() {
           </button>
           <div className="header-right">
             <span className="sandbox">● SIMULATION ONLY</span>
-            {screen !== "run" && <button className="header-leaderboard" aria-label="スコアボード" onClick={() => setLeaderboardOpen(true)}>RANK</button>}
+            {screen !== "run" && <button className="header-leaderboard" aria-label="スコアボード" onClick={openLeaderboard}>RANK</button>}
             <button
               className="header-sound"
               aria-label="ミュート切替"
@@ -426,7 +431,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.23.6</span>
+              SURVIVOR EDITION <span>↗ V2.23.7</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -770,15 +775,15 @@ export default function Game() {
             <button className="primary" onClick={start}>
               もう一度プレイ <span className="replay-icon">↻</span>
             </button>
-            <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP　<button className="scoreboard-link" onClick={() => setLeaderboardOpen(true)}>名前変更 / ランキング →</button></p>
+            <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP　<button className="scoreboard-link" onClick={openLeaderboard}>名前変更 / ランキング →</button></p>
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.23.6</span>
+          <span>PROD BREAKER / SURVIVOR V2.23.7</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
-        {leaderboardOpen && <Leaderboard duration={screen === "result" ? w.duration : duration} currentScore={screen === "result" ? { runId, duration: w.duration, score: w.score } : undefined} onClose={closeLeaderboard} />}
+        {leaderboardOpen && <Leaderboard initialName={leaderboardName} duration={screen === "result" ? w.duration : duration} currentScore={screen === "result" ? { runId, duration: w.duration, score: w.score } : undefined} onClose={closeLeaderboard} />}
         {modal && (
           <div className="modal-backdrop">
             <section
