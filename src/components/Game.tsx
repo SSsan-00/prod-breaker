@@ -51,6 +51,7 @@ type Modal = "settings" | "help" | "pause" | null;
 export default function Game() {
   const [duration, setDuration] = useState(180);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [runId, setRunId] = useState("");
   const closeLeaderboard = useCallback(() => setLeaderboardOpen(false), []);
   const [initialWorld] = useState(() => createWorld());
   const world = useRef<World>(initialWorld),
@@ -65,8 +66,7 @@ export default function Game() {
     frameRef = useRef(0),
     pauseHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     pauseTouch = useRef<{ x: number; y: number } | null>(null),
-    suppressPauseClick = useRef(false),
-    runId = useRef("");
+    suppressPauseClick = useRef(false);
   const [snapshot, setSnapshot] = useState<World>(initialWorld),
     [screen, setScreen] = useState<Screen>("title"),
     [modal, setModal] = useState<Modal>(null),
@@ -287,7 +287,7 @@ export default function Game() {
       }
       if (w.phase === "won" || w.phase === "lost") {
         setSnapshot(w);
-        enqueueScore({ runId: runId.current, duration: w.duration, score: w.score });
+        enqueueScore({ runId, duration: w.duration, score: w.score });
         setHigh((previous) => {
           const value = Math.max(previous, w.score);
           write(`pb-survivor-high-${w.duration}`, value);
@@ -300,7 +300,7 @@ export default function Game() {
     };
     frameRef.current = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [screen, modal]);
+  }, [screen, modal, runId]);
   useEffect(() => {
     if (
       screen !== "run" ||
@@ -323,7 +323,7 @@ export default function Game() {
       param !== null && Number.isFinite(Number(param))
         ? Number(param) >>> 0
         : Math.floor(Math.random() * 0xffffffff);
-    runId.current = crypto.randomUUID();
+    setRunId(crypto.randomUUID());
     world.current = createWorld(seed, duration);
     setSnapshot(world.current);
     setEvolutionNotice("");
@@ -468,7 +468,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.22.1</span>
+              SURVIVOR EDITION <span>↗ V2.22.2</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -810,15 +810,15 @@ export default function Game() {
             <button className="primary" onClick={start}>
               もう一度プレイ <span className="replay-icon">↻</span>
             </button>
-            <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP　<button className="scoreboard-link" onClick={() => setLeaderboardOpen(true)}>ランキング →</button></p>
+            <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP　<button className="scoreboard-link" onClick={() => setLeaderboardOpen(true)}>名前変更 / ランキング →</button></p>
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.22.1</span>
+          <span>PROD BREAKER / SURVIVOR V2.22.2</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
-        {leaderboardOpen && <Leaderboard duration={screen === "result" ? w.duration : duration} onClose={closeLeaderboard} />}
+        {leaderboardOpen && <Leaderboard duration={screen === "result" ? w.duration : duration} currentScore={screen === "result" ? { runId, duration: w.duration, score: w.score } : undefined} onClose={closeLeaderboard} />}
         {modal && (
           <div className="modal-backdrop">
             <section

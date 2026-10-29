@@ -27,11 +27,9 @@ function setQueue(queue: PendingScore[]) {
   write(queueKey, queue);
 }
 export function enqueueScore(score: Omit<PendingScore, "name">) {
-  const queue = getQueue();
-  if (!queue.some((entry) => entry.runId === score.runId)) {
-    queue.push({ ...score, name: playerName() });
-    setQueue(queue);
-  }
+  const queue = getQueue().filter((entry) => entry.runId !== score.runId);
+  queue.push({ ...score, name: playerName() });
+  setQueue(queue);
   void flushScores();
 }
 export async function flushScores() {
@@ -42,7 +40,7 @@ export async function flushScores() {
       const entry = getQueue()[0];
       const response = await fetch("/api/leaderboard", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
       if (!response.ok) break;
-      setQueue(getQueue().filter((item) => item.runId !== entry.runId));
+      setQueue(getQueue().filter((item) => item.runId !== entry.runId || item.name !== entry.name));
     }
   } catch { /* Keep pending scores for the next visit or reconnection. */ }
   finally { flushing = false; }

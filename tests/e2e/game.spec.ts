@@ -744,5 +744,11 @@ test("result score is shared automatically", async ({ page }, info) => {
   expect(posted?.score).toBeGreaterThan(0);
   expect(posted?.runId).toMatch(/^[0-9a-f-]{36}$/);
   await page.getByRole("button", { name: /ランキング →/ }).click();
-  await expect(page.getByRole("dialog", { name: "スコアボード" })).toBeVisible();
+  const resultDialog = page.getByRole("dialog", { name: "スコアボード" });
+  await expect(resultDialog).toBeVisible();
+  const initialRunId = posted?.runId;
+  await resultDialog.getByLabel("プレイヤー名").fill("新しい破壊神");
+  await resultDialog.getByRole("button", { name: "名前を保存" }).click();
+  await expect.poll(() => posted?.name).toBe("新しい破壊神");
+  expect(posted?.runId).toBe(initialRunId);
 });

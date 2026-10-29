@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (!url) return unavailable();
   try {
     const sql = neon(url);
-    await sql`INSERT INTO leaderboard_scores (run_id, player_name, duration, score) VALUES (${runId}, ${name}, ${duration}, ${score}) ON CONFLICT (run_id) DO NOTHING`;
+    await sql`INSERT INTO leaderboard_scores (run_id, player_name, duration, score) VALUES (${runId}, ${name}, ${duration}, ${score}) ON CONFLICT (run_id) DO UPDATE SET player_name = EXCLUDED.player_name WHERE leaderboard_scores.duration = EXCLUDED.duration AND leaderboard_scores.score = EXCLUDED.score`;
     return Response.json({ ok: true });
   } catch { return unavailable(); }
 }

@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { durations, modeLabel, validName, type ScoreEntry } from "@/lib/leaderboard";
-import { playerName, savePlayerName } from "@/lib/score-submission";
+import { enqueueScore, playerName, savePlayerName } from "@/lib/score-submission";
 
-type Props = { duration: number; onClose: () => void };
-export default function Leaderboard({ duration, onClose }: Props) {
+type Props = { duration: number; currentScore?: { runId: string; duration: number; score: number }; onClose: () => void };
+export default function Leaderboard({ duration, currentScore, onClose }: Props) {
   const dialogRef = useRef<HTMLElement>(null);
   const [name, setName] = useState("");
   const [mode, setMode] = useState(duration);
@@ -40,7 +40,9 @@ export default function Leaderboard({ duration, onClose }: Props) {
   function submit() {
     const cleaned = name.trim();
     if (!validName(cleaned)) { setMessage("名前は1〜20文字で入力してください。"); return; }
-    setName(cleaned); savePlayerName(cleaned); setMessage("名前を保存しました。次回からこの名前で登録されます。");
+    setName(cleaned); savePlayerName(cleaned);
+    if (currentScore) enqueueScore(currentScore);
+    setMessage(currentScore ? "名前を保存しました。今回のスコアにも反映します。" : "名前を保存しました。次回からこの名前で登録されます。");
   }
   return <div className="modal-backdrop leaderboard-backdrop"><section ref={dialogRef} className="modal leaderboard" role="dialog" aria-modal="true" aria-label="スコアボード">
     <button autoFocus className="close" aria-label="閉じる" onClick={onClose}>×</button>

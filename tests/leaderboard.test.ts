@@ -42,3 +42,23 @@ describe("automatic score submission", () => {
     } finally { vi.unstubAllGlobals(); localStorage.clear(); }
   });
 });
+
+describe("result name update", () => {
+  it("sends the new name even when the original submission is still in flight", async () => {
+    const { enqueueScore, savePlayerName } = await import("../src/lib/score-submission");
+    localStorage.clear();
+    let finishFirst!: (value: { ok: boolean }) => void;
+    const first = new Promise<{ ok: boolean }>((resolve) => { finishFirst = resolve; });
+    const fetchMock = vi.fn().mockReturnValueOnce(first).mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const entry = { runId: "fcd9130b-318c-412e-b18e-604aef7e5411", duration: 90, score: 123 };
+      savePlayerName("古い名前"); enqueueScore(entry);
+      savePlayerName("新しい名前"); enqueueScore(entry);
+      finishFirst({ ok: true });
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ ...entry, name: "新しい名前" });
+      await vi.waitFor(() => expect(JSON.parse(localStorage.getItem("pb-pending-scores") || "[]")).toEqual([]));
+    } finally { vi.unstubAllGlobals(); localStorage.clear(); }
+  });
+});
