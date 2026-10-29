@@ -10,6 +10,7 @@ import {
   evolutionNames,
   evolutionReady,
   evolutionBonus,
+  upgradeOverflowBonus,
   wave,
   survivorReport,
   STEP,
@@ -266,7 +267,7 @@ export default function Game() {
       if (w.bossWave > oldBossWave && !settingsRef.current.mute)
         sound("deploy", settingsRef.current.volume);
       oldBossWave = w.bossWave;
-      const milestone = [100, 30, 10].find(
+      const milestone = [10000, 3000, 1000, 300, 100, 30, 10].find(
         (value) => w.combo >= value && oldCombo < value,
       );
       if (milestone && !settingsRef.current.mute)
@@ -463,7 +464,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.22.9</span>
+              SURVIVOR EDITION <span>↗ V2.23.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -610,8 +611,8 @@ export default function Game() {
                 </div>
               ))}
               {!evolutionNotice && !w.effects.some((effect) => effect.kind === "wave") && w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
-                <div className="chain-cutin" key={effect.id} aria-hidden="true">
-                  <small>CHAIN REACTION</small><strong>{effect.text}</strong><span>本番、炎上中。</span>
+                <div className={`chain-cutin${effect.text === "10000 CHAIN" ? " chain-grand" : ""}`} key={effect.id} aria-hidden="true">
+                  <small>{effect.text === "10000 CHAIN" ? "PRODUCTION MELTDOWN" : "CHAIN REACTION"}</small><strong>{effect.text}</strong><span>本番、炎上中。</span>
                 </div>
               ))}
               {evolutionNotice && (
@@ -673,7 +674,7 @@ export default function Game() {
               )}
               {w.time < w.overdriveUntil && (
                 <div className="overdrive-badge" role="status">
-                  <b>OVERDRIVE</b><span>攻撃速度アップ / {Math.ceil(w.overdriveUntil - w.time)}s</span>
+                  <b>OVERDRIVE</b><span>攻撃速度UP・ダメージ+{Math.round((w.overdrivePower - 1) * 100)}% / {Math.ceil(w.overdriveUntil - w.time)}s</span>
                 </div>
               )}
               <div className="arena-bottomline">
@@ -699,7 +700,7 @@ export default function Game() {
                 {w.panicCooldown > 0
                   ? `PANIC / ${Math.ceil(w.panicCooldown)}s`
                   : "PANIC / 緊急マージ"}
-                <small>周囲を爆破＋ログ全回収 / 10・30・100連鎖で短縮</small>
+                <small>周囲を爆破＋ログ全回収 / 連鎖で短縮</small>
               </button>
             </div>
             {w.phase === "upgrade" && !modal && (
@@ -719,6 +720,7 @@ export default function Game() {
                     {w.choices.map((id) => {
                       const u = upgrades.find((u) => u.id === id)!;
                       const ready = evolutionReady(w, id);
+                      const overflow = upgradeOverflowBonus(w, id);
                       const evolved = !!evolutionNames[id] && w.evolutions.includes(evolutionNames[id]!);
                       return (
                         <motion.button
@@ -735,6 +737,7 @@ export default function Game() {
                           <div className="card-art">{u.icon}</div>
                           <h3>{u.name}</h3>
                           <p>{u.description}</p>
+                          {overflow > 0 && <small className="evolution-hint">上限分を変換: 攻撃+{overflow}</small>}
                           {ready ? (
                             <small className="evolution-hint evolution-bonus">進化: {evolutionBonus(w, id).join(" / ")}</small>
                           ) : evolutionPartners[id] && (
@@ -809,7 +812,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.22.9</span>
+          <span>PROD BREAKER / SURVIVOR V2.23.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

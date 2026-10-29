@@ -675,6 +675,7 @@ export type World = {
   maxCombo: number;
   comboUntil: number;
   overdriveUntil: number;
+  overdrivePower: number;
   destroyed: number;
   kills: number;
   level: number;
@@ -684,6 +685,7 @@ export type World = {
   choices: UpgradeId[];
   build: UpgradeId[];
   damage: number;
+  overflowDamage: number;
   fireInterval: number;
   shotTimer: number;
   multishot: number;
@@ -764,6 +766,8 @@ export function createWorld(seed = 42, duration = RUN_SECONDS): World {
     maxCombo: 0,
     comboUntil: 0,
     overdriveUntil: 0,
+    overdrivePower: 1.25,
+    overflowDamage: 0,
     destroyed: 0,
     kills: 0,
     level: 1,
@@ -817,7 +821,7 @@ function killChain(w: World, first: Entity, damage: number) {
     if (target.hp <= 0 || (visits.get(target.id) || 0) >= 2)
       continue;
     visits.set(target.id, (visits.get(target.id) || 0) + 1);
-    let damage = hit.damage;
+    let damage = hit.damage * (w.time < w.overdriveUntil ? w.overdrivePower : 1);
     if (target.kind === "boss" && hit.propagated) {
       // Repeated explosions in the same burst cannot erase a core instantly.
       if (w.time < (target.chainGuardUntil ?? 0)) continue;
@@ -844,12 +848,14 @@ function killChain(w: World, first: Entity, damage: number) {
         (1 + Math.min(w.combo, 50) * 0.06),
     );
     w.score = Math.min(Number.MAX_SAFE_INTEGER, w.score + bonus);
-    if ([10, 30, 100].includes(w.combo)) {
+    if ([10, 30, 100, 300, 1000, 3000, 10000].includes(w.combo)) {
       // Milestones recharge PANIC once per crossing, including during a cascade.
-      w.panicCooldown = Math.max(0, w.panicCooldown - 2);
+      w.panicCooldown = Math.max(0, w.panicCooldown - (w.combo >= 1000 ? 4 : 2));
       // A short automatic burst rewards a chain without interrupting movement.
+      const tier = w.combo >= 10000 ? 1.65 : w.combo >= 3000 ? 1.5 : w.combo >= 300 ? 1.35 : 1.25;
+      w.overdrivePower = Math.max(w.time < w.overdriveUntil ? w.overdrivePower : 1.25, tier);
       w.overdriveUntil = Math.min(w.time + 10, Math.max(w.overdriveUntil, w.time) + (w.combo === 10 ? 5 : 3));
-      fx(w, target, "milestone", w.combo === 100 ? "SYSTEM MELTDOWN" : w.combo === 30 ? "OVERLOAD x1.5" : "OVERLOAD x1.25");
+      fx(w, target, "milestone", w.combo >= 300 ? `${w.combo} CHAIN` : w.combo === 100 ? "SYSTEM MELTDOWN" : w.combo === 30 ? "OVERLOAD x1.5" : "OVERLOAD x1.25");
     }
     if (target.kind === "server") w.destroyed++;
     else w.kills++;
@@ -902,6 +908,19 @@ function choices(w: World) {
   }
   return result;
 }
+/** Convert the portion of a capped upgrade into attack so every choice grows. */
+function capUpgrade(w: World, field: "pierce" | "multishot" | "speed" | "chainRange" | "magnet" | "fireInterval" | "slow", limit: number, proposed: number, lower: boolean): number {
+  const previous = w[field];
+  const bounded = lower ? Math.max(limit, proposed) : Math.min(limit, proposed);
+  const requested = Math.abs(proposed - previous);
+  const excess = Math.abs(proposed - bounded);
+  if (requested > 0 && excess > 1e-9) {
+    const bonus = Math.round(100 * 12 * Math.min(1, excess / requested)) / 100;
+    w.damage += bonus;
+    w.overflowDamage += bonus;
+  }
+  return bounded;
+}
 export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
   if (state.phase !== "upgrade" || !state.choices.includes(upgrade))
     throw new Error("Invalid upgrade");
@@ -909,17 +928,17 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
   w.build.push(upgrade);
   switch (upgrade) {
     case "where":
-      w.pierce = Math.min(8, w.pierce + 1);
+      w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false);
       w.damage += 6;
       break;
     case "leak":
       w.aura += 9;
       break;
     case "cache":
-      w.multishot = Math.min(6, w.multishot + 1);
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false);
       break;
     case "retry":
-      w.chainRange = Math.min(400, w.chainRange + 35);
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 35, false);
       break;
     case "common":
       w.chainDamage += 12;
@@ -928,28 +947,28 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.multiplier += 0.35;
       break;
     case "test":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.85);
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.85, true);
       break;
     case "log":
-      w.magnet = Math.min(420, w.magnet + 65);
+      w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 65, false);
       break;
     case "local":
       w.player.maxHp += 25;
       w.player.hp = Math.min(w.player.maxHp, w.player.hp + 35);
       break;
     case "monitor":
-      w.slow = Math.max(0.4, w.slow * 0.88);
+      w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.88, true);
       break;
     case "refactor":
       w.damage += 14;
       break;
     case "nplus":
     case "merge":
-      w.multishot = Math.min(6, w.multishot + 1);
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false);
       w.damage += upgrade === "merge" ? 10 : 4;
       break;
     case "select":
-      w.chainRange = Math.min(400, w.chainRange + 25);
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false);
       break;
     case "flush":
     case "memory":
@@ -958,17 +977,17 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       break;
     case "timeout":
     case "rollback":
-      w.pierce = Math.min(8, w.pierce + 1);
+      w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false);
       w.chainDamage += 5;
       if (upgrade === "rollback")
-        w.fireInterval = Math.max(0.12, w.fireInterval * 0.9);
+        w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.9, true);
       break;
     case "force":
       w.damage += 18;
       break;
     case "hotfix":
     case "yolo":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.88);
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.88, true);
       w.player.hp = Math.min(w.player.maxHp, w.player.hp + 15);
       break;
     case "spec":
@@ -976,7 +995,7 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.player.hp = Math.min(w.player.maxHp, w.player.hp + 30);
       break;
     case "threshold":
-      w.slow = Math.max(0.4, w.slow * 0.9);
+      w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.9, true);
       break;
     case "dependency":
       w.damage += 10;
@@ -987,20 +1006,20 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.damage += 5;
       break;
     case "dns":
-      w.magnet = Math.min(420, w.magnet + 50);
-      w.chainRange = Math.min(400, w.chainRange + 20);
+      w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 50, false);
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 20, false);
       break;
     case "race":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.9);
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.9, true);
       w.chainDamage += 8;
       break;
     case "config":
-      w.speed = Math.min(340, w.speed * 1.1);
+      w.speed = capUpgrade(w, "speed", 340, w.speed * 1.1, false);
       w.damage += 8;
       break;
     case "oncall":
       w.player.hp = Math.min(w.player.maxHp, w.player.hp + 25);
-      w.magnet = Math.min(420, w.magnet + 40);
+      w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 40, false);
       break;
     case "cron":
       w.chainDamage += 9;
@@ -1010,28 +1029,28 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.damage += 5;
       break;
     case "migration":
-      w.pierce = Math.min(8, w.pierce + 1);
+      w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false);
       w.damage += 8;
       break;
     case "index":
-      w.chainRange = Math.min(400, w.chainRange + 25);
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false);
       w.damage += 5;
       break;
     case "feature":
-      w.multishot = Math.min(6, w.multishot + 1);
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false);
       w.multiplier += 0.15;
       break;
     case "canary":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.9);
-      w.speed = Math.min(340, w.speed * 1.08);
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.9, true);
+      w.speed = capUpgrade(w, "speed", 340, w.speed * 1.08, false);
       break;
     case "cert":
       w.chainDamage += 10;
       w.aura += 6;
       break;
     case "clock":
-      w.slow = Math.max(0.4, w.slow * 0.92);
-      w.chainRange = Math.min(400, w.chainRange + 20);
+      w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.92, true);
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 20, false);
       break;
     case "approval":
       w.player.maxHp += 20;
@@ -1042,19 +1061,19 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.multiplier += 0.1;
       break;
     case "autoscale":
-      w.multishot = Math.min(6, w.multishot + 1);
-      w.chainRange = Math.min(400, w.chainRange + 15);
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false);
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 15, false);
       break;
     case "quota":
       w.aura += 8;
       w.player.hp = Math.min(w.player.maxHp, w.player.hp + 15);
       break;
     case "schema":
-      w.pierce = Math.min(8, w.pierce + 1);
+      w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false);
       w.chainDamage += 7;
       break;
     case "contract":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92);
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true);
       w.damage += 6;
       break;
     case "meeting":
@@ -1063,60 +1082,60 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       break;
     case "reboot":
       w.aura += 8;
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92);
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true);
       break;
     case "staging":
-      w.speed = Math.min(340, w.speed * 1.1);
+      w.speed = capUpgrade(w, "speed", 340, w.speed * 1.1, false);
       w.multiplier += 0.15;
       break;
     case "drift":
-      w.chainRange = Math.min(400, w.chainRange + 30);
-      w.magnet = Math.min(420, w.magnet + 30);
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 30, false);
+      w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 30, false);
       break;
     case "lockfile":
       w.damage += 10; w.chainDamage += 8; break;
     case "latest":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.9); w.multiplier += 0.1; break;
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.9, true); w.multiplier += 0.1; break;
     case "timezone":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.slow = Math.max(0.4, w.slow * 0.92); break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.92, true); break;
     case "midnight":
       w.aura += 8; w.chainDamage += 8; break;
     case "secrets":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "clipboard":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.damage += 8; break;
     case "terraform":
-      w.pierce = Math.min(8, w.pierce + 1); w.damage += 8; break;
+      w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); w.damage += 8; break;
     case "manual":
-      w.speed = Math.min(340, w.speed * 1.08); w.multiplier += 0.2; break;
+      w.speed = capUpgrade(w, "speed", 340, w.speed * 1.08, false); w.multiplier += 0.2; break;
     case "sudo":
-      w.damage += 12; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 12; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "token":
-      w.chainDamage += 10; w.slow = Math.max(0.4, w.slow * 0.92); break;
+      w.chainDamage += 10; w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.92, true); break;
     case "backup":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "restore":
       w.aura += 8; w.multiplier += 0.15; break;
     case "regex":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 7; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.damage += 7; break;
     case "encoding":
-      w.pierce = Math.min(8, w.pierce + 1); w.chainDamage += 7; break;
+      w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); w.chainDamage += 7; break;
     case "queue":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 7; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.aura += 7; break;
     case "duplicate":
-      w.multishot = Math.min(6, w.multishot + 1); w.multiplier += 0.1; break;
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.multiplier += 0.1; break;
     case "allowall":
-      w.pierce = Math.min(8, w.pierce + 1); w.damage += 6; break;
+      w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); w.damage += 6; break;
     case "temporary":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 6; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 6; break;
     case "mfa":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); w.multiplier += 0.1; break;
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true); w.multiplier += 0.1; break;
     case "sharedaccount":
-      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.damage += 4; break;
     case "auditlog":
-      w.magnet = Math.min(420, w.magnet + 45); w.player.maxHp += 10; break;
+      w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 45, false); w.player.maxHp += 10; break;
     case "retention":
-      w.chainRange = Math.min(400, w.chainRange + 20); w.slow = Math.max(0.4, w.slow * 0.92); break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 20, false); w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.92, true); break;
     case "patchlater":
       w.damage += 10; w.aura += 6; break;
     case "scanner":
@@ -1124,41 +1143,41 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     case "publicbucket":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "discovery":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 6; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.damage += 6; break;
     case "session":
       w.aura += 8; w.chainDamage += 5; break;
     case "logout":
-      w.speed = Math.min(340, w.speed * 1.08); w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); break;
+      w.speed = capUpgrade(w, "speed", 340, w.speed * 1.08, false); w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true); break;
     case "plaintext":
-      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "passwordsheet":
-      w.magnet = Math.min(420, w.magnet + 40); w.player.maxHp += 10; break;
+      w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 40, false); w.player.maxHp += 10; break;
     case "prepared":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 5; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.damage += 5; break;
     case "sqlstring":
-      w.chainDamage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.chainDamage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "sanitize":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.slow = Math.max(0.4, w.slow * 0.92); break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.92, true); break;
     case "trusthtml":
-      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.damage += 4; break;
     case "lottery":
-      w.multiplier += 0.2; w.speed = Math.min(340, w.speed * 1.08); break;
+      w.multiplier += 0.2; w.speed = capUpgrade(w, "speed", 340, w.speed * 1.08, false); break;
     case "attachment":
       w.aura += 8; w.damage += 6; break;
     case "secretlog":
-      w.magnet = Math.min(420, w.magnet + 35); w.chainDamage += 8; break;
+      w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 35, false); w.chainDamage += 8; break;
     case "weakpin":
-      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "pinlabel":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
     case "phishing":
-      w.multiplier += 0.2; w.speed = Math.min(340, w.speed * 1.08); break;
+      w.multiplier += 0.2; w.speed = capUpgrade(w, "speed", 340, w.speed * 1.08, false); break;
     case "urlcheck":
-      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.damage += 4; break;
     case "openredirect":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.damage += 6; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.damage += 6; break;
     case "trustedlink":
-      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "dependencyrisk":
       w.chainDamage += 10; w.multiplier += 0.1; break;
     case "typosquat":
@@ -1166,93 +1185,93 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     case "usbunknown":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "autorun":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.aura += 8; break;
     case "alertstorm":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
     case "alertfatigue":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); w.multiplier += 0.1; break;
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true); w.multiplier += 0.1; break;
     case "runbookold":
-      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "tribalknowledge":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "diskfull":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.aura += 8; break;
     case "logrotate":
       w.damage += 12; w.chainDamage += 6; break;
     case "failover":
       w.multiplier += 0.2; w.damage += 6; break;
     case "standby":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 7; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 7; break;
     case "capacity":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); w.multiplier += 0.1; break;
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true); w.multiplier += 0.1; break;
     case "trafficspike":
-      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.damage += 4; break;
     case "quickfix":
-      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "todo":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
     case "estimate":
-      w.multiplier += 0.2; w.speed = Math.min(340, w.speed * 1.08); break;
+      w.multiplier += 0.2; w.speed = capUpgrade(w, "speed", 340, w.speed * 1.08, false); break;
     case "scopecreep":
-      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.damage += 4; break;
     case "mysterycode":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.aura += 8; break;
     case "gitblame":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "fridaydeploy":
       w.multiplier += 0.2; w.damage += 6; break;
     case "vacation":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 7; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 7; break;
     case "disabletest":
-      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "greenci":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); w.multiplier += 0.1; break;
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true); w.multiplier += 0.1; break;
     case "directdb":
       w.damage += 12; w.chainDamage += 6; break;
     case "nobackup":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.aura += 8; break;
     case "ignoreerror":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "emptycatch":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
     case "yagni":
       w.multiplier += 0.2; w.damage += 6; break;
     case "futureproof":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 7; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 7; break;
     case "solid":
-      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+      w.damage += 10; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 1, false); break;
     case "interface":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.aura += 8; break;
     case "kiss":
-      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); w.speed = Math.min(340, w.speed + 8); break;
+      w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true); w.speed = capUpgrade(w, "speed", 340, w.speed + 8, false); break;
     case "clever":
       w.damage += 12; w.chainDamage += 6; break;
     case "dry":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
     case "copypaste":
-      w.multishot = Math.min(6, w.multishot + 1); w.damage += 4; break;
+      w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.damage += 4; break;
     case "shoulder":
-      w.damage += 8; w.magnet = Math.min(420, w.magnet + 35); break;
+      w.damage += 8; w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 35, false); break;
     case "privacyfilter":
-      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
+      w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
     case "publicchat":
       w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
     case "env":
-      w.speed = Math.min(340, w.speed * 1.15);
+      w.speed = capUpgrade(w, "speed", 340, w.speed * 1.15, false);
       break;
   }
   const recipes: { name: string; pair: UpgradeId[]; apply: () => void }[] = [
     {
       name: evolutionNames.retry!, pair: ["retry", "timeout"],
       apply: () => {
-        w.chainRange = Math.min(400, w.chainRange + 80);
+        w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 80, false);
         w.chainDamage += 25;
       },
     },
     {
       name: evolutionNames.nplus!, pair: ["nplus", "leak"],
       apply: () => {
-        w.multishot = Math.min(6, w.multishot + 2);
+        w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 2, false);
         w.aura += 20;
       },
     },
@@ -1260,28 +1279,28 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       name: evolutionNames.hotfix!, pair: ["hotfix", "friday"],
       apply: () => {
         w.multiplier += 0.8;
-        w.fireInterval = Math.max(0.12, w.fireInterval * 0.7);
+        w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.7, true);
       },
     },
     {
       name: evolutionNames.threshold!, pair: ["threshold", "flush"],
       apply: () => {
         w.aura += 25;
-        w.slow = Math.max(0.4, w.slow * 0.75);
+        w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.75, true);
       },
     },
     {
       name: evolutionNames.select!, pair: ["select", "where"],
       apply: () => {
-        w.pierce = Math.min(8, w.pierce + 2);
-        w.chainRange = Math.min(400, w.chainRange + 70);
+        w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false);
+        w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 70, false);
       },
     },
     {
       name: evolutionNames.force!, pair: ["force", "config"],
       apply: () => {
         w.damage += 35;
-        w.speed = Math.min(340, w.speed * 1.2);
+        w.speed = capUpgrade(w, "speed", 340, w.speed * 1.2, false);
       },
     },
     {
@@ -1311,22 +1330,22 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     {
       name: evolutionNames.migration!, pair: ["migration", "index"],
       apply: () => {
-        w.pierce = Math.min(8, w.pierce + 2);
-        w.chainRange = Math.min(400, w.chainRange + 60);
+        w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false);
+        w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 60, false);
       },
     },
     {
       name: evolutionNames.feature!, pair: ["feature", "canary"],
       apply: () => {
-        w.multishot = Math.min(6, w.multishot + 1);
-        w.fireInterval = Math.max(0.12, w.fireInterval * 0.75);
+        w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false);
+        w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.75, true);
       },
     },
     {
       name: evolutionNames.cert!, pair: ["cert", "clock"],
       apply: () => {
         w.aura += 20;
-        w.slow = Math.max(0.4, w.slow * 0.8);
+        w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.8, true);
       },
     },
     {
@@ -1340,14 +1359,14 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     {
       name: evolutionNames.autoscale!, pair: ["autoscale", "quota"],
       apply: () => {
-        w.multishot = Math.min(6, w.multishot + 1);
+        w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false);
         w.aura += 18;
       },
     },
     {
       name: evolutionNames.schema!, pair: ["schema", "contract"],
       apply: () => {
-        w.pierce = Math.min(8, w.pierce + 2);
+        w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false);
         w.damage += 22;
       },
     },
@@ -1362,57 +1381,57 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     {
       name: evolutionNames.staging!, pair: ["staging", "drift"],
       apply: () => {
-        w.chainRange = Math.min(400, w.chainRange + 65);
+        w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 65, false);
         w.multiplier += 0.5;
       },
     },
-    { name: evolutionNames.lockfile!, pair: ["lockfile", "latest"], apply: () => { w.damage += 25; w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
-    { name: evolutionNames.timezone!, pair: ["timezone", "midnight"], apply: () => { w.chainRange = Math.min(400, w.chainRange + 60); w.aura += 18; } },
+    { name: evolutionNames.lockfile!, pair: ["lockfile", "latest"], apply: () => { w.damage += 25; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.timezone!, pair: ["timezone", "midnight"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 60, false); w.aura += 18; } },
     { name: evolutionNames.secrets!, pair: ["secrets", "clipboard"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 20; } },
-    { name: evolutionNames.terraform!, pair: ["terraform", "manual"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.multiplier += 0.5; } },
+    { name: evolutionNames.terraform!, pair: ["terraform", "manual"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.multiplier += 0.5; } },
     { name: evolutionNames.sudo!, pair: ["sudo", "token"], apply: () => { w.damage += 20; w.chainDamage += 18; } },
     { name: evolutionNames.backup!, pair: ["backup", "restore"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.aura += 16; } },
-    { name: evolutionNames.regex!, pair: ["regex", "encoding"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainRange = Math.min(400, w.chainRange + 55); } },
-    { name: evolutionNames.queue!, pair: ["queue", "duplicate"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainDamage += 20; } },
-    { name: evolutionNames.cache!, pair: ["cache", "dns"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainRange = Math.min(400, w.chainRange + 55); } },
+    { name: evolutionNames.regex!, pair: ["regex", "encoding"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 55, false); } },
+    { name: evolutionNames.queue!, pair: ["queue", "duplicate"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.chainDamage += 20; } },
+    { name: evolutionNames.cache!, pair: ["cache", "dns"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 55, false); } },
     { name: evolutionNames.common!, pair: ["common", "dependency"], apply: () => { w.chainDamage += 28; w.damage += 15; } },
-    { name: evolutionNames.test!, pair: ["test", "deploy"], apply: () => { w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); w.multiplier += 0.4; } },
-    { name: evolutionNames.log!, pair: ["log", "monitor"], apply: () => { w.magnet = Math.min(420, w.magnet + 70); w.slow = Math.max(0.4, w.slow * 0.8); } },
-    { name: evolutionNames.refactor!, pair: ["refactor", "merge"], apply: () => { w.damage += 25; w.multishot = Math.min(6, w.multishot + 1); } },
-    { name: evolutionNames.env!, pair: ["env", "yolo"], apply: () => { w.speed = Math.min(340, w.speed * 1.15); w.fireInterval = Math.max(0.12, w.fireInterval * 0.85); } },
+    { name: evolutionNames.test!, pair: ["test", "deploy"], apply: () => { w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); w.multiplier += 0.4; } },
+    { name: evolutionNames.log!, pair: ["log", "monitor"], apply: () => { w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 70, false); w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.8, true); } },
+    { name: evolutionNames.refactor!, pair: ["refactor", "merge"], apply: () => { w.damage += 25; w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); } },
+    { name: evolutionNames.env!, pair: ["env", "yolo"], apply: () => { w.speed = capUpgrade(w, "speed", 340, w.speed * 1.15, false); w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.85, true); } },
     { name: evolutionNames.race!, pair: ["race", "memory"], apply: () => { w.aura += 18; w.chainDamage += 20; } },
-    { name: evolutionNames.allowall!, pair: ["allowall", "temporary"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainRange = Math.min(400, w.chainRange + 55); } },
-    { name: evolutionNames.mfa!, pair: ["mfa", "sharedaccount"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
-    { name: evolutionNames.auditlog!, pair: ["auditlog", "retention"], apply: () => { w.magnet = Math.min(420, w.magnet + 65); w.slow = Math.max(0.4, w.slow * 0.85); } },
+    { name: evolutionNames.allowall!, pair: ["allowall", "temporary"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 55, false); } },
+    { name: evolutionNames.mfa!, pair: ["mfa", "sharedaccount"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.auditlog!, pair: ["auditlog", "retention"], apply: () => { w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 65, false); w.slow = capUpgrade(w, "slow", 0.4, w.slow * 0.85, true); } },
     { name: evolutionNames.patchlater!, pair: ["patchlater", "scanner"], apply: () => { w.damage += 20; w.chainDamage += 20; } },
-    { name: evolutionNames.publicbucket!, pair: ["publicbucket", "discovery"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainRange = Math.min(400, w.chainRange + 45); } },
-    { name: evolutionNames.session!, pair: ["session", "logout"], apply: () => { w.aura += 18; w.speed = Math.min(340, w.speed * 1.12); } },
-    { name: evolutionNames.plaintext!, pair: ["plaintext", "passwordsheet"], apply: () => { w.damage += 20; w.magnet = Math.min(420, w.magnet + 55); } },
-    { name: evolutionNames.prepared!, pair: ["prepared", "sqlstring"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
-    { name: evolutionNames.sanitize!, pair: ["sanitize", "trusthtml"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainRange = Math.min(400, w.chainRange + 45); } },
+    { name: evolutionNames.publicbucket!, pair: ["publicbucket", "discovery"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); } },
+    { name: evolutionNames.session!, pair: ["session", "logout"], apply: () => { w.aura += 18; w.speed = capUpgrade(w, "speed", 340, w.speed * 1.12, false); } },
+    { name: evolutionNames.plaintext!, pair: ["plaintext", "passwordsheet"], apply: () => { w.damage += 20; w.magnet = capUpgrade(w, "magnet", 420, w.magnet + 55, false); } },
+    { name: evolutionNames.prepared!, pair: ["prepared", "sqlstring"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.chainDamage += 20; } },
+    { name: evolutionNames.sanitize!, pair: ["sanitize", "trusthtml"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); } },
     { name: evolutionNames.lottery!, pair: ["lottery", "attachment"], apply: () => { w.multiplier += 0.45; w.aura += 16; } },
-    { name: evolutionNames.weakpin!, pair: ["weakpin", "pinlabel"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
-    { name: evolutionNames.phishing!, pair: ["phishing", "urlcheck"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.multiplier += 0.4; } },
-    { name: evolutionNames.openredirect!, pair: ["openredirect", "trustedlink"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainRange = Math.min(400, w.chainRange + 45); } },
+    { name: evolutionNames.weakpin!, pair: ["weakpin", "pinlabel"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.chainDamage += 20; } },
+    { name: evolutionNames.phishing!, pair: ["phishing", "urlcheck"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.multiplier += 0.4; } },
+    { name: evolutionNames.openredirect!, pair: ["openredirect", "trustedlink"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); } },
     { name: evolutionNames.dependencyrisk!, pair: ["dependencyrisk", "typosquat"], apply: () => { w.damage += 20; w.chainDamage += 20; } },
     { name: evolutionNames.usbunknown!, pair: ["usbunknown", "autorun"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.aura += 16; } },
-    { name: evolutionNames.alertstorm!, pair: ["alertstorm", "alertfatigue"], apply: () => { w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); w.chainDamage += 20; } },
-    { name: evolutionNames.runbookold!, pair: ["runbookold", "tribalknowledge"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.pierce = Math.min(8, w.pierce + 2); } },
+    { name: evolutionNames.alertstorm!, pair: ["alertstorm", "alertfatigue"], apply: () => { w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); w.chainDamage += 20; } },
+    { name: evolutionNames.runbookold!, pair: ["runbookold", "tribalknowledge"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); } },
     { name: evolutionNames.diskfull!, pair: ["diskfull", "logrotate"], apply: () => { w.aura += 18; w.chainDamage += 20; } },
-    { name: evolutionNames.failover!, pair: ["failover", "standby"], apply: () => { w.multiplier += 0.4; w.chainRange = Math.min(400, w.chainRange + 45); } },
-    { name: evolutionNames.capacity!, pair: ["capacity", "trafficspike"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
-    { name: evolutionNames.quickfix!, pair: ["quickfix", "todo"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
-    { name: evolutionNames.estimate!, pair: ["estimate", "scopecreep"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.multiplier += 0.4; } },
+    { name: evolutionNames.failover!, pair: ["failover", "standby"], apply: () => { w.multiplier += 0.4; w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); } },
+    { name: evolutionNames.capacity!, pair: ["capacity", "trafficspike"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.quickfix!, pair: ["quickfix", "todo"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.chainDamage += 20; } },
+    { name: evolutionNames.estimate!, pair: ["estimate", "scopecreep"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.multiplier += 0.4; } },
     { name: evolutionNames.mysterycode!, pair: ["mysterycode", "gitblame"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.aura += 16; } },
-    { name: evolutionNames.fridaydeploy!, pair: ["fridaydeploy", "vacation"], apply: () => { w.multiplier += 0.4; w.chainRange = Math.min(400, w.chainRange + 45); } },
-    { name: evolutionNames.disabletest!, pair: ["disabletest", "greenci"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
+    { name: evolutionNames.fridaydeploy!, pair: ["fridaydeploy", "vacation"], apply: () => { w.multiplier += 0.4; w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); } },
+    { name: evolutionNames.disabletest!, pair: ["disabletest", "greenci"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
     { name: evolutionNames.directdb!, pair: ["directdb", "nobackup"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
-    { name: evolutionNames.ignoreerror!, pair: ["ignoreerror", "emptycatch"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainRange = Math.min(400, w.chainRange + 45); } },
-    { name: evolutionNames.yagni!, pair: ["yagni", "futureproof"], apply: () => { w.multiplier += 0.4; w.chainRange = Math.min(400, w.chainRange + 45); } },
-    { name: evolutionNames.solid!, pair: ["solid", "interface"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.aura += 18; } },
-    { name: evolutionNames.kiss!, pair: ["kiss", "clever"], apply: () => { w.damage += 25; w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
-    { name: evolutionNames.dry!, pair: ["dry", "copypaste"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainDamage += 20; } },
-    { name: evolutionNames.shoulder!, pair: ["shoulder", "privacyfilter"], apply: () => { w.chainRange = Math.min(400, w.chainRange + 45); w.damage += 20; } },
+    { name: evolutionNames.ignoreerror!, pair: ["ignoreerror", "emptycatch"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); } },
+    { name: evolutionNames.yagni!, pair: ["yagni", "futureproof"], apply: () => { w.multiplier += 0.4; w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); } },
+    { name: evolutionNames.solid!, pair: ["solid", "interface"], apply: () => { w.pierce = capUpgrade(w, "pierce", 8, w.pierce + 2, false); w.aura += 18; } },
+    { name: evolutionNames.kiss!, pair: ["kiss", "clever"], apply: () => { w.damage += 25; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.dry!, pair: ["dry", "copypaste"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.chainDamage += 20; } },
+    { name: evolutionNames.shoulder!, pair: ["shoulder", "privacyfilter"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); w.damage += 20; } },
     { name: evolutionNames.secretlog!, pair: ["secretlog", "publicchat"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 18; } },
   ];
   for (const recipe of recipes)
@@ -1427,6 +1446,15 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
   w.choices = [];
   w.phase = "playing";
   return w;
+}
+/** Attack gained from the card's capped portions; evolution bonuses are shown separately. */
+export function upgradeOverflowBonus(state: World, id: UpgradeId): number {
+  if (state.phase !== "upgrade" || !state.choices.includes(id)) return 0;
+  const withoutEvolution = {
+    ...state,
+    evolutions: [...new Set([...state.evolutions, ...Object.values(evolutionNames).filter((name): name is string => !!name)])],
+  };
+  return Math.round((chooseUpgrade(withoutEvolution, id).overflowDamage - state.overflowDamage) * 100) / 100;
 }
 /** Preview the actual extra evolution bonus after this upgrade, including caps. */
 export function evolutionBonus(state: World, id: UpgradeId): string[] {
@@ -1517,7 +1545,7 @@ export function stepWorld(state: World, input: Input): World {
     for (const e of w.entities.filter(
       (e) => e.hp > 0 && distance(e, w.player) < 420,
     ))
-      killChain(w, e, 100);
+      killChain(w, e, 100 + (e.kind === "boss" ? e.maxHp * 0.05 : 0));
     for (const p of w.pickups) {
       p.x = w.player.x;
       p.y = w.player.y;
@@ -1628,7 +1656,9 @@ export function stepWorld(state: World, input: Input): World {
     // Wave 2 brings one core, wave 3 brings two, and so on.
     const count = w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
-    const coreHp = Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2));
+    const coreHp = w.bossWave <= 4
+      ? Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2))
+      : 2128 + (w.bossWave - 4) * 220;
     // Each core gets its own seeded position anywhere on the map.
     // Keep initial distance from the player and other newly spawned cores.
     const positions: Vec[] = [];
@@ -1733,7 +1763,6 @@ export function stepWorld(state: World, input: Input): World {
   w.pickups = w.pickups
     .filter((p) => p.value > 0 && distance(p, w.player) < 900)
     .slice(-160);
-  w.effects = w.effects.slice(-100);
   if (enteredWave) fx(w, w.player, "wave", `WAVE ${String(wave(w)).padStart(2, "0")}`);
   if (w.player.hp <= 0) w.phase = "lost";
   else if (w.time >= w.duration) w.phase = "won";
@@ -1747,6 +1776,13 @@ export function stepWorld(state: World, input: Input): World {
     w.choices = choices(w);
     w.phase = "upgrade";
     fx(w, w.player, "heal", "LEVEL UP");
+  }
+  if (w.effects.length > 100) {
+    // A large cascade can create hundreds of arcs in one step; keep its latest
+    // milestone visible even when later particles fill the effect budget.
+    const milestone = w.effects.filter((effect) => effect.kind === "milestone").at(-1);
+    w.effects = w.effects.slice(-100);
+    if (milestone && !w.effects.includes(milestone)) w.effects[0] = milestone;
   }
   return w;
 }

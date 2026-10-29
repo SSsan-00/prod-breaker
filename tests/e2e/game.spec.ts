@@ -489,6 +489,36 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
   );
   await dialog.locator(".upgrade-card").last().click();
 });
+test("capped upgrade conversion fits on compact and landscape touch screens", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile");
+  await page.clock.install();
+  await page.goto("/?seed=99");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await page.clock.runFor(100);
+  await page.locator(".panic").click();
+  await page.clock.runFor(300);
+  const dialog = page.getByRole("dialog", { name: "レベルアップ" });
+  await expect(dialog).toBeVisible();
+  // Add the capped-state line to the real cards to check the most crowded layout.
+  await dialog.evaluate(el => el.querySelectorAll(".upgrade-card").forEach(card => {
+    const line = document.createElement("small");
+    line.className = "evolution-hint";
+    line.textContent = "上限分を変換: 攻撃+24";
+    card.insertBefore(line, card.querySelector(".evolution-hint"));
+  }));
+  for (const viewport of [{ width: 320, height: 480 }, { width: 851, height: 393 }]) {
+    await page.setViewportSize(viewport);
+    const bounds = await dialog.evaluate(el => ({
+      scroll: el.scrollHeight, height: el.clientHeight, bottom: el.getBoundingClientRect().bottom,
+      viewport: innerHeight,
+      buttons: [...el.querySelectorAll("button")].map(button => button.getBoundingClientRect().bottom),
+    }));
+    expect(bounds.scroll).toBeLessThanOrEqual(bounds.height);
+    expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewport);
+    expect(Math.max(...bounds.buttons)).toBeLessThanOrEqual(bounds.viewport);
+  }
+});
 test("long upgrade names fit a landscape touch screen without vertical scrolling", async ({
   page,
 }, info) => {
@@ -724,7 +754,8 @@ test("all cut-in messages fit on a single line on compact screens", async ({ pag
         const range = document.createRange(); range.selectNodeContents(el);
         return { text, lines: range.getClientRects().length, overflow: el.scrollWidth > el.clientWidth };
       };
-      const rows = ["OVERLOAD x1.25", "OVERLOAD x1.5", "SYSTEM MELTDOWN"].map(text => check(document.querySelector(".chain-cutin strong")!, text));
+      const rows = ["OVERLOAD x1.25", "OVERLOAD x1.5", "SYSTEM MELTDOWN", "300 CHAIN", "1000 CHAIN", "3000 CHAIN", "10000 CHAIN"].map(text => check(document.querySelector(".chain-cutin strong")!, text));
+      rows.push(check(document.querySelector(".chain-cutin small")!, "PRODUCTION MELTDOWN"));
       rows.push(...names.map(text => check(sample.querySelector("strong")!, text)));
       sample.remove();
       return rows;

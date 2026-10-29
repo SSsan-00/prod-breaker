@@ -8,6 +8,7 @@ import {
   evolutionPartners,
   evolutionReady,
   evolutionBonus,
+  upgradeOverflowBonus,
   survivorReport,
   STEP,
   wave,
@@ -145,9 +146,82 @@ describe("survivor fixed-step engine", () => {
     expect(evolutionBonus(w, "sqlstring")).toEqual(["連鎖+20", "貫通+2"]);
     expect(w).toEqual(before);
     w.pierce = 8;
-    expect(evolutionBonus(w, "sqlstring")).toEqual(["連鎖+20"]);
+    expect(evolutionBonus(w, "sqlstring")).toEqual(["攻撃+12", "連鎖+20"]);
     w.evolutions = ["SQLインジェクション発生！"];
     expect(evolutionBonus(w, "sqlstring")).toEqual([]);
+  });
+  it("converts capped upgrade and evolution portions into visible attack growth", () => {
+    const w = createWorld();
+    w.phase = "upgrade"; w.choices = ["cache"];
+    w.multishot = 6;
+    expect(upgradeOverflowBonus(w, "cache")).toBe(12);
+    const next = chooseUpgrade(w, "cache");
+    expect(next.multishot).toBe(6);
+    expect(next.damage).toBe(w.damage + 12);
+    expect(w.overflowDamage).toBe(0);
+    const evolution = createWorld();
+    evolution.phase = "upgrade"; evolution.choices = ["sqlstring"];
+    evolution.build = ["prepared"]; evolution.pierce = 8;
+    expect(upgradeOverflowBonus(evolution, "sqlstring")).toBe(12);
+    expect(evolutionBonus(evolution, "sqlstring")).toContain("攻撃+12");
+  });
+  it("keeps every upgrade useful when all capped stats and HP are full", () => {
+    for (const card of upgrades) {
+      const w = createWorld();
+      Object.assign(w, { phase: "upgrade", choices: [card.id], pierce: 8, multishot: 6,
+        speed: 340, chainRange: 400, magnet: 420, fireInterval: 0.12, slow: 0.4 });
+      w.player.hp = w.player.maxHp;
+      const next = chooseUpgrade(w, card.id);
+      expect(next.damage > w.damage || next.chainDamage > w.chainDamage || next.aura > w.aura ||
+        next.multiplier > w.multiplier || next.player.maxHp > w.player.maxHp, card.name).toBe(true);
+      const partner = evolutionPartners[card.id];
+      if (partner) {
+        w.build = [partner];
+        expect(evolutionBonus(w, card.id), card.name).not.toEqual(["能力は上限に到達"]);
+      }
+    }
+  });
+  it("rewards large chain milestones exactly once per crossing", () => {
+    for (const milestone of [300, 1000, 3000, 10000]) {
+      const w = createWorld();
+      w.combo = milestone - 1; w.comboUntil = 100;
+      w.panicCooldown = 15; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      w.entities = [{ id: 901, x: 1020, y: 1000, hp: 1, maxHp: 1, kind: "server", label: "DB", flash: 0 }];
+      w.shots = [{ id: 902, x: 1020, y: 1000, vx: 0, vy: 0, life: 1, damage: 1, pierce: 0, hit: [] }];
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(next.combo).toBe(milestone);
+      expect(next.effects.some(e => e.kind === "milestone" && e.text === `${milestone} CHAIN`)).toBe(true);
+      expect(next.overdriveUntil).toBeGreaterThan(next.time);
+      expect(next.overdrivePower).toBe(milestone >= 10000 ? 1.65 : milestone >= 3000 ? 1.5 : 1.35);
+      expect(next.panicCooldown).toBeCloseTo(15 - STEP - (milestone >= 1000 ? 4 : 2));
+      const later = stepWorld(next, { x: 0, y: 0 });
+      expect(later.panicCooldown).toBeCloseTo(next.panicCooldown - STEP);
+    }
+  });
+  it("gives PANIC a proportional core hit and boosts damage during overdrive", () => {
+    const w = createWorld();
+    w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+    w.entities = [{ id: 900, x: 1020, y: 1000, hp: 10000, maxHp: 10000, kind: "boss", label: "CORE", flash: 0 }];
+    const panic = stepWorld(w, { x: 0, y: 0, panic: true });
+    expect(panic.entities[0].hp).toBe(9400);
+    expect(panic.player.invulnerable).toBe(1.5);
+    const boosted = createWorld();
+    boosted.shotTimer = 10; boosted.spawnTimer = 10; boosted.serverTimer = 10;
+    boosted.overdriveUntil = 5; boosted.overdrivePower = 1.5;
+    boosted.entities = [{ id: 900, x: 1020, y: 1000, hp: 1000, maxHp: 1000, kind: "boss", label: "CORE", flash: 0 }];
+    boosted.shots = [{ id: 901, x: 1020, y: 1000, vx: 0, vy: 0, life: 1, damage: 100, pierce: 0, hit: [] }];
+    expect(stepWorld(boosted, { x: 0, y: 0 }).entities[0].hp).toBe(850);
+  });
+  it("keeps the 10000-chain cut-in when a cascade exceeds the effect budget", () => {
+    const w = createWorld();
+    w.combo = 9999; w.comboUntil = 100; w.chainDamage = 10000; w.chainRange = 400;
+    w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+    w.entities = Array.from({ length: 100 }, (_, i) => ({ id: 1000 + i, x: 1000 + i, y: 1000,
+      hp: 1, maxHp: 1, kind: "server" as const, label: "DB", flash: 0 }));
+    w.shots = [{ id: 2000, x: 1000, y: 1000, vx: 0, vy: 0, life: 1, damage: 1, pierce: 0, hit: [] }];
+    const next = stepWorld(w, { x: 0, y: 0 });
+    expect(next.effects.length).toBeLessThanOrEqual(100);
+    expect(next.effects.some(e => e.kind === "milestone" && e.text === "10000 CHAIN")).toBe(true);
   });
   it("offers an unfinished evolution partner while keeping three distinct choices", () => {
     let offered = 0;
@@ -538,7 +612,7 @@ describe("survivor fixed-step engine", () => {
     ];
     const after = stepWorld(w, { x: 0, y: 0, panic: true });
     const core = after.entities.find((e) => e.id === 902);
-    expect(core?.hp).toBe(300); // One chain hit at 20% plus PANIC's direct 100.
+    expect(core?.hp).toBe(275); // One 20% chain hit plus 100 and 5% PANIC damage.
     expect(after.destroyed).toBe(2);
     expect(after.score).toBeGreaterThan(0);
     expect(core?.chainGuardUntil).toBeGreaterThan(after.time);
@@ -548,7 +622,7 @@ describe("survivor fixed-step engine", () => {
     later.shotTimer = 10;
     later.entities.push({ id: 904, x: 1100, y: 1000, hp: 1, maxHp: 1, kind: "server", label: "DB", flash: 0 });
     later.shots = [{ id: 905, x: 1100, y: 1000, vx: 0, vy: 0, life: 1, damage: 1, pierce: 0, hit: [] }];
-    expect(stepWorld(later, { x: 0, y: 0 }).entities.find((e) => e.id === 902)?.hp).toBe(200);
+    expect(stepWorld(later, { x: 0, y: 0 }).entities.find((e) => e.id === 902)?.hp).toBe(175);
     const direct = createWorld();
     direct.shotTimer = 10;
     direct.entities = [{ id: 902, x: 1020, y: 1000, hp: 50, maxHp: 500, kind: "boss", label: "SRE CORE", flash: 0, chainGuardUntil: 100 }];
@@ -578,7 +652,7 @@ describe("survivor fixed-step engine", () => {
     const earlyCore = early.entities.find((e) => e.kind === "boss")!;
     const lateCore = late.entities.find((e) => e.kind === "boss")!;
     expect(earlyCore.maxHp).toBe(580);
-    expect(lateCore.maxHp).toBeGreaterThan((330 + 7 * 250) * 2);
+    expect(lateCore.maxHp).toBe(2788);
     const earlyEnemy = early.entities.find((e) => e.kind === "drone")!;
     const lateEnemy = late.entities.find((e) => e.kind === "drone")!;
     expect(lateEnemy.maxHp).toBeGreaterThan(earlyEnemy.maxHp);
@@ -596,7 +670,7 @@ describe("survivor fixed-step engine", () => {
       expect(next.entities.length).toBeLessThanOrEqual(100);
     }
   });
-  it("keeps the existing wave scaling in the final endless wave", () => {
+  it("limits core HP growth in the final endless wave", () => {
     const w = createWorld(42, 1800);
     w.time = 1770 - STEP / 2; w.bossWave = 58;
     w.entities = []; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
@@ -604,7 +678,7 @@ describe("survivor fixed-step engine", () => {
     const cores = next.entities.filter((entity) => entity.kind === "boss");
     expect(wave(next)).toBe(60);
     expect(cores).toHaveLength(59);
-    expect(cores[0].maxHp).toBe(Math.round((330 + 59 * 250) * (1 + 58 * 0.2)));
+    expect(cores[0].maxHp).toBe(14228);
     expect(next.entities.length).toBeLessThanOrEqual(100);
   });
   it("spawns cores across the map safely, including when the player is at the edge", () => {
