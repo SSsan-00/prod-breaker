@@ -725,13 +725,14 @@ export function chainPower(combo: number) {
   return combo >= 30 ? 1.5 : combo >= 10 ? 1.25 : 1;
 }
 function killChain(w: World, first: Entity, damage: number) {
-  const queue = [{ target: first.id, damage, propagated: false }];
+  // Entities are not removed during a cascade, so retain the target directly.
+  const queue = [{ target: first, damage, propagated: false }];
   const visits = new Map<number, number>();
-  let processed = 0;
-  while (queue.length && processed++ < 200) {
-    const hit = queue.shift()!;
-    const target = w.entities.find((e) => e.id === hit.target);
-    if (!target || target.hp <= 0 || (visits.get(target.id) || 0) >= 2)
+  let cursor = 0;
+  while (cursor < queue.length && cursor < 200) {
+    const hit = queue[cursor++];
+    const target = hit.target;
+    if (target.hp <= 0 || (visits.get(target.id) || 0) >= 2)
       continue;
     visits.set(target.id, (visits.get(target.id) || 0) + 1);
     let damage = hit.damage;
@@ -786,7 +787,7 @@ function killChain(w: World, first: Entity, damage: number) {
       if (next.hp > 0 && distance(target, next) < w.chainRange) {
         fx(w, target, "arc", "", next);
         queue.push({
-          target: next.id,
+          target: next,
           damage: w.chainDamage * chainPower(w.combo) * (target.kind === "boss" ? 2 : 1),
           propagated: true,
         });
@@ -1274,10 +1275,43 @@ export function evolutionBonus(state: World, id: UpgradeId): string[] {
 export function wave(w: World) {
   return Math.min(w.duration / 30, Math.floor(w.time / 30) + 1);
 }
+
+/** Copy the simulation's known data shape without a generic graph traversal.
+ * Arc endpoints must keep pointing at the copied entity as it moves this step.
+ * Detached endpoints (for removed entities) are copied as well.
+ */
+function copyForStep(state: World): World {
+  const player = { ...state.player };
+  const positions = new Map<Vec, Vec>([[state.player, player]]);
+  const entities = state.entities.map((entity) => {
+    const copy = { ...entity };
+    positions.set(entity, copy);
+    return copy;
+  });
+  return {
+    ...state,
+    player,
+    entities,
+    shots: state.shots.map((shot) => ({ ...shot, hit: [...shot.hit] })),
+    pickups: state.pickups.map((pickup) => ({ ...pickup })),
+    effects: state.effects.map((effect) => {
+      if (!effect.to) return { ...effect };
+      let to = positions.get(effect.to);
+      if (!to) {
+        to = { ...effect.to };
+        positions.set(effect.to, to);
+      }
+      return { ...effect, to };
+    }),
+    choices: [...state.choices],
+    build: [...state.build],
+    evolutions: [...state.evolutions],
+  };
+}
 /** One 1/30 second step. Input and state are never mutated. */
 export function stepWorld(state: World, input: Input): World {
   if (state.phase !== "playing") return state;
-  const w = structuredClone(state),
+  const w = copyForStep(state),
     dt = STEP;
   w.time = Math.min(w.duration, w.time + dt);
   w.player.invulnerable = Math.max(0, w.player.invulnerable - dt);
@@ -1307,19 +1341,17 @@ export function stepWorld(state: World, input: Input): World {
   w.shotTimer -= dt;
   if (w.shotTimer <= 0) {
     w.shotTimer += w.fireInterval * (w.time < w.overdriveUntil ? 0.65 : 1);
-    const live = w.entities
-      .filter((e) => e.hp > 0 && distance(e, w.player) < 510)
-      .sort((a, b) => {
-        const da = distance(a, w.player),
-          db = distance(b, w.player);
-        return (
-          (a.kind !== "server" && da < 160 ? da - 500 : da) -
-          (b.kind !== "server" && db < 160 ? db - 500 : db)
-        );
-      });
+    const live: { entity: Entity; priority: number }[] = [];
+    for (const entity of w.entities) {
+      if (entity.hp <= 0) continue;
+      const d = distance(entity, w.player);
+      if (d < 510)
+        live.push({ entity, priority: entity.kind !== "server" && d < 160 ? d - 500 : d });
+    }
+    live.sort((a, b) => a.priority - b.priority);
     if (live.length) {
       for (let i = 0; i < w.multishot; i++) {
-        const t = live[i % live.length],
+        const t = live[i % live.length].entity,
           angle =
             Math.atan2(t.y - w.player.y, t.x - w.player.x) +
             (i >= live.length ? (i - (w.multishot - 1) / 2) * 0.12 : 0);
@@ -1342,9 +1374,13 @@ export function stepWorld(state: World, input: Input): World {
     shot.life -= dt;
     for (const e of w.entities) {
       if (e.hp <= 0 || shot.hit.includes(e.id)) continue;
+      const radius = e.kind === "boss" ? 35 : e.kind === "server" ? 24 : 18;
+      // A target outside the enclosing square cannot intersect the hit circle.
+      // Keep the original distance calculation for possible hits and their edges.
       if (
-        distance(shot, e) <
-        (e.kind === "boss" ? 35 : e.kind === "server" ? 24 : 18)
+        Math.abs(shot.x - e.x) < radius &&
+        Math.abs(shot.y - e.y) < radius &&
+        distance(shot, e) < radius
       ) {
         shot.hit.push(e.id);
         killChain(w, e, shot.damage);
@@ -1443,12 +1479,16 @@ export function stepWorld(state: World, input: Input): World {
     if (e.hp <= 0 || e.kind === "server") continue;
     let goal: Vec = w.player;
     if (e.kind === "repair") {
-      const damaged = w.entities
-        .filter((n) => n.kind === "server" && n.hp > 0 && n.hp < n.maxHp)
-        .sort((a, b) => distance(e, a) - distance(e, b))[0];
+      let damaged: Entity | undefined;
+      let nearest = Infinity;
+      for (const server of w.entities) {
+        if (server.kind !== "server" || server.hp <= 0 || server.hp >= server.maxHp) continue;
+        const d = distance(e, server);
+        if (d < nearest) { damaged = server; nearest = d; }
+      }
       if (damaged) {
         goal = damaged;
-        if (distance(e, damaged) < 35)
+        if (nearest < 35)
           damaged.hp = Math.min(damaged.maxHp, damaged.hp + dt * 9);
       }
     }

@@ -98,6 +98,8 @@ npm run test:e2e
 
 E2Eは本番ビルドを`next start`で起動して検証します。3000番ポートは他のサーバーを停止して空けてください。検証記録・既知の制限は[QA.md](QA.md)。
 
+v2.22.3の処理時間計測と変更前後の挙動・描画比較は[パフォーマンス検証](docs/performance.md)を参照してください。
+
 ## 構成
 
 Next.js App Router / React / TypeScript strict / Tailwind CSS / Motion / Canvas 2D / Web Audio / Vitest / Testing Library / Playwright / ESLint / GitHub Actions / Vercel。依存関係をpackage-lock.jsonで固定。DB・認証・有料API不要。

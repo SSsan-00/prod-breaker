@@ -1,5 +1,41 @@
 import { test, expect, type Page } from "@playwright/test";
 import { evolutionNames } from "../../src/game/survivor";
+
+test("canvas reuses paused frames and redraws after resize and resume", async ({ page }) => {
+  await page.addInitScript(() => {
+    let draws = 0;
+    Object.defineProperty(window, "arenaDrawCount", { get: () => draws });
+    const original = CanvasRenderingContext2D.prototype.fillRect;
+    CanvasRenderingContext2D.prototype.fillRect = function (x, y, width, height) {
+      if (this.canvas.classList.contains("arena-canvas") && x === 0 && y === 0) draws++;
+      return original.call(this, x, y, width, height);
+    };
+  });
+  const draws = () => page.evaluate(() => Reflect.get(window, "arenaDrawCount") as number);
+  await page.clock.install();
+  await page.goto("/?seed=13");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: "一時停止", exact: true }).click();
+  await page.clock.runFor(100);
+  const paused = await draws();
+  expect(paused).toBeGreaterThan(0);
+  await page.clock.runFor(500);
+  expect(await draws()).toBe(paused);
+  const previousWidth = await page.locator("canvas").evaluate(el => (el as HTMLCanvasElement).width);
+  await page.setViewportSize({ width: 360, height: 740 });
+  await expect.poll(() => page.locator("canvas").evaluate(el => (el as HTMLCanvasElement).width)).not.toBe(previousWidth);
+  await page.clock.runFor(100);
+  expect(await draws()).toBeGreaterThan(paused);
+  const resized = await draws();
+  await page.clock.runFor(200);
+  expect(await draws()).toBe(resized);
+  await page.getByRole("button", { name: "ゲームに戻る →" }).click();
+  await page.clock.runFor(500);
+  expect(await draws()).toBeGreaterThan(resized);
+});
+
 async function choose(page: Page) {
   for (let i = 0; i < 12; i++) {
     const dialog = page.getByRole("dialog", { name: "レベルアップ" });

@@ -214,6 +214,45 @@ describe("survivor fixed-step engine", () => {
     expect(b.time).toBeCloseTo(STEP);
     expect(a.time).toBe(0);
   });
+  it("copies nested step data while retaining moving and detached arc endpoints", () => {
+    const a = createWorld(42);
+    a.entities = [{ id: 100, x: 1120, y: 1000, hp: 100, maxHp: 100, kind: "drone", label: "WAF", flash: 0 }];
+    a.shotTimer = 10; a.spawnTimer = 10; a.serverTimer = 10;
+    a.shots = [{ id: 101, x: 800, y: 800, vx: 10, vy: 0, life: 1, damage: 1, pierce: 0, hit: [99] }];
+    a.pickups = [{ id: 102, x: 1100, y: 1000, value: 3 }];
+    const detached = { x: 1600, y: 1600 };
+    a.effects = [a.entities[0], a.entities[0], detached, detached, a.player].map((to, i) => ({
+      id: 200 + i, kind: "arc", x: 1000, y: 1000, life: 1, maxLife: 1, text: "", to,
+    }));
+    const before = structuredClone(a);
+    const freeze = (value: object) => {
+      Object.freeze(value);
+      for (const child of Object.values(value)) if (child && typeof child === "object" && !Object.isFrozen(child)) freeze(child);
+    };
+    freeze(a);
+    const b = stepWorld(a, { x: 1, y: 0 });
+    expect(a).toEqual(before);
+    expect(b.effects[0].to).toBe(b.entities[0]);
+    expect(b.effects[1].to).toBe(b.entities[0]);
+    expect(b.effects[2].to).toBe(b.effects[3].to);
+    expect(b.effects[2].to).not.toBe(detached);
+    expect(b.effects[4].to).toBe(b.player);
+    expect(b.entities[0].x).not.toBe(a.entities[0].x);
+    expect(b.shots[0].hit).not.toBe(a.shots[0].hit);
+    expect(b.pickups[0]).not.toBe(a.pickups[0]);
+    expect(b.build).not.toBe(a.build);
+    expect(b.evolutions).not.toBe(a.evolutions);
+    expect(b.choices).not.toBe(a.choices);
+  });
+  it("retains strict circular projectile hit boundaries", () => {
+    for (const [x, y, hit] of [[24, 0, false], [23.999999, 0, true], [23, 23, false], [0, -24, false], [12, 12, true]] as const) {
+      const w = createWorld(42);
+      w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      w.entities = [{ id: 100, x: 1000 + x, y: 1000 + y, hp: 1000, maxHp: 1000, kind: "server", label: "DB", flash: 0 }];
+      w.shots = [{ id: 101, x: 1000, y: 1000, vx: 0, vy: 0, life: 1, damage: 18, pierce: 1, hit: [] }];
+      expect(stepWorld(w, { x: 0, y: 0 }).entities[0].hp).toBe(hit ? 982 : 1000);
+    }
+  });
   it("clamps movement at world bounds and rejects nonfinite movement", () => {
     const a = createWorld();
     a.player.x = 1972;

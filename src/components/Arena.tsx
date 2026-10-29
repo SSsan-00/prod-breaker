@@ -29,25 +29,45 @@ export default function Arena({
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
     let frame = 0;
-    const observer = new ResizeObserver(() => {
-      const box = canvas.getBoundingClientRect(),
-        dpr = Math.min(devicePixelRatio || 1, 1.75);
-      canvas.width = Math.round(box.width * dpr);
-      canvas.height = Math.round(box.height * dpr);
-    });
+    let width = 0, height = 0;
+    let renderedWorld: World | undefined;
+    let renderedStick: Stick | undefined;
+    let renderedLineWidth = 0;
+    let serverPositions: { id: number; x: number; y: number }[] = [];
+    let serverLinks = new Path2D();
+    const resize = () => {
+      const box = canvas.getBoundingClientRect();
+      const dpr = Math.min(devicePixelRatio || 1, 1.75);
+      width = box.width;
+      height = box.height;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      renderedWorld = undefined;
+    };
+    const observer = new ResizeObserver(resize);
     observer.observe(canvas);
+    resize();
     function draw() {
       if (!canvas || !ctx) return;
       if (!document.hidden) {
-        const box = canvas.getBoundingClientRect();
-        if (!box.width || !box.height) {
+        if (!width || !height) {
           frame = requestAnimationFrame(draw);
           return;
         }
         const w = worldRef.current;
-        const dpr = canvas.width / box.width;
-        const width = box.width,
-          height = box.height;
+        const stick = stickRef.current;
+        // The fixed-step world is immutable; no visual state advances between steps.
+        // Pointer input and resize still invalidate the frame, including while paused.
+        if (w === renderedWorld && renderedLineWidth === ctx.lineWidth && renderedStick?.active === stick.active &&
+          (!stick.active || (renderedStick.origin.x === stick.origin.x && renderedStick.origin.y === stick.origin.y &&
+            renderedStick.current.x === stick.current.x && renderedStick.current.y === stick.current.y))) {
+          frame = requestAnimationFrame(draw);
+          return;
+        }
+        // The radar inherits the previous frame's stroke width. When the joystick
+        // changes it, render the following frame too before reusing its pixels.
+        renderedLineWidth = ctx.lineWidth;
+        const dpr = canvas.width / width;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.imageSmoothingEnabled = false;
         ctx.fillStyle = "#080f12";
@@ -110,22 +130,21 @@ export default function Arena({
           }
         // Nearby servers form a visible dependency network.
         const servers = w.entities.filter((e) => e.kind === "server");
+        if (servers.length !== serverPositions.length || servers.some((server, i) =>
+          server.id !== serverPositions[i].id || server.x !== serverPositions[i].x || server.y !== serverPositions[i].y)) {
+          serverPositions = servers.map(({ id, x, y }) => ({ id, x, y }));
+          serverLinks = new Path2D();
+          for (let i = 0; i < servers.length; i++)
+            for (let j = i + 1; j < servers.length; j++)
+              if (Math.hypot(servers[i].x - servers[j].x, servers[i].y - servers[j].y) < 165) {
+                serverLinks.moveTo(servers[i].x, servers[i].y);
+                serverLinks.lineTo(servers[j].x, servers[j].y);
+              }
+        }
         ctx.lineWidth = 1;
         ctx.strokeStyle = "#314139";
         ctx.setLineDash([4, 8]);
-        ctx.beginPath();
-        for (let i = 0; i < servers.length; i++)
-          for (let j = i + 1; j < servers.length; j++)
-            if (
-              Math.hypot(
-                servers[i].x - servers[j].x,
-                servers[i].y - servers[j].y,
-              ) < 165
-            ) {
-              ctx.moveTo(servers[i].x, servers[i].y);
-              ctx.lineTo(servers[j].x, servers[j].y);
-            }
-        ctx.stroke();
+        ctx.stroke(serverLinks);
         ctx.setLineDash([]);
         if (w.aura > 0) {
           ctx.fillStyle = "#6b73ff12";
@@ -486,6 +505,8 @@ export default function Arena({
           ctx.arc(origin.x + dx / d, origin.y + dy / d, 16, 0, Math.PI * 2);
           ctx.fill();
         }
+        renderedWorld = w;
+        renderedStick = { active: stick.active, origin: { ...stick.origin }, current: { ...stick.current } };
       }
       frame = requestAnimationFrame(draw);
     }
