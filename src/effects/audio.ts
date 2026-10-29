@@ -50,7 +50,7 @@ export function sound(
 export function musicParameters(waveNumber: number, duration = 1800) {
   const safeWave = Number.isFinite(waveNumber) ? Math.floor(waveNumber) : 1;
   const late = escalationStep(safeWave, duration);
-  return { bpm: 132 + late, pitch: Math.pow(2, late / 120) };
+  return { bpm: 132 + late * 1.5, pitch: Math.pow(2, late / 80) };
 }
 /** A compact, looping synth groove; all voices share a stoppable music bus. */
 export function startMusic(volume: number, currentWave: () => number = () => 1, currentDuration: () => number = () => 1800) {

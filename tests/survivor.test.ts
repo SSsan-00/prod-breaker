@@ -488,7 +488,7 @@ describe("survivor fixed-step engine", () => {
     const next = stepWorld(w, { x: 0, y: 0 });
     expect(wave(next)).toBe(2);
     expect(next.effects.filter((e) => e.kind === "wave").map((e) => e.text)).toEqual(["WAVE 02"]);
-    expect(next.entities.find((e) => e.kind === "boss")?.maxHp).toBe(586);
+    expect(next.entities.find((e) => e.kind === "boss")?.maxHp).toBe(589);
     const drone = next.entities.find((e) => e.kind === "drone");
     expect(drone?.maxHp).toBe(39);
     const after = stepWorld(next, { x: 0, y: 0 });
@@ -696,7 +696,7 @@ describe("survivor fixed-step engine", () => {
     const earlyCore = early.entities.find((e) => e.kind === "boss")!;
     const lateCore = late.entities.find((e) => e.kind === "boss")!;
     expect(earlyCore.maxHp).toBe(580);
-    expect(lateCore.maxHp).toBe(2872);
+    expect(lateCore.maxHp).toBe(2913);
     const earlyEnemy = early.entities.find((e) => e.kind === "drone")!;
     const lateEnemy = late.entities.find((e) => e.kind === "drone")!;
     expect(lateEnemy.maxHp).toBeGreaterThan(earlyEnemy.maxHp);
@@ -722,12 +722,12 @@ describe("survivor fixed-step engine", () => {
     const cores = next.entities.filter((entity) => entity.kind === "boss");
     expect(wave(next)).toBe(60);
     expect(cores).toHaveLength(59);
-    expect(cores[0].maxHp).toBe(15793);
+    expect(cores[0].maxHp).toBe(16576);
     expect(next.entities.length).toBeLessThanOrEqual(100);
   });
   it("raises late-wave enemy health and speed gently from wave 50", () => {
     expect(lateWaveFactors(49)).toEqual({ hp: 1, speed: 1 });
-    for (const [waveNumber, hp] of [[49, 11808], [50, 12148], [51, 12493], [60, 15793]]) {
+    for (const [waveNumber, hp] of [[49, 11808], [50, 12208], [51, 12615], [60, 16576]]) {
       const w = createWorld(42, 1800);
       w.time = (waveNumber - 1) * 30 - STEP / 2; w.bossWave = waveNumber - 2;
       w.entities = []; w.shotTimer = 10; w.spawnTimer = 0; w.serverTimer = 10;
@@ -740,16 +740,16 @@ describe("survivor fixed-step engine", () => {
       const after = stepWorld(moving, { x: 0, y: 0 });
       expect(1300 - after.entities[0].x).toBeCloseTo(71.5 * lateWaveFactors(waveNumber).speed * STEP);
     }
-    expect(lateWaveFactors(60).hp).toBeCloseTo(1.11);
-    expect(lateWaveFactors(60).speed).toBeCloseTo(1.044);
+    expect(lateWaveFactors(60).hp).toBeCloseTo(1.165);
+    expect(lateWaveFactors(60).speed).toBeCloseTo(1.066);
   });
   it("starts the same gentle scaling at the selected wave of each shorter mode", () => {
-    for (const [duration, start, startHp, endHp] of [[90, 2, 586, 1016], [180, 4, 1527, 2171], [300, 6, 2371, 2619]]) {
+    for (const [duration, start, startHp, endHp] of [[90, 2, 589, 1026], [180, 4, 1535, 2192], [300, 6, 2383, 2645]]) {
       expect(lateWaveFactors(start - 1, duration)).toEqual({ hp: 1, speed: 1 });
-      expect(lateWaveFactors(start, duration).hp).toBeCloseTo(1.01);
-      expect(lateWaveFactors(start, duration).speed).toBeCloseTo(1.004);
-      expect(lateWaveFactors(start + 1, duration).hp).toBeCloseTo(1.02);
-      expect(lateWaveFactors(start + 1, duration).speed).toBeCloseTo(1.008);
+      expect(lateWaveFactors(start, duration).hp).toBeCloseTo(1.015);
+      expect(lateWaveFactors(start, duration).speed).toBeCloseTo(1.006);
+      expect(lateWaveFactors(start + 1, duration).hp).toBeCloseTo(1.03);
+      expect(lateWaveFactors(start + 1, duration).speed).toBeCloseTo(1.012);
       for (const [number, hp] of [[start, startHp], [start + 1, endHp]]) {
         const w = createWorld(42, duration);
         w.time = (number - 1) * 30 - STEP / 2; w.bossWave = number - 2;
@@ -759,7 +759,7 @@ describe("survivor fixed-step engine", () => {
     }
   });
   it("keeps scaling through the final wave of each shorter mode", () => {
-    for (const [duration, finalWave, coreHp] of [[90, 3, 1016], [180, 6, 2418], [300, 10, 3389]]) {
+    for (const [duration, finalWave, coreHp] of [[90, 3, 1026], [180, 6, 2454], [300, 10, 3470]]) {
       const w = createWorld(42, duration);
       w.time = (finalWave - 1) * 30 - STEP / 2; w.bossWave = finalWave - 2;
       w.entities = []; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
@@ -784,7 +784,7 @@ describe("survivor fixed-step engine", () => {
       w.entities = [{ id: 200, x: 1300, y: 1000, hp: 500, maxHp: 500, kind, label: "ENEMY", flash: 0 }];
       w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
       const next = stepWorld(w, { x: 0, y: 0 });
-      expect(1300 - next.entities[0].x, kind).toBeCloseTo(baseSpeed * 1.044 * STEP);
+      expect(1300 - next.entities[0].x, kind).toBeCloseTo(baseSpeed * 1.066 * STEP);
     }
   });
   it("spawns cores across the map safely, including when the player is at the edge", () => {

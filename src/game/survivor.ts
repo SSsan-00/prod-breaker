@@ -1507,7 +1507,7 @@ export function escalationStep(waveNumber: number, duration: number): number {
 /** Gentle scaling in the later waves of each mode. */
 export function lateWaveFactors(waveNumber: number, duration = 1800) {
   const late = escalationStep(waveNumber, duration);
-  return { hp: 1 + late * 0.01, speed: 1 + late * 0.004 };
+  return { hp: 1 + late * 0.015, speed: 1 + late * 0.006 };
 }
 
 export function wave(w: World) {

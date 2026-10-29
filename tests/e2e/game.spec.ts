@@ -38,7 +38,7 @@ test("quick mode raises music pitch at wave two without restarting it", async ({
   await new Promise(resolve => setTimeout(resolve, 600));
   await page.clock.runFor(1000);
   const result = await probe();
-  expect(result.frequencies.some(hz => Math.abs(hz - 2200 * Math.pow(2, 1 / 120)) < 0.01)).toBe(true);
+  expect(result.frequencies.some(hz => Math.abs(hz - 2200 * Math.pow(2, 1 / 80)) < 0.01)).toBe(true);
   expect(result.disconnects).toBe(0);
 });
 
