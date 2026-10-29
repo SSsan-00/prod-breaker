@@ -12,6 +12,8 @@ import {
   evolutionBonus,
   upgradeOverflowBonus,
   wave,
+  isSecretMode,
+  runEndTime,
   survivorReport,
   STEP,
   type World,
@@ -351,7 +353,8 @@ export default function Game() {
   }
   const w = snapshot,
     incident = survivorReport(w),
-    remaining = Math.ceil(w.duration - w.time),
+    secret = isSecretMode(w),
+    remaining = Math.max(0, Math.ceil((secret ? runEndTime(w) : w.duration) - w.time)),
     minutes = Math.floor(remaining / 60),
     seconds = String(remaining % 60).padStart(2, "0");
   return (
@@ -431,7 +434,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.23.8</span>
+              SURVIVOR EDITION <span>↗ V2.23.9</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -447,7 +450,7 @@ export default function Game() {
                 { seconds: 90, label: "QUICK", time: "90秒" },
                 { seconds: 180, label: "STANDARD", time: "3分" },
                 { seconds: 300, label: "CHAOS", time: "5分" },
-                { seconds: 1800, label: "ENDLESS", time: "最大30分" },
+                { seconds: 1800, label: "ENDLESS", time: "30分＋？" },
               ].map((option) => (
                 <button
                   key={option.seconds}
@@ -518,14 +521,14 @@ export default function Game() {
             </div>
             <div className="hud">
               <div>
-                WAVE
+                {secret ? "SECRET WAVE" : "WAVE"}
                 <b>
                   {String(wave(w)).padStart(2, "0")}
-                  <small> / {String(w.duration / 30).padStart(2, "0")}</small>
+                  <small> / {String((secret ? runEndTime(w) : w.duration) / 30).padStart(2, "0")}</small>
                 </b>
               </div>
               <div>
-                TOTAL BP<b data-testid="score">{w.score.toLocaleString()}</b>
+                {secret ? "TOTAL BP ×2" : "TOTAL BP"}<b data-testid="score">{w.score.toLocaleString()}</b>
               </div>
               <div>
                 CHAIN
@@ -573,8 +576,8 @@ export default function Game() {
                 </div>
               </div>
               {!evolutionNotice && w.effects.filter((effect) => effect.kind === "wave").slice(-1).map((effect) => (
-                <div className="chain-cutin wave-cutin" key={effect.id} role="status" data-testid="wave-cutin">
-                  <small>INCOMING INCIDENT</small><strong>{effect.text}</strong><span>復旧部隊、増援到着。</span>
+                <div className={`chain-cutin wave-cutin${effect.text === "SECRET MODE" ? " secret-cutin" : ""}`} key={effect.id} role="status" data-testid="wave-cutin">
+                  <small>{effect.text === "SECRET MODE" ? "FINAL INCIDENT" : "INCOMING INCIDENT"}</small><strong>{effect.text}</strong><span>{effect.text === "SECRET MODE" ? "SRE CORE襲来 / BP ×2" : "復旧部隊、増援到着。"}</span>
                 </div>
               ))}
               {!evolutionNotice && !w.effects.some((effect) => effect.kind === "wave") && w.effects.filter((effect) => effect.kind === "milestone").slice(-1).map((effect) => (
@@ -595,6 +598,7 @@ export default function Game() {
               data-testid="arena"
               data-phase={w.phase}
               data-time={w.time.toFixed(2)}
+              data-secret={secret}
               data-player-x={w.player.x.toFixed(1)}
               data-player-y={w.player.y.toFixed(1)}
             >

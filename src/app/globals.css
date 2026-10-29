@@ -1815,6 +1815,10 @@ footer {
 
 .wave-cutin { border-color:#ffad77; background:linear-gradient(105deg,#21151cf5,#703826f5,#273125f5); box-shadow:0 0 20px #ff835b88,0 0 42px #ff603d55; animation-duration:1.5s; }
 .wave-cutin small { color:#ffd4a4; }
+.wave-cutin.secret-cutin { border-color:#ffca63; background:linear-gradient(105deg,#3e101ac9,#a6311fd9,#48230ac9); }
+.secret-cutin strong { color:#fff3d1; text-shadow:0 0 18px #ff5a30; }
+.reduced .secret-cutin strong { text-shadow:none; }
+@media (prefers-reduced-motion:reduce) { .secret-cutin strong { text-shadow:none; } }
 .reduced .wave-cutin { box-shadow:none; }
 @media (prefers-reduced-motion:reduce) { .wave-cutin { box-shadow:none; } }
 

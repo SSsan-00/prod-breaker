@@ -23,6 +23,15 @@ describe("late-wave music", () => {
     expect(musicParameters(6, 180).bpm).toBe(138);
     expect(musicParameters(10, 300).bpm).toBe(142);
   });
+  it("makes the secret incident faster and higher with each wave", () => {
+    expect(musicParameters(61).bpm).toBe(160);
+    expect(musicParameters(61).pitch).toBeGreaterThan(musicParameters(60).pitch);
+    for (let wave = 62; wave <= 70; wave++) {
+      expect(musicParameters(wave).bpm).toBe(musicParameters(wave - 1).bpm + 2);
+      expect(musicParameters(wave).pitch).toBeGreaterThan(musicParameters(wave - 1).pitch);
+    }
+    expect(musicParameters(70).bpm).toBe(178);
+  });
   it("updates pitch and tempo in the same music session without disconnecting", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
@@ -63,6 +72,14 @@ describe("late-wave music", () => {
     const newHats = notes.filter(note => Math.abs(note.hz - 2200 * musicParameters(50).pitch) < 1e-7);
     expect(newHats.length).toBeGreaterThan(2);
     expect(newHats[1].at - newHats[0].at).toBeCloseTo(60 / 134 / 2);
+    expect(disconnects).toBe(0);
+    wave = 61;
+    vi.advanceTimersByTime(1000);
+    const secretHats = notes.filter(note => Math.abs(note.hz - 2200 * musicParameters(61).pitch) < 1e-7);
+    const secretOffbeat = notes.filter(note => Math.abs(note.hz - 1650 * musicParameters(61).pitch) < 1e-7);
+    expect(secretHats.length).toBeGreaterThan(2);
+    expect(secretHats[1].at - secretHats[0].at).toBeCloseTo(60 / 160 / 2);
+    expect(secretOffbeat.length).toBeGreaterThan(2);
     expect(disconnects).toBe(0);
     wave = 3; duration = 90;
     vi.advanceTimersByTime(1000);

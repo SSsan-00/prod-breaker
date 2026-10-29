@@ -15,6 +15,10 @@ import {
   wave,
   lateWaveFactors,
   RUN_SECONDS,
+  ENDLESS_SECONDS,
+  SECRET_SECONDS,
+  isSecretMode,
+  runEndTime,
   type World,
 } from "../src/game/survivor";
 import { read, write } from "../src/lib/storage";
@@ -32,13 +36,77 @@ describe("survivor fixed-step engine", () => {
     if (w.combo >= 10) expect(w.effects.some((e) => e.kind === "milestone")).toBe(true);
   });
   it("supports all durations and finishes at the selected time", () => {
-    for (const duration of [90, 180, 300, 1800]) {
+    for (const duration of [90, 180, 300]) {
       const w = createWorld(42, duration);
       expect(w.duration).toBe(duration);
       w.time = duration - STEP / 2;
       expect(stepWorld(w, { x: 0, y: 0 }).phase).toBe("won");
     }
     expect(createWorld(42, 120).duration).toBe(90);
+  });
+  it("enters the five-minute secret mode and finishes at 35 minutes", () => {
+    const w = createWorld(42, ENDLESS_SECONDS);
+    w.time = ENDLESS_SECONDS - STEP / 2; w.bossWave = 59;
+    w.shotTimer = 10; w.spawnTimer = 0; w.serverTimer = 10;
+    w.entities = [
+      { id: 901, x: 1100, y: 1000, hp: 50, maxHp: 100, kind: "boss", label: "SRE CORE", flash: 0 },
+      { id: 902, x: 1100, y: 1100, hp: 10, maxHp: 10, kind: "server", label: "DB", flash: 0 },
+      { id: 903, x: 1200, y: 1000, hp: 10, maxHp: 10, kind: "drone", label: "WAF", flash: 0 },
+      { id: 904, x: 1300, y: 1000, hp: 10, maxHp: 10, kind: "repair", label: "AUTO FIX", flash: 0 },
+    ];
+    const next = stepWorld(w, { x: 0, y: 0 });
+    expect(next.phase).toBe("playing");
+    expect(next.duration).toBe(ENDLESS_SECONDS);
+    expect(isSecretMode(next)).toBe(true);
+    expect(wave(next)).toBe(61);
+    expect(next.entities.find(e => e.id === 901)?.hp).toBe(67.5);
+    expect(next.entities.find(e => e.id === 901)?.maxHp).toBe(135);
+    expect(next.entities.some(e => e.id === 902)).toBe(true);
+    expect(next.entities.some(e => e.kind === "drone" || e.kind === "repair")).toBe(false);
+    expect(next.effects.some(e => e.kind === "wave" && e.text === "SECRET MODE")).toBe(true);
+    expect(next.entities.filter(e => e.kind === "boss")).toHaveLength(21);
+    expect(stepWorld(w, { x: 0, y: 0 })).toEqual(next);
+    const final = { ...next, time: runEndTime(next) - STEP / 2, bossWave: 69, entities: [], player: { ...next.player, hp: 100 } };
+    expect(runEndTime(final)).toBe(ENDLESS_SECONDS + SECRET_SECONDS);
+    const finished = stepWorld(final, { x: 0, y: 0 });
+    expect(finished.phase).toBe("won");
+    expect(wave(finished)).toBe(70);
+  });
+  it("doubles both damage and kill BP only in secret mode", () => {
+    const scoreAt = (time: number) => {
+      const w = createWorld(42, ENDLESS_SECONDS);
+      w.time = time; w.bossWave = Math.floor(time / 30);
+      w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      w.entities = [{ id: 901, x: 1020, y: 1000, hp: 10, maxHp: 10, kind: "server", label: "DB", flash: 0 }];
+      w.shots = [{ id: 902, x: 1020, y: 1000, vx: 0, vy: 0, life: 1, damage: 10, pierce: 0, hit: [] }];
+      return stepWorld(w, { x: 0, y: 0 });
+    };
+    expect(scoreAt(1790).score).toBe(116);
+    expect(scoreAt(1810).score).toBe(232);
+  });
+  it("increases secret core health and speed while keeping enemies and entity counts bounded", () => {
+    const sample = (waveNumber: number) => {
+      const w = createWorld(42, ENDLESS_SECONDS);
+      w.time = (waveNumber - 1) * 30 - STEP / 2; w.bossWave = waveNumber - 2;
+      w.entities = []; w.shotTimer = 10; w.spawnTimer = 0; w.serverTimer = 10;
+      return stepWorld(w, { x: 0, y: 0 });
+    };
+    const normal = sample(60), first = sample(61), last = sample(70);
+    expect(first.entities[0].maxHp).toBeGreaterThan(normal.entities.find(e => e.kind === "boss")!.maxHp * 1.35);
+    expect(last.entities[0].maxHp).toBeGreaterThan(first.entities[0].maxHp);
+    for (const w of [first, last]) {
+      expect(w.entities.every(e => e.kind === "boss")).toBe(true);
+      expect(w.entities.length).toBeLessThanOrEqual(70);
+    }
+    const speedAt = (time: number) => {
+      const w = createWorld(42, ENDLESS_SECONDS);
+      w.time = time; w.bossWave = Math.floor(time / 30);
+      w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      w.entities = [{ id: 901, x: 1400, y: 1000, hp: 100, maxHp: 100, kind: "boss", label: "SRE CORE", flash: 0 }];
+      return 1400 - stepWorld(w, { x: 0, y: 0 }).entities[0].x;
+    };
+    expect(speedAt(1810)).toBeGreaterThan(speedAt(1790) * 1.09);
+    expect(speedAt(2080)).toBeGreaterThan(speedAt(1810));
   });
   it("unlocks each evolution exactly once in either order", () => {
     const recipes = [

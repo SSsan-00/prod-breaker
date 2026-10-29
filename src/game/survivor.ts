@@ -1,6 +1,9 @@
 /** Pure, fixed-step simulation. No browser, clock, rendering or network access. */
 export const STEP = 1 / 30;
 export const RUN_SECONDS = 90;
+export const ENDLESS_SECONDS = 1800;
+export const SECRET_SECONDS = 300;
+export const SECRET_BONUS = 2;
 export type Vec = { x: number; y: number };
 export type Entity = Vec & {
   id: number;
@@ -833,7 +836,7 @@ function killChain(w: World, first: Entity, damage: number) {
     target.flash = 0.15;
     w.score = Math.min(
       Number.MAX_SAFE_INTEGER,
-      w.score + Math.round(actual * w.multiplier),
+      w.score + Math.round(actual * w.multiplier * (isSecretMode(w) ? SECRET_BONUS : 1)),
     );
     if (target.hp > 0) {
       fx(w, target, "hit");
@@ -845,7 +848,7 @@ function killChain(w: World, first: Entity, damage: number) {
     const bonus = Math.round(
       (target.kind === "server" ? 100 : target.kind === "boss" ? 1500 : 75) *
         w.multiplier *
-        (1 + Math.min(w.combo, 50) * 0.06),
+        (1 + Math.min(w.combo, 50) * 0.06) * (isSecretMode(w) ? SECRET_BONUS : 1),
     );
     w.score = Math.min(Number.MAX_SAFE_INTEGER, w.score + bonus);
     if ([10, 30, 100].includes(w.combo) ||
@@ -1510,8 +1513,15 @@ export function lateWaveFactors(waveNumber: number, duration = 1800) {
   return { hp: 1 + late * 0.015, speed: 1 + late * 0.006 };
 }
 
+export function isSecretMode(w: Pick<World, "duration" | "time">) {
+  return w.duration === ENDLESS_SECONDS && w.time >= ENDLESS_SECONDS;
+}
+export function runEndTime(w: Pick<World, "duration">) {
+  return w.duration === ENDLESS_SECONDS ? ENDLESS_SECONDS + SECRET_SECONDS : w.duration;
+}
 export function wave(w: World) {
-  return Math.min(w.duration / 30, Math.floor(w.time / 30) + 1);
+  const end = isSecretMode(w) ? runEndTime(w) : w.duration;
+  return Math.min(end / 30, Math.floor(w.time / 30) + 1);
 }
 
 /** Copy the simulation's known data shape without a generic graph traversal.
@@ -1551,7 +1561,20 @@ export function stepWorld(state: World, input: Input): World {
   if (state.phase !== "playing") return state;
   const w = copyForStep(state),
     dt = STEP;
-  w.time = Math.min(w.duration, w.time + dt);
+  w.time = Math.min(runEndTime(w), w.time + dt);
+  const secret = isSecretMode(w);
+  const secretStarted = secret && !isSecretMode(state);
+  const secretWave = Math.max(0, wave(w) - 61);
+  const coreHpFactor = secret ? 1.35 + secretWave * 0.02 : 1;
+  const coreSpeedFactor = secret ? 1.1 + secretWave * 0.005 : 1;
+  if (secretStarted) {
+    // Keep the existing cores' damage proportion while strengthening them.
+    w.entities = w.entities.filter((e) => e.kind !== "drone" && e.kind !== "repair");
+    for (const e of w.entities) if (e.kind === "boss") {
+      e.maxHp *= 1.35;
+      e.hp *= 1.35;
+    }
+  }
   const difficulty = lateWaveFactors(wave(w), w.duration);
   w.player.invulnerable = Math.max(0, w.player.invulnerable - dt);
   w.panicCooldown = Math.max(0, w.panicCooldown - dt);
@@ -1641,7 +1664,7 @@ export function stepWorld(state: World, input: Input): World {
   }
   let enteredWave = false;
   w.spawnTimer -= dt;
-  if (w.spawnTimer <= 0) {
+  if (!secret && w.spawnTimer <= 0) {
     w.spawnTimer = Math.max(0.36, (w.time >= 30 ? 1.32 : 1.4) - w.time * 0.012);
     const angle = random(w) * Math.PI * 2;
     const kind = w.time > 15 && random(w) < 0.18 ? "repair" : "drone";
@@ -1674,18 +1697,20 @@ export function stepWorld(state: World, input: Input): World {
   if (
     w.time >= 30 &&
     Math.floor(w.time / 30) > w.bossWave &&
-    w.time < w.duration
+    w.time < runEndTime(w)
   ) {
     w.bossWave = Math.floor(w.time / 30);
     w.bossSpawned = true;
     enteredWave = true;
     // Wave 2 brings one core, wave 3 brings two, and so on.
-    const count = w.bossWave;
+    const count = secret
+      ? Math.min(20, Math.max(0, 70 - w.entities.filter((e) => e.kind === "boss" && e.hp > 0).length))
+      : w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
     const baseCoreHp = w.bossWave <= 4
       ? Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2))
       : 2128 + (w.bossWave - 4) * 220;
-    const coreHp = Math.round(baseCoreHp * difficulty.hp);
+    const coreHp = Math.round(baseCoreHp * difficulty.hp * coreHpFactor);
     // Each core gets its own seeded position anywhere on the map.
     // Keep initial distance from the player and other newly spawned cores.
     const positions: Vec[] = [];
@@ -1742,7 +1767,7 @@ export function stepWorld(state: World, input: Input): World {
           ? 71.5
           : e.kind === "repair"
             ? 64
-            : 65 + wave(w) * 12 + Math.min(10, Math.max(0, wave(w) - 1) * 2)) * w.slow * difficulty.speed;
+            : 65 + wave(w) * 12 + Math.min(10, Math.max(0, wave(w) - 1) * 2)) * w.slow * difficulty.speed * (e.kind === "boss" ? coreSpeedFactor : 1);
     if (d > 1) {
       e.x += ((goal.x - e.x) / d) * speed * dt;
       e.y += ((goal.y - e.y) / d) * speed * dt;
@@ -1790,9 +1815,9 @@ export function stepWorld(state: World, input: Input): World {
   w.pickups = w.pickups
     .filter((p) => p.value > 0 && distance(p, w.player) < 900)
     .slice(-160);
-  if (enteredWave) fx(w, w.player, "wave", `WAVE ${String(wave(w)).padStart(2, "0")}`);
+  if (enteredWave) fx(w, w.player, "wave", secretStarted ? "SECRET MODE" : `WAVE ${String(wave(w)).padStart(2, "0")}`);
   if (w.player.hp <= 0) w.phase = "lost";
-  else if (w.time >= w.duration) w.phase = "won";
+  else if (w.time >= runEndTime(w)) w.phase = "won";
   else if (w.xp >= w.nextXp && w.time >= w.nextUpgradeAt) {
     w.xp -= w.nextXp;
     w.level++;

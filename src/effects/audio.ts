@@ -49,6 +49,10 @@ export function sound(
 /** Keep the original groove until the later waves, then rise gently each wave. */
 export function musicParameters(waveNumber: number, duration = 1800) {
   const safeWave = Number.isFinite(waveNumber) ? Math.floor(waveNumber) : 1;
+  if (duration === 1800 && safeWave >= 61) {
+    const secretStep = Math.min(9, safeWave - 61);
+    return { bpm: 160 + secretStep * 2, pitch: Math.pow(2, (12 + secretStep) / 60) };
+  }
   const late = escalationStep(safeWave, duration);
   return { bpm: 132 + late * 2, pitch: Math.pow(2, late / 60) };
 }
@@ -91,6 +95,9 @@ export function startMusic(volume: number, currentWave: () => number = () => 1, 
         if (index % 4 === 0) tone(130 * pitch, next, 0.16, "sine", 0.5, 42 * pitch);
         if (index % 4 === 2) tone(190 * pitch, next, 0.08, "triangle", 0.18, 75 * pitch);
         tone(2200 * pitch, next, 0.025, "square", index % 2 ? 0.035 : 0.055, 1200 * pitch);
+        // Add a driving offbeat pulse during the final five-minute incident.
+        if (currentDuration() === 1800 && currentWave() >= 61)
+          tone(1650 * pitch, next + 60 / bpm / 4, 0.025, "square", 0.025, 900 * pitch);
         next += 60 / bpm / 2;
         step++;
       }
