@@ -2017,19 +2017,24 @@ footer {
 /* Shared rankings are presented in a separate, scrollable dialog. */
 .scoreboard-link { color: #d4fa53; background: none; border: 0; padding: 2px; font: inherit; text-decoration: underline; }
 .leaderboard-backdrop { padding: 12px; }
-.leaderboard { width: min(100%, 560px); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.leaderboard { display: flex; flex-direction: column; width: min(100%, 560px); height: min(560px, calc(100dvh - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.leaderboard > :not(.leaderboard-list) { flex-shrink: 0; }
 .leaderboard h2 { margin: 8px 0 14px; }
-.leaderboard .player-name { display: flex; align-items: center; gap: 12px; }
+.leaderboard .player-name { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
 .leaderboard .player-name span { flex: 0 0 auto; white-space: nowrap; }
 .leaderboard .player-name input { min-width: 0; width: 100%; color: #f0f5e9; background: #0c1718; border: 1px solid #657c63; border-radius: 3px; padding: 9px; user-select: text; -webkit-user-select: text; }
-.survivor .leaderboard .leaderboard-submit { width: auto; min-width: 0; margin: 10px 0 0; padding: 9px 16px; justify-content: center; }
-.leaderboard-note { font-size: 10px; line-height: 1.5; color: #aabcae; }
+.survivor .leaderboard .leaderboard-submit { width: auto; min-width: 0; margin: 10px 0 0; padding: 9px 16px; align-self: flex-start; justify-content: center; }
+.leaderboard .leaderboard-note { margin: 12px 0 14px; font-size: 10px; line-height: 1.5; color: #aabcae; }
 .leaderboard-modes { display: flex; gap: 4px; }
 .leaderboard-modes button { flex: 1 1 0; min-width: 0; padding: 8px 2px; font: 9px monospace; }
 .leaderboard-modes button[aria-pressed="true"] { border-color: #d4fa53; color: #d4fa53; }
-.leaderboard-list { min-height: 65px; max-height: 32vh; overflow-y: auto; }
+.leaderboard-list { flex: 1 1 0; min-height: 65px; overflow-y: auto; overscroll-behavior: contain; }
 .leaderboard-list ol { margin: 8px 0; padding: 0; list-style: none; }
 .leaderboard-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 7px 3px; border-bottom: 1px solid #34463c; font-size: 12px; }
 .leaderboard-list li b { overflow-wrap: anywhere; }
 .leaderboard-list li strong { color: #d4fa53; white-space: nowrap; }
 @media (max-width: 700px) { .header-leaderboard { padding-inline: 6px !important; font-size: 9px !important; } }
+@media (max-height: 500px) {
+  .leaderboard { padding: 18px 20px; }
+  .leaderboard .player-name { padding: 8px 0; }
+}

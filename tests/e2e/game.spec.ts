@@ -866,6 +866,51 @@ test("scoreboard supports editable saved names and mode filtering", async ({ pag
   await expect(page.getByLabel("プレイヤー名")).toHaveValue("金曜日の魔術師");
 });
 
+test("scoreboard keeps its height across empty, populated and error states", async ({ page }, info) => {
+  await page.route("**/api/leaderboard?*", async route => {
+    const duration = new URL(route.request().url()).searchParams.get("duration");
+    if (duration === "1800") return route.fulfill({ status: 503, json: { error: "unavailable" } });
+    const count = duration === "90" ? 0 : duration === "300" ? 20 : 1;
+    const scores = Array.from({ length: count }, (_, i) => ({
+      player_name: `PLAYER ${i + 1}`, score: 10000 - i, created_at: "2026-01-01T00:00:00Z",
+    }));
+    await route.fulfill({ json: { scores } });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "スコアボード", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "スコアボード" });
+  const viewports = info.project.name === "mobile"
+    ? [{ width: 320, height: 480 }, { width: 851, height: 393 }]
+    : [{ width: 1280, height: 720 }];
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    const measurements: { dialog: number; list: number; gap: number; scroll: number; client: number; noteLines: number }[] = [];
+    for (const [mode, count] of [["QUICK", 0], ["STANDARD", 1], ["CHAOS", 20], ["ENDLESS", -1]] as const) {
+      await dialog.getByRole("button", { name: mode, exact: true }).click();
+      if (count === 0) await expect(dialog.getByText("まだスコアはありません。")).toBeVisible();
+      else if (count < 0) await expect(dialog.getByText("スコアボードを読み込めませんでした。時間をおいて再試行してください。")).toBeVisible();
+      else await expect(dialog.locator(".leaderboard-list li")).toHaveCount(count);
+      measurements.push(await dialog.evaluate(el => {
+        const button = el.querySelector(".leaderboard-submit")!.getBoundingClientRect();
+        const note = el.querySelector(".leaderboard-note")!;
+        const range = document.createRange(); range.selectNodeContents(note);
+        return { dialog: el.getBoundingClientRect().height, list: el.querySelector(".leaderboard-list")!.getBoundingClientRect().height, gap: note.getBoundingClientRect().top - button.bottom, scroll: el.scrollHeight, client: el.clientHeight, noteLines: range.getClientRects().length };
+      }));
+      if (count === 20) {
+        await dialog.getByText("PLAYER 20", { exact: true }).scrollIntoViewIfNeeded();
+        expect(await dialog.locator(".leaderboard-list").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+      }
+    }
+    for (const measurement of measurements) {
+      expect(Math.abs(measurement.dialog - measurements[0].dialog)).toBeLessThanOrEqual(1);
+      expect(Math.abs(measurement.list - measurements[0].list)).toBeLessThanOrEqual(1);
+      expect(measurement.gap).toBeGreaterThanOrEqual(10);
+      expect(measurement.scroll).toBeLessThanOrEqual(measurement.client + 1);
+      expect(measurement.noteLines).toBe(1);
+    }
+  }
+});
+
 test("result score is shared automatically", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
   let posted: { name: string; duration: number; score: number; runId: string } | undefined;
