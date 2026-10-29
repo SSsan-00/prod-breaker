@@ -2014,3 +2014,22 @@ footer {
   60% { transform: translateY(2px) rotate(-5.5deg) scale(.92); }
   100% { transform: translateY(2px) rotate(-7deg) scale(.92); }
 }
+
+/* Shared rankings are presented in a separate, scrollable dialog. */
+.scoreboard-link { color: #d4fa53; background: none; border: 0; padding: 2px; font: inherit; text-decoration: underline; }
+.leaderboard-backdrop { padding: 12px; }
+.leaderboard { width: min(100%, 560px); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.leaderboard h2 { margin: 8px 0 14px; }
+.leaderboard .player-name { display: flex; align-items: center; gap: 12px; }
+.leaderboard .player-name input { min-width: 0; width: 100%; color: #f0f5e9; background: #0c1718; border: 1px solid #657c63; border-radius: 3px; padding: 9px; user-select: text; -webkit-user-select: text; }
+.leaderboard-submit { width: 100%; min-width: 0; margin: 10px 0 0; }
+.leaderboard-note { font-size: 10px; line-height: 1.5; color: #aabcae; }
+.leaderboard-modes { display: flex; gap: 4px; }
+.leaderboard-modes button { flex: 1 1 0; min-width: 0; padding: 8px 2px; font: 9px monospace; }
+.leaderboard-modes button[aria-pressed="true"] { border-color: #d4fa53; color: #d4fa53; }
+.leaderboard-list { min-height: 65px; max-height: 32vh; overflow-y: auto; }
+.leaderboard-list ol { margin: 8px 0; padding: 0; list-style: none; }
+.leaderboard-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 7px 3px; border-bottom: 1px solid #34463c; font-size: 12px; }
+.leaderboard-list li b { overflow-wrap: anywhere; }
+.leaderboard-list li strong { color: #d4fa53; white-space: nowrap; }
+@media (max-width: 700px) { .header-leaderboard { padding-inline: 6px !important; font-size: 9px !important; } }

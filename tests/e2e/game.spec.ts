@@ -680,3 +680,63 @@ test("result collapse plays after the score and respects reduced motion", async 
   await page.getByRole("button", { name: "もう一度プレイ ↻" }).click();
   await expect(page.getByTestId("health")).toHaveText("100 / 100");
 });
+
+test("scoreboard supports editable saved names and mode filtering", async ({ page }, info) => {
+  const requests: string[] = [];
+  await page.route("**/api/leaderboard?*", async (route) => {
+    requests.push(route.request().url());
+    await route.fulfill({ json: { scores: [{ player_name: "本番環境の破壊神", score: 12345, created_at: "2026-01-01T00:00:00Z" }] } });
+  });
+  if (info.project.name === "mobile") await page.setViewportSize({ width: 320, height: 480 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "スコアボード", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "スコアボード" });
+  await expect(dialog.getByText("本番環境の破壊神")).toBeVisible();
+  const input = dialog.getByLabel("プレイヤー名");
+  await expect(input).not.toHaveValue("");
+  await input.fill("金曜日の魔術師");
+  await dialog.getByRole("button", { name: "名前を保存" }).click();
+  await expect(dialog.getByText("名前を保存しました。")).toBeVisible();
+  await dialog.getByRole("button", { name: "ENDLESS" }).click();
+  await expect.poll(() => requests.some((url) => url.includes("duration=1800"))).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await page.getByRole("button", { name: "スコアボード", exact: true }).click();
+  await expect(page.getByLabel("プレイヤー名")).toHaveValue("金曜日の魔術師");
+});
+
+test("result score is shared only after an explicit submission", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  let posted: { name: string; duration: number; score: number; runId: string } | undefined;
+  await page.route("**/api/leaderboard**", async (route) => {
+    if (route.request().method() === "POST") {
+      posted = route.request().postDataJSON();
+      await route.fulfill({ json: { ok: true } });
+    } else await route.fulfill({ json: { scores: posted ? [{ player_name: posted.name, score: posted.score, created_at: "2026-01-01T00:00:00Z" }] : [] } });
+  });
+  await page.clock.install();
+  await page.goto("/?seed=42");
+  await page.clock.runFor(100);
+  await page.getByRole("button", { name: /QUICK/ }).click();
+  await page.getByRole("button", { name: /GAME START/ }).click();
+  for (let i = 0; i < 110; i++) {
+    await choose(page);
+    if (await page.locator(".result").isVisible()) break;
+    await page.clock.runFor(1000);
+  }
+  await expect(page.locator(".result")).toBeVisible();
+  expect(posted).toBeUndefined();
+  await page.getByRole("button", { name: /スコアを登録/ }).click();
+  const dialog = page.getByRole("dialog", { name: "スコアボード" });
+  await page.clock.runFor(50);
+  await dialog.getByLabel("プレイヤー名").fill("本番の破壊神");
+  await dialog.getByRole("button", { name: /今回の.*BP を登録/ }).click();
+  await expect(dialog.getByRole("button", { name: "登録済み ✓" })).toBeDisabled();
+  expect(posted?.name).toBe("本番の破壊神");
+  expect(posted?.duration).toBe(90);
+  expect(posted?.score).toBeGreaterThan(0);
+  expect(posted?.runId).toMatch(/^[0-9a-f-]{36}$/);
+  await dialog.getByRole("button", { name: "閉じる" }).click();
+  await page.getByRole("button", { name: /スコアを登録/ }).click();
+  await expect(page.getByRole("button", { name: "登録済み ✓" })).toBeDisabled();
+});

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, MotionConfig } from "motion/react";
 import {
   createWorld,
@@ -18,6 +18,7 @@ import {
   type UpgradeId,
 } from "@/game/survivor";
 import Arena, { type Stick } from "./Arena";
+import Leaderboard from "./Leaderboard";
 import { read, write } from "@/lib/storage";
 import { sound, startMusic } from "@/effects/audio";
 const levelUpMessages = [
@@ -48,6 +49,10 @@ type Screen = "title" | "run" | "result";
 type Modal = "settings" | "help" | "pause" | null;
 export default function Game() {
   const [duration, setDuration] = useState(180);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [runId, setRunId] = useState("");
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const closeLeaderboard = useCallback(() => setLeaderboardOpen(false), []);
   const [initialWorld] = useState(() => createWorld());
   const world = useRef<World>(initialWorld),
     input = useRef<Vec>({ x: 0, y: 0 }),
@@ -311,6 +316,8 @@ export default function Game() {
       param !== null && Number.isFinite(Number(param))
         ? Number(param) >>> 0
         : Math.floor(Math.random() * 0xffffffff);
+    setRunId(crypto.randomUUID());
+    setScoreSubmitted(false);
     world.current = createWorld(seed, duration);
     setSnapshot(world.current);
     setEvolutionNotice("");
@@ -381,6 +388,7 @@ export default function Game() {
           </button>
           <div className="header-right">
             <span className="sandbox">● SIMULATION ONLY</span>
+            {screen !== "run" && <button className="header-leaderboard" aria-label="スコアボード" onClick={() => setLeaderboardOpen(true)}>RANK</button>}
             <button
               className="header-sound"
               aria-label="ミュート切替"
@@ -454,7 +462,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.21.3</span>
+              SURVIVOR EDITION <span>↗ V2.22.0</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -797,14 +805,15 @@ export default function Game() {
             <button className="primary" onClick={start}>
               もう一度プレイ <span className="replay-icon">↻</span>
             </button>
-            <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP</p>
+            <p className="muted">SURVIVOR BEST {high.toLocaleString()} BP　<button className="scoreboard-link" onClick={() => setLeaderboardOpen(true)}>スコアを登録 / ランキング →</button></p>
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.21.3</span>
+          <span>PROD BREAKER / SURVIVOR V2.22.0</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
+        {leaderboardOpen && <Leaderboard duration={screen === "result" ? w.duration : duration} score={screen === "result" ? w.score : undefined} runId={runId} submitted={scoreSubmitted} onSubmitted={() => setScoreSubmitted(true)} onClose={closeLeaderboard} />}
         {modal && (
           <div className="modal-backdrop">
             <section
