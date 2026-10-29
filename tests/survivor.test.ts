@@ -83,13 +83,17 @@ describe("survivor fixed-step engine", () => {
       ["lottery", "attachment", "至急の当選通知"],
       ["secretlog", "publicchat", "秘密の全体共有"],
       ["shoulder", "privacyfilter", "ショルダーハック発生！"],
+      ["fridaydeploy", "vacation", "誰もいない週末障害"],
+      ["disabletest", "greenci", "テスト全件成功！"],
+      ["directdb", "nobackup", "復元できない直接修正"],
+      ["ignoreerror", "emptycatch", "沈黙するエラー"],
       ["yagni", "futureproof", "いつか使う設計"],
       ["solid", "interface", "抽象化の大渋滞"],
       ["kiss", "clever", "解読不能な簡単実装"],
       ["dry", "copypaste", "共通化されたコピペ"],
     ] as const;
-    expect(recipes).toHaveLength(48);
-    expect(upgrades).toHaveLength(96);
+    expect(recipes).toHaveLength(52);
+    expect(upgrades).toHaveLength(104);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);
@@ -316,7 +320,7 @@ describe("survivor fixed-step engine", () => {
     expect(w.xp).toBeGreaterThan(0);
   });
   it("keeps early XP requirements while limiting late-level growth", () => {
-    for (const [required, next] of [[5, 8], [68, 87], [400, 440], [1000, 1040]]) {
+    for (const [required, next] of [[5, 8], [68, 87], [400, 440], [480, 500], [500, 500], [1000, 500]]) {
       const w = createWorld(42, 1800);
       w.time = 60;
       w.xp = w.nextXp = required;

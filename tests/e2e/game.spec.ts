@@ -417,7 +417,7 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
   test.skip(info.project.name !== "mobile");
   await page.setViewportSize({ width: 320, height: 568 });
   await page.clock.install();
-  await page.goto("/?seed=31");
+  await page.goto("/?seed=22");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
@@ -618,7 +618,7 @@ test("chain milestone triggers a visible overdrive without another pause", async
 
 test("available evolution is highlighted and selecting it unlocks the combination", async ({ page }, info) => {
   await page.clock.install();
-  await page.goto("/?seed=31");
+  await page.goto("/?seed=22");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);

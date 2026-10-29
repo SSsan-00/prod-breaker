@@ -88,7 +88,8 @@ export type UpgradeId =
   | "plaintext" | "passwordsheet" | "prepared" | "sqlstring"
   | "sanitize" | "trusthtml" | "lottery" | "attachment"
   | "secretlog" | "publicchat" | "shoulder" | "privacyfilter"
-  | "yagni" | "futureproof" | "solid" | "interface" | "kiss" | "clever" | "dry" | "copypaste";
+  | "yagni" | "futureproof" | "solid" | "interface" | "kiss" | "clever" | "dry" | "copypaste"
+  | "fridaydeploy" | "vacation" | "disabletest" | "greenci" | "directdb" | "nobackup" | "ignoreerror" | "emptycatch";
 export const upgrades: {
   id: UpgradeId;
   name: string;
@@ -470,6 +471,14 @@ export const upgrades: {
   { id: "lottery", name: "宝くじ当選メール", type: "BOOST", icon: "✉", description: "BP倍率 +20%、移動速度 +8%。応募した覚えはない。" },
   { id: "attachment", name: "急ぎの添付ファイル", type: "BUG", icon: "▣", description: "持続ダメージ +8、攻撃力 +6。件名には【至急】。" },
   { id: "secretlog", name: "秘密もログに出す", type: "CHAIN", icon: "≋", description: "ログ回収 +35、連鎖ダメージ +8。デバッグは正直者。" },
+  { id: "fridaydeploy", name: "金曜夜の大型リリース", type: "BOOST", icon: "☾", description: "BP倍率 +20%、攻撃力 +6。週末の予定は本番次第。" },
+  { id: "vacation", name: "担当者は全員休暇中", type: "CHAIN", icon: "☎", description: "連鎖範囲 +25、連鎖ダメージ +7。引き継ぎは来週。" },
+  { id: "disabletest", name: "落ちるテストを削除", type: "BUG", icon: "✕", description: "攻撃力 +10、貫通 +1。失敗しなければ成功。" },
+  { id: "greenci", name: "CIをとりあえず緑に", type: "BOOST", icon: "✓", description: "攻撃速度 +8%、BP倍率 +10%。中身は見ていない。" },
+  { id: "directdb", name: "本番DBを手で修正", type: "BUG", icon: "▣", description: "攻撃力 +12、連鎖ダメージ +6。手順書には残らない。" },
+  { id: "nobackup", name: "バックアップは後で", type: "CHAIN", icon: "↶", description: "連鎖範囲 +25、持続ダメージ +8。今は急いでいる。" },
+  { id: "ignoreerror", name: "エラーは見なかったことに", type: "BOOST", icon: "!", description: "最大HP +20、HP回復 +20。通知を閉じれば解決。" },
+  { id: "emptycatch", name: "空のcatchで握りつぶす", type: "CHAIN", icon: "{ }", description: "連鎖範囲 +25、連鎖ダメージ +8。何も起きていない。" },
   { id: "yagni", name: "YAGNI、でも将来使うかも", type: "BOOST", icon: "?", description: "BP倍率 +20%、攻撃力 +6。使う予定はまだない。" },
   { id: "futureproof", name: "念のための拡張ポイント", type: "CHAIN", icon: "◇", description: "連鎖範囲 +25、連鎖ダメージ +7。拡張する予定は未定。" },
   { id: "solid", name: "SOLIDを唱える", type: "BUG", icon: "▣", description: "攻撃力 +10、貫通 +1。原則は全部覚えていない。" },
@@ -534,6 +543,8 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   sanitize: "trusthtml", trusthtml: "sanitize", lottery: "attachment", attachment: "lottery",
   secretlog: "publicchat", publicchat: "secretlog",
   shoulder: "privacyfilter", privacyfilter: "shoulder",
+  fridaydeploy: "vacation", vacation: "fridaydeploy", disabletest: "greenci", greenci: "disabletest",
+  directdb: "nobackup", nobackup: "directdb", ignoreerror: "emptycatch", emptycatch: "ignoreerror",
   yagni: "futureproof", futureproof: "yagni", solid: "interface", interface: "solid",
   kiss: "clever", clever: "kiss", dry: "copypaste", copypaste: "dry",
 };
@@ -573,6 +584,10 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   lottery: "至急の当選通知", attachment: "至急の当選通知",
   secretlog: "秘密の全体共有", publicchat: "秘密の全体共有",
   shoulder: "ショルダーハック発生！", privacyfilter: "ショルダーハック発生！",
+  fridaydeploy: "誰もいない週末障害", vacation: "誰もいない週末障害",
+  disabletest: "テスト全件成功！", greenci: "テスト全件成功！",
+  directdb: "復元できない直接修正", nobackup: "復元できない直接修正",
+  ignoreerror: "沈黙するエラー", emptycatch: "沈黙するエラー",
   yagni: "いつか使う設計", futureproof: "いつか使う設計",
   solid: "抽象化の大渋滞", interface: "抽象化の大渋滞",
   kiss: "解読不能な簡単実装", clever: "解読不能な簡単実装",
@@ -1080,6 +1095,22 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.aura += 8; w.damage += 6; break;
     case "secretlog":
       w.magnet = Math.min(420, w.magnet + 35); w.chainDamage += 8; break;
+    case "fridaydeploy":
+      w.multiplier += 0.2; w.damage += 6; break;
+    case "vacation":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 7; break;
+    case "disabletest":
+      w.damage += 10; w.pierce = Math.min(8, w.pierce + 1); break;
+    case "greenci":
+      w.fireInterval = Math.max(0.12, w.fireInterval * 0.92); w.multiplier += 0.1; break;
+    case "directdb":
+      w.damage += 12; w.chainDamage += 6; break;
+    case "nobackup":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.aura += 8; break;
+    case "ignoreerror":
+      w.player.maxHp += 20; w.player.hp = Math.min(w.player.maxHp, w.player.hp + 20); break;
+    case "emptycatch":
+      w.chainRange = Math.min(400, w.chainRange + 25); w.chainDamage += 8; break;
     case "yagni":
       w.multiplier += 0.2; w.damage += 6; break;
     case "futureproof":
@@ -1256,6 +1287,10 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.prepared!, pair: ["prepared", "sqlstring"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.chainDamage += 20; } },
     { name: evolutionNames.sanitize!, pair: ["sanitize", "trusthtml"], apply: () => { w.multishot = Math.min(6, w.multishot + 1); w.chainRange = Math.min(400, w.chainRange + 45); } },
     { name: evolutionNames.lottery!, pair: ["lottery", "attachment"], apply: () => { w.multiplier += 0.45; w.aura += 16; } },
+    { name: evolutionNames.fridaydeploy!, pair: ["fridaydeploy", "vacation"], apply: () => { w.multiplier += 0.4; w.chainRange = Math.min(400, w.chainRange + 45); } },
+    { name: evolutionNames.disabletest!, pair: ["disabletest", "greenci"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
+    { name: evolutionNames.directdb!, pair: ["directdb", "nobackup"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
+    { name: evolutionNames.ignoreerror!, pair: ["ignoreerror", "emptycatch"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainRange = Math.min(400, w.chainRange + 45); } },
     { name: evolutionNames.yagni!, pair: ["yagni", "futureproof"], apply: () => { w.multiplier += 0.4; w.chainRange = Math.min(400, w.chainRange + 45); } },
     { name: evolutionNames.solid!, pair: ["solid", "interface"], apply: () => { w.pierce = Math.min(8, w.pierce + 2); w.aura += 18; } },
     { name: evolutionNames.kiss!, pair: ["kiss", "clever"], apply: () => { w.damage += 25; w.fireInterval = Math.max(0.12, w.fireInterval * 0.8); } },
@@ -1590,8 +1625,8 @@ export function stepWorld(state: World, input: Input): World {
     w.level++;
     // Retain earned XP while giving the player uninterrupted time between choices.
     w.nextUpgradeAt = w.time + (w.time < 30 ? 8 : 5);
-    // Preserve the early curve, then prevent exponential growth from stalling late runs.
-    w.nextXp += Math.min(40, Math.round(w.nextXp * 0.25 + 2));
+    // Preserve the early curve and cap the requirement for long runs.
+    w.nextXp = Math.min(500, w.nextXp + Math.min(40, Math.round(w.nextXp * 0.25 + 2)));
     w.choices = choices(w);
     w.phase = "upgrade";
     fx(w, w.player, "heal", "LEVEL UP");
