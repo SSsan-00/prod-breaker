@@ -1555,7 +1555,8 @@ export function stepWorld(state: World, input: Input): World {
     w.level++;
     // Retain earned XP while giving the player uninterrupted time between choices.
     w.nextUpgradeAt = w.time + (w.time < 30 ? 8 : 5);
-    w.nextXp = Math.round(w.nextXp * 1.25 + 2);
+    // Preserve the early curve, then prevent exponential growth from stalling late runs.
+    w.nextXp += Math.min(40, Math.round(w.nextXp * 0.25 + 2));
     w.choices = choices(w);
     w.phase = "upgrade";
     fx(w, w.player, "heal", "LEVEL UP");

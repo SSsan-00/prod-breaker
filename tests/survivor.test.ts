@@ -311,6 +311,17 @@ describe("survivor fixed-step engine", () => {
     expect(w.time - firstTime).toBeGreaterThanOrEqual(5);
     expect(w.xp).toBeGreaterThan(0);
   });
+  it("keeps early XP requirements while limiting late-level growth", () => {
+    for (const [required, next] of [[5, 8], [68, 87], [400, 440], [1000, 1040]]) {
+      const w = createWorld(42, 1800);
+      w.time = 60;
+      w.xp = w.nextXp = required;
+      const result = stepWorld(w, { x: 0, y: 0 });
+      expect(result.phase).toBe("upgrade");
+      expect(result.nextXp).toBe(next);
+      expect(result.nextUpgradeAt - result.time).toBe(5);
+    }
+  });
   it("adds targets and a flanking enemy in later waves while keeping bounds", () => {
     const w = createWorld();
     w.time = 35; w.bossWave = 1; w.spawnTimer = 0; w.serverTimer = 0;
