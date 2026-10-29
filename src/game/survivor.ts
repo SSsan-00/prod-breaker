@@ -848,7 +848,9 @@ function killChain(w: World, first: Entity, damage: number) {
         (1 + Math.min(w.combo, 50) * 0.06),
     );
     w.score = Math.min(Number.MAX_SAFE_INTEGER, w.score + bonus);
-    if ([10, 30, 100, 300, 1000, 3000, 10000].includes(w.combo)) {
+    if ([10, 30, 100].includes(w.combo) ||
+      (w.combo >= 300 && w.combo % 300 === 0) ||
+      (w.combo >= 1000 && w.combo % 1000 === 0)) {
       // Milestones recharge PANIC once per crossing, including during a cascade.
       w.panicCooldown = Math.max(0, w.panicCooldown - (w.combo >= 1000 ? 4 : 2));
       // A short automatic burst rewards a chain without interrupting movement.
@@ -1495,6 +1497,12 @@ export function evolutionBonus(state: World, id: UpgradeId): string[] {
   return result.length ? result : ["能力は上限に到達"];
 }
 
+/** Gentle late-ENDLESS scaling, starting at WAVE 50 and capped at WAVE 60. */
+export function lateWaveFactors(waveNumber: number) {
+  const late = Math.max(0, Math.min(11, Math.floor(waveNumber) - 49));
+  return { hp: 1 + late * 0.01, speed: 1 + late * 0.004 };
+}
+
 export function wave(w: World) {
   return Math.min(w.duration / 30, Math.floor(w.time / 30) + 1);
 }
@@ -1537,6 +1545,7 @@ export function stepWorld(state: World, input: Input): World {
   const w = copyForStep(state),
     dt = STEP;
   w.time = Math.min(w.duration, w.time + dt);
+  const difficulty = lateWaveFactors(wave(w));
   w.player.invulnerable = Math.max(0, w.player.invulnerable - dt);
   w.panicCooldown = Math.max(0, w.panicCooldown - dt);
   for (const e of w.entities) e.flash = Math.max(0, e.flash - dt);
@@ -1630,9 +1639,11 @@ export function stepWorld(state: World, input: Input): World {
     const angle = random(w) * Math.PI * 2;
     const kind = w.time > 15 && random(w) < 0.18 ? "repair" : "drone";
     const lateWave = Math.max(0, wave(w) - 2);
-    const hp = kind === "repair"
+    const baseHp = kind === "repair"
       ? 30 + Math.min(28, lateWave * 4)
       : 22 + wave(w) * 7 + Math.min(12, Math.max(0, wave(w) - 1) * 2) + lateWave * 3;
+    // Small repair bots also gain at least one HP per late wave despite rounding.
+    const hp = Math.max(Math.round(baseHp * difficulty.hp), baseHp + Math.max(0, wave(w) - 49));
     w.entities.push({
       id: id(w),
       x: clamp(w.player.x + Math.cos(angle) * 460, 20, 1980),
@@ -1664,9 +1675,10 @@ export function stepWorld(state: World, input: Input): World {
     // Wave 2 brings one core, wave 3 brings two, and so on.
     const count = w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
-    const coreHp = w.bossWave <= 4
+    const baseCoreHp = w.bossWave <= 4
       ? Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2))
       : 2128 + (w.bossWave - 4) * 220;
+    const coreHp = Math.round(baseCoreHp * difficulty.hp);
     // Each core gets its own seeded position anywhere on the map.
     // Keep initial distance from the player and other newly spawned cores.
     const positions: Vec[] = [];
@@ -1723,7 +1735,7 @@ export function stepWorld(state: World, input: Input): World {
           ? 71.5
           : e.kind === "repair"
             ? 64
-            : 65 + wave(w) * 12 + Math.min(10, Math.max(0, wave(w) - 1) * 2)) * w.slow;
+            : 65 + wave(w) * 12 + Math.min(10, Math.max(0, wave(w) - 1) * 2)) * w.slow * difficulty.speed;
     if (d > 1) {
       e.x += ((goal.x - e.x) / d) * speed * dt;
       e.y += ((goal.y - e.y) / d) * speed * dt;

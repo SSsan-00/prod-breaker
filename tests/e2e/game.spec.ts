@@ -750,7 +750,7 @@ test("all cut-in messages fit on a single line on compact screens", async ({ pag
         const range = document.createRange(); range.selectNodeContents(el);
         return { text, lines: range.getClientRects().length, overflow: el.scrollWidth > el.clientWidth };
       };
-      const rows = ["OVERLOAD x1.25", "OVERLOAD x1.5", "SYSTEM MELTDOWN", "300 CHAIN", "1000 CHAIN", "3000 CHAIN", "10000 CHAIN"].map(text => check(document.querySelector(".chain-cutin strong")!, text));
+      const rows = ["OVERLOAD x1.25", "OVERLOAD x1.5", "SYSTEM MELTDOWN", "300 CHAIN", "600 CHAIN", "1000 CHAIN", "3000 CHAIN", "10000 CHAIN", "10200 CHAIN"].map(text => check(document.querySelector(".chain-cutin strong")!, text));
       rows.push(check(document.querySelector(".chain-cutin small")!, "PRODUCTION MELTDOWN"));
       rows.push(...names.map(text => check(sample.querySelector("strong")!, text)));
       sample.remove();

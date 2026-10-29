@@ -13,6 +13,7 @@ import {
   survivorReport,
   STEP,
   wave,
+  lateWaveFactors,
   RUN_SECONDS,
   type World,
 } from "../src/game/survivor";
@@ -183,7 +184,7 @@ describe("survivor fixed-step engine", () => {
     }
   });
   it("rewards large chain milestones exactly once per crossing", () => {
-    for (const milestone of [300, 1000, 3000, 10000]) {
+    for (const milestone of [300, 600, 900, 1000, 1200, 1500, 2000, 3000, 4000, 9000, 10000, 10200, 11000, 20000]) {
       const w = createWorld();
       w.combo = milestone - 1; w.comboUntil = 100;
       w.panicCooldown = 15; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
@@ -701,8 +702,45 @@ describe("survivor fixed-step engine", () => {
     const cores = next.entities.filter((entity) => entity.kind === "boss");
     expect(wave(next)).toBe(60);
     expect(cores).toHaveLength(59);
-    expect(cores[0].maxHp).toBe(14228);
+    expect(cores[0].maxHp).toBe(15793);
     expect(next.entities.length).toBeLessThanOrEqual(100);
+  });
+  it("raises late-wave enemy health and speed gently from wave 50", () => {
+    expect(lateWaveFactors(49)).toEqual({ hp: 1, speed: 1 });
+    for (const [waveNumber, hp] of [[49, 11808], [50, 12148], [51, 12493], [60, 15793]]) {
+      const w = createWorld(42, 1800);
+      w.time = (waveNumber - 1) * 30 - STEP / 2; w.bossWave = waveNumber - 2;
+      w.entities = []; w.shotTimer = 10; w.spawnTimer = 0; w.serverTimer = 10;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(next.entities.find(e => e.kind === "boss")?.maxHp).toBe(hp);
+      const moving = createWorld(42, 1800);
+      moving.time = (waveNumber - 1) * 30 + 1; moving.bossWave = waveNumber - 1;
+      moving.entities = [{ id: 200, x: 1300, y: 1000, hp: 500, maxHp: 500, kind: "boss", label: "CORE", flash: 0 }];
+      moving.shotTimer = 10; moving.spawnTimer = 10; moving.serverTimer = 10;
+      const after = stepWorld(moving, { x: 0, y: 0 });
+      expect(1300 - after.entities[0].x).toBeCloseTo(71.5 * lateWaveFactors(waveNumber).speed * STEP);
+    }
+    expect(lateWaveFactors(60).hp).toBeCloseTo(1.11);
+    expect(lateWaveFactors(60).speed).toBeCloseTo(1.044);
+  });
+  it("increases repair-bot health every late wave even with integer rounding", () => {
+    for (let waveNumber = 49; waveNumber <= 60; waveNumber++) {
+      const w = createWorld(12, 1800);
+      w.time = (waveNumber - 1) * 30 + 1; w.bossWave = waveNumber - 1;
+      w.entities = []; w.shotTimer = 10; w.spawnTimer = 0; w.serverTimer = 10;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(next.entities.find(e => e.kind === "repair")?.maxHp).toBe(58 + Math.max(0, waveNumber - 49));
+    }
+  });
+  it("applies late-wave speed to every moving enemy type", () => {
+    for (const [kind, baseSpeed] of [["boss", 71.5], ["repair", 64], ["drone", 795]] as const) {
+      const w = createWorld(42, 1800);
+      w.time = 1771; w.bossWave = 59;
+      w.entities = [{ id: 200, x: 1300, y: 1000, hp: 500, maxHp: 500, kind, label: "ENEMY", flash: 0 }];
+      w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(1300 - next.entities[0].x, kind).toBeCloseTo(baseSpeed * 1.044 * STEP);
+    }
   });
   it("spawns cores across the map safely, including when the player is at the edge", () => {
     const positions = [[1000, 1000], [28, 28], [1972, 28], [28, 1972], [1972, 1972], [1000, 28], [28, 1000]];

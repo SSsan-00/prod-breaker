@@ -255,9 +255,12 @@ export default function Game() {
       if (w.bossWave > oldBossWave && !settingsRef.current.mute)
         sound("deploy", settingsRef.current.volume);
       oldBossWave = w.bossWave;
-      const milestone = [10000, 3000, 1000, 300, 100, 30, 10].find(
+      const milestone = [300, 100, 30, 10].some(
         (value) => w.combo >= value && oldCombo < value,
-      );
+      ) || (w.combo > oldCombo && (
+        Math.floor(w.combo / 300) > Math.floor(oldCombo / 300) ||
+        Math.floor(w.combo / 1000) > Math.floor(oldCombo / 1000)
+      ));
       if (milestone && !settingsRef.current.mute)
         sound(
           "milestone",
@@ -293,7 +296,7 @@ export default function Game() {
   const musicPhaseActive = snapshot.phase === "playing" || snapshot.phase === "upgrade";
   useEffect(() => {
     if (screen !== "run" || modal || !musicPhaseActive || settings.mute) return;
-    return startMusic(settings.volume);
+    return startMusic(settings.volume, () => wave(world.current));
   }, [screen, modal, musicPhaseActive, settings.mute, settings.volume]);
   function updateSettings(patch: Partial<Settings>) {
     const next = { ...settings, ...patch };
@@ -423,7 +426,7 @@ export default function Game() {
               </span>
             </h1>
             <div className="edition">
-              SURVIVOR EDITION <span>↗ V2.23.1</span>
+              SURVIVOR EDITION <span>↗ V2.23.2</span>
             </div>
             <p className="tagline">BUILD THE BUG. BREAK THE PROD.</p>
             <p className="intro">
@@ -771,7 +774,7 @@ export default function Game() {
           </section>
         )}
         <footer>
-          <span>PROD BREAKER / SURVIVOR V2.23.1</span>
+          <span>PROD BREAKER / SURVIVOR V2.23.2</span>
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>

@@ -44,8 +44,14 @@ export function sound(
     /* Audio failure never blocks play. */
   }
 }
+/** Keep the original groove through WAVE 49, then rise gently once per wave. */
+export function musicParameters(waveNumber: number) {
+  const safeWave = Number.isFinite(waveNumber) ? Math.floor(waveNumber) : 1;
+  const late = Math.max(0, Math.min(11, safeWave - 49));
+  return { bpm: 132 + late, pitch: Math.pow(2, late / 120) };
+}
 /** A compact, looping synth groove; all voices share a stoppable music bus. */
-export function startMusic(volume: number) {
+export function startMusic(volume: number, currentWave: () => number = () => 1) {
   try {
     context ??= new AudioContext();
     const audio = context;
@@ -77,12 +83,13 @@ export function startMusic(volume: number) {
       next = Math.max(next, audio.currentTime + 0.01);
       while (next < audio.currentTime + 0.18) {
         const index = step % 16;
-        if (bass[index]) tone(bass[index], next, 0.23, "triangle", 0.45);
-        if (lead[index]) tone(lead[index], next, 0.12, "square", 0.08);
-        if (index % 4 === 0) tone(130, next, 0.16, "sine", 0.5, 42);
-        if (index % 4 === 2) tone(190, next, 0.08, "triangle", 0.18, 75);
-        tone(2200, next, 0.025, "square", index % 2 ? 0.035 : 0.055, 1200);
-        next += 60 / 132 / 2;
+        const { bpm, pitch } = musicParameters(currentWave());
+        if (bass[index]) tone(bass[index] * pitch, next, 0.23, "triangle", 0.45);
+        if (lead[index]) tone(lead[index] * pitch, next, 0.12, "square", 0.08);
+        if (index % 4 === 0) tone(130 * pitch, next, 0.16, "sine", 0.5, 42 * pitch);
+        if (index % 4 === 2) tone(190 * pitch, next, 0.08, "triangle", 0.18, 75 * pitch);
+        tone(2200 * pitch, next, 0.025, "square", index % 2 ? 0.035 : 0.055, 1200 * pitch);
+        next += 60 / bpm / 2;
         step++;
       }
     };
