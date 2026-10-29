@@ -381,7 +381,7 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
   test.skip(info.project.name !== "mobile");
   await page.setViewportSize({ width: 320, height: 568 });
   await page.clock.install();
-  await page.goto("/?seed=4");
+  await page.goto("/?seed=45");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
@@ -582,7 +582,7 @@ test("chain milestone triggers a visible overdrive without another pause", async
 
 test("available evolution is highlighted and selecting it unlocks the combination", async ({ page }, info) => {
   await page.clock.install();
-  await page.goto("/?seed=4");
+  await page.goto("/?seed=45");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
@@ -593,7 +593,7 @@ test("available evolution is highlighted and selecting it unlocks the combinatio
   await page.clock.runFor(8200);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("強化を1つ選択。選択中はゲームが止まります。" )).toHaveCount(0);
-  const card = dialog.getByRole("button", { name: /SQLは文字列でつなぐ/ });
+  const card = dialog.locator(".upgrade-card").filter({ has: page.getByRole("heading", { name: "SQLは文字列でつなぐ", exact: true }) });
   await expect(card).toHaveClass(/evolution-ready/);
   await expect(card).toContainText("選ぶと進化！");
   await expect(card.locator(".evolution-bonus")).toContainText("貫通+2");
