@@ -34,3 +34,13 @@ test("provides the bug icon for browser tabs and mobile home screens", async ({ 
     expect(dimensions).toEqual([size, size]);
   }
 });
+
+test("includes the bug icon in X and Open Graph share previews", async ({ page }) => {
+  await page.goto("/");
+  const image = "https://prod-breaker.vercel.app/icon-512.png";
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary");
+  await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute("content", image);
+  await expect(page.locator('meta[name="twitter:image:alt"]')).toHaveAttribute("content", "PROD BREAKERの暴走バグ");
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", image);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /PROD BREAKER/);
+});
