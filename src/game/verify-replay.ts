@@ -13,14 +13,14 @@ export function verifyReplay(value: unknown, duration: number, score: number): b
   if (replay.inputs.length > Math.ceil(maxFrames * 3 / 3) * 4) return false;
   const inputs = Buffer.from(replay.inputs, "base64");
   if (!inputs.length || inputs.length % 3 || inputs.length / 3 > maxFrames) return false;
-  const engine = replay.version === 1 ? v1 : v2;
+  const engine: typeof v2 = replay.version === 1 ? v1 as unknown as typeof v2 : v2;
   let w = engine.createWorld(replay.seed as number, duration), upgradeIndex = 0;
   try {
     for (let i = 0; i < inputs.length / 3; i++) {
       if (w.phase === "upgrade") {
         const choice = replay.upgrades[upgradeIndex++];
         if (!Array.isArray(choice) || choice.length !== 2 || choice[0] !== i || typeof choice[1] !== "string") return false;
-        w = engine.chooseUpgrade(w, choice[1] as v1.UpgradeId);
+        w = engine.chooseUpgrade(w, choice[1] as v2.UpgradeId);
       }
       if (w.phase !== "playing" || inputs[3 * i] > 254 || inputs[3 * i + 1] > 254 || inputs[3 * i + 2] > 1) return false;
       w = engine.stepWorld(w, { x: (inputs[3 * i] - 127) / 127, y: (inputs[3 * i + 1] - 127) / 127, panic: inputs[3 * i + 2] === 1 });

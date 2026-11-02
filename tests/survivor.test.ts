@@ -20,6 +20,7 @@ import {
   isSecretMode,
   runEndTime,
   type World,
+  type UpgradeId,
 } from "../src/game/survivor";
 import { read, write } from "../src/lib/storage";
 function simulate(w: World, frames: number) {
@@ -58,6 +59,7 @@ describe("survivor fixed-step engine", () => {
     expect(next.phase).toBe("playing");
     expect(next.duration).toBe(ENDLESS_SECONDS);
     expect(isSecretMode(next)).toBe(true);
+    expect(next.nextXp).toBe(1000);
     expect(wave(next)).toBe(61);
     expect(next.entities.find(e => e.id === 901)?.hp).toBe(80);
     expect(next.entities.find(e => e.id === 901)?.maxHp).toBe(160);
@@ -202,7 +204,7 @@ describe("survivor fixed-step engine", () => {
       ["dry", "copypaste", "共通化されたコピペ"],
     ] as const;
     expect(recipes).toHaveLength(65);
-    expect(upgrades).toHaveLength(130);
+    expect(upgrades).toHaveLength(160);
     for (const [a, b, name] of recipes) {
       expect(evolutionPartners[a]).toBe(b);
       expect(evolutionPartners[b]).toBe(a);
@@ -232,6 +234,21 @@ describe("survivor fixed-step engine", () => {
     expect(w.evolutions).toContain("リトライストーム");
     expect(evolutionReady(w, "retry")).toBe(false);
     expect(evolutionReady(w, "timeout")).toBe(false);
+  });
+  it("activates all 15 new combinations in either order", () => {
+    for (let i = 0; i < 30; i += 2) {
+      const a = `extra${String(i).padStart(2, "0")}` as UpgradeId;
+      const b = `extra${String(i + 1).padStart(2, "0")}` as UpgradeId;
+      expect(evolutionPartners[a]).toBe(b);
+      expect(evolutionPartners[b]).toBe(a);
+      for (const [first, second] of [[a, b], [b, a]]) {
+        let w = createWorld();
+        w.phase = "upgrade"; w.choices = [first]; w = chooseUpgrade(w, first);
+        expect(evolutionReady(w, second)).toBe(true);
+        w.phase = "upgrade"; w.choices = [second]; w = chooseUpgrade(w, second);
+        expect(w.evolutions).toContain(evolutionNames[first]);
+      }
+    }
   });
   it("previews only the actual extra evolution bonus without mutating the world", () => {
     const w = createWorld();

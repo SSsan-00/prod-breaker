@@ -1,4 +1,4 @@
-/** Frozen replay version 2. Add a new version instead of changing this file. */
+/** Replay engine for current game version. */
 // Quantize implementation-dependent transcendental results so a recorded run
 // produces the same decisions in browser engines and on the Node server.
 const stable = (value: number) => Math.round(value * 1_000_000) / 1_000_000;
@@ -101,6 +101,7 @@ export type UpgradeId =
   | "yagni" | "futureproof" | "solid" | "interface" | "kiss" | "clever" | "dry" | "copypaste"
   | "fridaydeploy" | "vacation" | "disabletest" | "greenci" | "directdb" | "nobackup" | "ignoreerror" | "emptycatch"
   | "quickfix" | "todo" | "estimate" | "scopecreep" | "mysterycode" | "gitblame"
+  | "extra00" | "extra01" | "extra02" | "extra03" | "extra04" | "extra05" | "extra06" | "extra07" | "extra08" | "extra09" | "extra10" | "extra11" | "extra12" | "extra13" | "extra14" | "extra15" | "extra16" | "extra17" | "extra18" | "extra19" | "extra20" | "extra21" | "extra22" | "extra23" | "extra24" | "extra25" | "extra26" | "extra27" | "extra28" | "extra29"
   | "weakpin" | "pinlabel" | "phishing" | "urlcheck" | "openredirect" | "trustedlink" | "dependencyrisk" | "typosquat" | "usbunknown" | "autorun" | "alertstorm" | "alertfatigue" | "runbookold" | "tribalknowledge" | "diskfull" | "logrotate" | "failover" | "standby" | "capacity" | "trafficspike";
 export const upgrades: {
   id: UpgradeId;
@@ -528,6 +529,36 @@ export const upgrades: {
   { id: "shoulder", name: "背後から失礼します", type: "BUG", icon: "◉", description: "攻撃力 +8、ログ回収範囲 +35。パスワード、丸見えですよ。" },
   { id: "privacyfilter", name: "覗き見防止は気合い", type: "CHAIN", icon: "▣", description: "連鎖範囲 +25、連鎖ダメージ +8。背後の視線は見なかったことに。" },
   { id: "publicchat", name: "全員見えるチャンネル", type: "BOOST", icon: "☏", description: "最大HP +20、HP回復 +20。共有範囲は確認済み？" },
+  { id: "extra00", name: "本番でデバッグ", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra01", name: "ログは標準出力", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra02", name: "障害対応は気合い", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra03", name: "再起動で様子見", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra04", name: "誰も知らない定期ジョブ", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra05", name: "深夜だけ動くバッチ", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra06", name: "権限は全部付与", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra07", name: "公開範囲は全世界", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra08", name: "競合は後で解決", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra09", name: "強制プッシュで解決", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra10", name: "依存更新は一括で", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra11", name: "バージョン固定忘れ", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra12", name: "アラートは全部通知", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra13", name: "通知先は退職済み", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra14", name: "環境差分を手動修正", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra15", name: "手順書は脳内保存", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra16", name: "金曜の緊急デプロイ", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra17", name: "週末は待機当番", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra18", name: "タイムアウトは無限", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra19", name: "リトライ間隔はゼロ", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra20", name: "パスワードは共有", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra21", name: "鍵はチャットで送信", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra22", name: "容量予測は勘", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra23", name: "ディスクはまだ大丈夫", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra24", name: "障害会議を増やす", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra25", name: "担当者は会議中", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra26", name: "テストは本番で", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
+  { id: "extra27", name: "ロールバックは未確認", type: "BUG", icon: "✦", description: "攻撃力 +10、連鎖ダメージ +6。" },
+  { id: "extra28", name: "変更理由は不明", type: "CHAIN", icon: "✦", description: "連鎖範囲 +25、連鎖ダメージ +8。" },
+  { id: "extra29", name: "書いた人は不在", type: "BOOST", icon: "✦", description: "BP倍率 +20%、攻撃力 +6。" },
 ];
 export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   retry: "timeout",
@@ -596,6 +627,21 @@ export const evolutionPartners: Partial<Record<UpgradeId, UpgradeId>> = {
   directdb: "nobackup", nobackup: "directdb", ignoreerror: "emptycatch", emptycatch: "ignoreerror",
   yagni: "futureproof", futureproof: "yagni", solid: "interface", interface: "solid",
   kiss: "clever", clever: "kiss", dry: "copypaste", copypaste: "dry",
+  extra00: "extra01", extra01: "extra00",
+  extra02: "extra03", extra03: "extra02",
+  extra04: "extra05", extra05: "extra04",
+  extra06: "extra07", extra07: "extra06",
+  extra08: "extra09", extra09: "extra08",
+  extra10: "extra11", extra11: "extra10",
+  extra12: "extra13", extra13: "extra12",
+  extra14: "extra15", extra15: "extra14",
+  extra16: "extra17", extra17: "extra16",
+  extra18: "extra19", extra19: "extra18",
+  extra20: "extra21", extra21: "extra20",
+  extra22: "extra23", extra23: "extra22",
+  extra24: "extra25", extra25: "extra24",
+  extra26: "extra27", extra27: "extra26",
+  extra28: "extra29", extra29: "extra28",
 };
 
 export const evolutionNames: Partial<Record<UpgradeId, string>> = {
@@ -664,6 +710,21 @@ export const evolutionNames: Partial<Record<UpgradeId, string>> = {
   backup: "復元できない安心", restore: "復元できない安心",
   regex: "文字化け大正解", encoding: "文字化け大正解",
   queue: "無限二重配送", duplicate: "無限二重配送",
+  extra00: "本番デバッグ祭り", extra01: "本番デバッグ祭り",
+  extra02: "根性の無限再起動", extra03: "根性の無限再起動",
+  extra04: "夜更かしバッチ", extra05: "夜更かしバッチ",
+  extra06: "全世界に大公開", extra07: "全世界に大公開",
+  extra08: "競合なき世界", extra09: "競合なき世界",
+  extra10: "依存関係大爆発", extra11: "依存関係大爆発",
+  extra12: "届かない緊急通知", extra13: "届かない緊急通知",
+  extra14: "秘伝の環境構築", extra15: "秘伝の環境構築",
+  extra16: "週末障害フェス", extra17: "週末障害フェス",
+  extra18: "永遠のリトライ", extra19: "永遠のリトライ",
+  extra20: "秘密の大共有", extra21: "秘密の大共有",
+  extra22: "容量いっぱいの夢", extra23: "容量いっぱいの夢",
+  extra24: "復旧会議マラソン", extra25: "復旧会議マラソン",
+  extra26: "本番テスト開幕", extra27: "本番テスト開幕",
+  extra28: "謎コードの継承者", extra29: "謎コードの継承者",
 };
 
 export type World = {
@@ -1224,6 +1285,36 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
       w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 7; break;
     case "capacity":
       w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.92, true); w.multiplier += 0.1; break;
+    case "extra00": w.damage += 10; w.chainDamage += 6; break;
+    case "extra01": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra02": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra03": w.damage += 10; w.chainDamage += 6; break;
+    case "extra04": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra05": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra06": w.damage += 10; w.chainDamage += 6; break;
+    case "extra07": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra08": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra09": w.damage += 10; w.chainDamage += 6; break;
+    case "extra10": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra11": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra12": w.damage += 10; w.chainDamage += 6; break;
+    case "extra13": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra14": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra15": w.damage += 10; w.chainDamage += 6; break;
+    case "extra16": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra17": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra18": w.damage += 10; w.chainDamage += 6; break;
+    case "extra19": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra20": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra21": w.damage += 10; w.chainDamage += 6; break;
+    case "extra22": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra23": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra24": w.damage += 10; w.chainDamage += 6; break;
+    case "extra25": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra26": w.multiplier += 0.2; w.damage += 6; break;
+    case "extra27": w.damage += 10; w.chainDamage += 6; break;
+    case "extra28": w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 25, false); w.chainDamage += 8; break;
+    case "extra29": w.multiplier += 0.2; w.damage += 6; break;
     case "trafficspike":
       w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.damage += 4; break;
     case "quickfix":
@@ -1452,6 +1543,21 @@ export function chooseUpgrade(state: World, upgrade: UpgradeId): World {
     { name: evolutionNames.kiss!, pair: ["kiss", "clever"], apply: () => { w.damage += 25; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
     { name: evolutionNames.dry!, pair: ["dry", "copypaste"], apply: () => { w.multishot = capUpgrade(w, "multishot", 6, w.multishot + 1, false); w.chainDamage += 20; } },
     { name: evolutionNames.shoulder!, pair: ["shoulder", "privacyfilter"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); w.damage += 20; } },
+    { name: evolutionNames.extra00!, pair: ["extra00", "extra01"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
+    { name: evolutionNames.extra02!, pair: ["extra02", "extra03"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); w.multiplier += 0.4; } },
+    { name: evolutionNames.extra04!, pair: ["extra04", "extra05"], apply: () => { w.aura += 18; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.extra06!, pair: ["extra06", "extra07"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
+    { name: evolutionNames.extra08!, pair: ["extra08", "extra09"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); w.multiplier += 0.4; } },
+    { name: evolutionNames.extra10!, pair: ["extra10", "extra11"], apply: () => { w.aura += 18; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.extra12!, pair: ["extra12", "extra13"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
+    { name: evolutionNames.extra14!, pair: ["extra14", "extra15"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); w.multiplier += 0.4; } },
+    { name: evolutionNames.extra16!, pair: ["extra16", "extra17"], apply: () => { w.aura += 18; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.extra18!, pair: ["extra18", "extra19"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
+    { name: evolutionNames.extra20!, pair: ["extra20", "extra21"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); w.multiplier += 0.4; } },
+    { name: evolutionNames.extra22!, pair: ["extra22", "extra23"], apply: () => { w.aura += 18; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
+    { name: evolutionNames.extra24!, pair: ["extra24", "extra25"], apply: () => { w.damage += 25; w.chainDamage += 20; } },
+    { name: evolutionNames.extra26!, pair: ["extra26", "extra27"], apply: () => { w.chainRange = capUpgrade(w, "chainRange", 400, w.chainRange + 45, false); w.multiplier += 0.4; } },
+    { name: evolutionNames.extra28!, pair: ["extra28", "extra29"], apply: () => { w.aura += 18; w.fireInterval = capUpgrade(w, "fireInterval", 0.12, w.fireInterval * 0.8, true); } },
     { name: evolutionNames.secretlog!, pair: ["secretlog", "publicchat"], apply: () => { w.player.maxHp += 30; w.player.hp = w.player.maxHp; w.chainDamage += 18; } },
   ];
   for (const recipe of recipes)
@@ -1575,6 +1681,7 @@ export function stepWorld(state: World, input: Input): World {
   const coreHpFactor = secret ? 1.6 + secretWave * 0.035 : 1;
   const coreSpeedFactor = secret ? 1.16 + secretWave * 0.0075 : 1;
   if (secretStarted) {
+    w.nextXp = 1000;
     // Keep the existing cores' damage proportion while strengthening them.
     w.entities = w.entities.filter((e) => e.kind !== "drone" && e.kind !== "repair");
     for (const e of w.entities) if (e.kind === "boss") {
@@ -1833,7 +1940,7 @@ export function stepWorld(state: World, input: Input): World {
     // Retain earned XP while giving the player uninterrupted time between choices.
     w.nextUpgradeAt = w.time + (w.time < 30 ? 8 : 5);
     // Preserve the early curve and cap the requirement for long runs.
-    w.nextXp = Math.min(500, w.nextXp + Math.min(40, Math.round(w.nextXp * 0.25 + 2)));
+    w.nextXp = Math.min(secret ? 1000 : 500, w.nextXp + Math.min(40, Math.round(w.nextXp * 0.25 + 2)));
     w.choices = choices(w);
     w.phase = "upgrade";
     fx(w, w.player, "heal", "LEVEL UP");
