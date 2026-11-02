@@ -328,7 +328,8 @@ export default function Game() {
   const musicPhaseActive = snapshot.phase === "playing" || snapshot.phase === "upgrade";
   useEffect(() => {
     if (screen !== "run" || modal || integrityIncident || !musicPhaseActive || settings.mute) return;
-    return startMusic(settings.volume, () => wave(world.current), () => world.current.duration);
+    return startMusic(settings.volume, () => wave(world.current), () => world.current.duration,
+      () => ({ combo: world.current.combo, overdrive: world.current.time < world.current.overdriveUntil }));
   }, [screen, modal, integrityIncident, musicPhaseActive, settings.mute, settings.volume]);
   function updateSettings(patch: Partial<Settings>) {
     const next = { ...settings, ...patch };
