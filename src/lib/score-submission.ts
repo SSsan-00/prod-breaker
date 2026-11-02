@@ -42,7 +42,7 @@ export async function flushScores() {
     while (getQueue().length) {
       const entry = getQueue()[0];
       const response = await fetch("/api/leaderboard", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
-      if (response.status === 400 && entry.replay?.version === 1 && entry.replay.inputs) {
+      if (response.status === 400 && (entry.replay?.version === 1 || entry.replay?.version === 2) && entry.replay.inputs) {
         const result = await response.json().catch(() => null);
         if (result?.code === REPLAY_REJECTED) window.dispatchEvent(new Event(REPLAY_REJECTED_EVENT));
       }

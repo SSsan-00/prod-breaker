@@ -1572,14 +1572,14 @@ export function stepWorld(state: World, input: Input): World {
   const secret = isSecretMode(w);
   const secretStarted = secret && !isSecretMode(state);
   const secretWave = Math.max(0, wave(w) - 61);
-  const coreHpFactor = secret ? 1.35 + secretWave * 0.02 : 1;
-  const coreSpeedFactor = secret ? 1.1 + secretWave * 0.005 : 1;
+  const coreHpFactor = secret ? 1.6 + secretWave * 0.035 : 1;
+  const coreSpeedFactor = secret ? 1.16 + secretWave * 0.0075 : 1;
   if (secretStarted) {
     // Keep the existing cores' damage proportion while strengthening them.
     w.entities = w.entities.filter((e) => e.kind !== "drone" && e.kind !== "repair");
     for (const e of w.entities) if (e.kind === "boss") {
-      e.maxHp *= 1.35;
-      e.hp *= 1.35;
+      e.maxHp *= 1.6;
+      e.hp *= 1.6;
     }
   }
   const difficulty = lateWaveFactors(wave(w), w.duration);
@@ -1702,16 +1702,18 @@ export function stepWorld(state: World, input: Input): World {
       });
     }
   }
-  if (
+  const reinforcement = secret && Math.floor(w.time / 10) > Math.floor(state.time / 10) &&
+    Math.floor(w.time / 30) === w.bossWave && w.time < runEndTime(w);
+  if (reinforcement || (
     w.time >= 30 &&
     Math.floor(w.time / 30) > w.bossWave &&
     w.time < runEndTime(w)
-  ) {
+  )) {
     w.bossWave = Math.floor(w.time / 30);
     w.bossSpawned = true;
-    enteredWave = true;
+    enteredWave = !reinforcement;
     // Wave 2 brings one core, wave 3 brings two, and so on.
-    const count = w.bossWave;
+    const count = reinforcement ? 18 + secretWave * 2 : w.bossWave;
     // Keep the first core familiar; later waves scale with mature player builds.
     const baseCoreHp = w.bossWave <= 4
       ? Math.round((330 + w.bossWave * 250) * (1 + Math.max(0, w.bossWave - 1) * 0.2))
@@ -1748,7 +1750,7 @@ export function stepWorld(state: World, input: Input): World {
         flash: 0,
       });
     }
-    fx(w, w.player, "panic", "SRE CORE ONLINE");
+    if (!reinforcement) fx(w, w.player, "panic", "SRE CORE ONLINE");
   }
   for (const e of w.entities) {
     if (e.hp <= 0 || e.kind === "server") continue;

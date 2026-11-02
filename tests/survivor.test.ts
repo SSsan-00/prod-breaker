@@ -59,8 +59,8 @@ describe("survivor fixed-step engine", () => {
     expect(next.duration).toBe(ENDLESS_SECONDS);
     expect(isSecretMode(next)).toBe(true);
     expect(wave(next)).toBe(61);
-    expect(next.entities.find(e => e.id === 901)?.hp).toBe(67.5);
-    expect(next.entities.find(e => e.id === 901)?.maxHp).toBe(135);
+    expect(next.entities.find(e => e.id === 901)?.hp).toBe(80);
+    expect(next.entities.find(e => e.id === 901)?.maxHp).toBe(160);
     expect(next.entities.some(e => e.id === 902)).toBe(true);
     expect(next.entities.some(e => e.kind === "drone" || e.kind === "repair")).toBe(false);
     expect(next.effects.some(e => e.kind === "wave" && e.text === "SECRET MODE")).toBe(true);
@@ -83,6 +83,17 @@ describe("survivor fixed-step engine", () => {
     };
     expect(scoreAt(1790).score).toBe(116);
     expect(scoreAt(1810).score).toBe(232);
+  });
+  it("adds escalating core reinforcements between secret waves", () => {
+    for (const [time, count] of [[1810, 18], [2080, 36]]) {
+      const w = createWorld(42, ENDLESS_SECONDS);
+      w.time = time - STEP / 2; w.bossWave = Math.floor(time / 30);
+      w.entities = []; w.shotTimer = 10; w.spawnTimer = 10; w.serverTimer = 10;
+      const next = stepWorld(w, { x: 0, y: 0 });
+      expect(next.entities.filter(e => e.kind === "boss")).toHaveLength(count);
+      expect(next.effects.some(e => e.kind === "wave")).toBe(false);
+      expect(stepWorld(w, { x: 0, y: 0 })).toEqual(next);
+    }
   });
   it("continues spawning cores above 70 while honoring the secret-mode entity cap", () => {
     const w = createWorld(42, ENDLESS_SECONDS);

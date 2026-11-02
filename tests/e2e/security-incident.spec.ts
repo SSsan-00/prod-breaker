@@ -42,7 +42,7 @@ test("every random name fits the input on narrow phones", async ({ page }, info)
 
 test("shows the hidden incident only for a rejected replay and can be dismissed", async ({ page }, info) => {
   await page.addInitScript(() => {
-    localStorage.setItem("pb-pending-scores", JSON.stringify([{ name: "本番の破壊神", duration: 90, score: 999, runId: "1f5f5190-35b4-4009-a15b-3cb46af16213", replay: { version: 1, seed: 42, inputs: "AAAA", upgrades: [] } }]));
+    localStorage.setItem("pb-pending-scores", JSON.stringify([{ name: "本番の破壊神", duration: 90, score: 999, runId: "1f5f5190-35b4-4009-a15b-3cb46af16213", replay: { version: 2, seed: 42, inputs: "AAAA", upgrades: [] } }]));
   });
   await page.route("**/api/leaderboard", route => route.fulfill({ status: 400, json: { code: "REPLAY_REJECTED", error: "プレイ記録を検証できませんでした。" } }));
   await page.goto("/");

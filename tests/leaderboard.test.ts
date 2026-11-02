@@ -4,10 +4,24 @@ import { GET, POST } from "../src/app/api/leaderboard/route";
 import { finishReplay, recordInput, type Recorder } from "../src/game/replay";
 import { verifyReplay } from "../src/game/verify-replay";
 import { chooseUpgrade, createWorld, stepWorld } from "../src/game/survivor";
+import * as oldEngine from "../src/game/replay-engine-v1";
 
 const sqlMock = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 vi.mock("@neondatabase/serverless", () => ({ neon: () => sqlMock }));
 const placeholderReplay = { version: 1 as const, seed: 42, inputs: "", upgrades: [] };
+
+it("still verifies runs recorded before the secret-mode update", () => {
+  const recorder: Recorder = { seed: 42, inputs: [], upgrades: [] };
+  let world = oldEngine.createWorld(42, 90);
+  while (world.phase !== "won" && world.phase !== "lost") {
+    if (world.phase === "upgrade") {
+      recorder.upgrades.push([recorder.inputs.length / 3, world.choices[0]]);
+      world = oldEngine.chooseUpgrade(world, world.choices[0]);
+    }
+    world = oldEngine.stepWorld(world, recordInput(recorder, { x: 0, y: 0 }));
+  }
+  expect(verifyReplay({ ...finishReplay(recorder), version: 1 }, 90, world.score)).toBe(true);
+});
 
 it("replays a completed run and rejects forged scores, missing inputs and invalid upgrades", () => {
   const recorder: Recorder = { seed: 42, inputs: [], upgrades: [] };
