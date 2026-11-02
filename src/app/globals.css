@@ -2025,7 +2025,7 @@ footer {
 .leaderboard > :not(.leaderboard-list) { flex-shrink: 0; }
 .leaderboard h2 { margin: 8px 0 14px; }
 .leaderboard .player-name { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
-.leaderboard .player-name label { flex: 0 0 auto; white-space: nowrap; }
+.leaderboard .player-name label { flex: 0 0 auto; white-space: nowrap; padding: 0; border: 0; }
 .leaderboard .player-name input { min-width: 0; width: 100%; color: #f0f5e9; background: #0c1718; border: 1px solid #657c63; border-radius: 3px; padding: 9px; user-select: text; -webkit-user-select: text; }
 .survivor .leaderboard .random-name { flex: 0 0 40px; display: grid; place-items: center; width: 40px; height: 40px; padding: 9px; border: 1px solid #617b5e; border-radius: 3px; background: #15261f; color: #d4fa53; }
 .survivor .leaderboard .random-name:hover { border-color: #d4fa53; background: #243d2d; }
@@ -2068,3 +2068,9 @@ footer {
 .reduced .integrity-incident { animation: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .integrity-incident { animation: none; box-shadow: none; } }
 @media (max-width: 360px) { .leaderboard .player-name { gap: 6px; } .leaderboard .player-name label { font-size: 11px; } }
+@media (max-width: 480px) {
+  .leaderboard .player-name { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; }
+  .leaderboard .player-name label { grid-column: 1 / -1; }
+  .leaderboard .player-name input { font-size: 16px; }
+}
+@media (max-width: 360px) { .leaderboard { padding-inline: 12px; } }

@@ -16,9 +16,9 @@ export default function IntegrityIncident({ onClose }: { onClose: () => void }) 
       <p className="integrity-kicker">THE LOGS ARE WATCHING</p>
       <h2 id="integrity-title">ACCESS DENIED<span>_</span></h2>
       <p className="integrity-message">その記録、見逃さない。</p>
-      <p id="integrity-description" className="integrity-description">プレイ記録を検証できませんでした。<br />スコアは登録されていません。<br />これはゲーム内の演出です。</p>
+      <p id="integrity-description" className="integrity-description">プレイ記録を検証できませんでした。<br />スコアは登録されていません。</p>
       <button autoFocus type="button" className="integrity-close" onClick={onClose}>画面に戻る <span aria-hidden="true">↗</span></button>
-      <div className="integrity-footer">PROD BREAKER / SIMULATION ONLY</div>
+      <div className="integrity-footer">PROD BREAKER / ACCESS CONTROL</div>
     </section>
   </div>;
 }

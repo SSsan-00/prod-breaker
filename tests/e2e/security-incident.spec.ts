@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { defaultNames } from "../../src/lib/leaderboard";
 
 test("randomizes the player name without opening the keyboard and saves it on request", async ({ page }, info) => {
   if (info.project.name === "mobile") await page.setViewportSize({ width: 320, height: 480 });
@@ -19,6 +20,26 @@ test("randomizes the player name without opening the keyboard and saves it on re
   await expect(page.getByLabel("プレイヤー名")).toHaveValue(next);
 });
 
+test("every random name fits the input on narrow phones", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile");
+  await page.route("**/api/leaderboard?*", route => route.fulfill({ json: { scores: [] } }));
+  await page.goto("/");
+  await page.getByRole("button", { name: "スコアボード", exact: true }).click();
+  const input = page.getByLabel("プレイヤー名");
+  for (const width of [280, 320, 360, 390]) {
+    await page.setViewportSize({ width, height: 480 });
+    const measurements = await input.evaluate((element: HTMLInputElement, names) => {
+      const style = getComputedStyle(element);
+      const context = document.createElement("canvas").getContext("2d")!;
+      context.font = style.font;
+      const available = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      return names.map(name => ({ name, width: context.measureText(name).width, available }));
+    }, [...defaultNames]);
+    for (const { name, width: textWidth, available } of measurements)
+      expect(textWidth, `${width}px: ${name}`).toBeLessThanOrEqual(available - 1);
+  }
+});
+
 test("shows the hidden incident only for a rejected replay and can be dismissed", async ({ page }, info) => {
   await page.addInitScript(() => {
     localStorage.setItem("pb-pending-scores", JSON.stringify([{ name: "本番の破壊神", duration: 90, score: 999, runId: "1f5f5190-35b4-4009-a15b-3cb46af16213", replay: { version: 1, seed: 42, inputs: "AAAA", upgrades: [] } }]));
@@ -28,6 +49,7 @@ test("shows the hidden incident only for a rejected replay and can be dismissed"
   const dialog = page.getByRole("alertdialog", { name: /ACCESS DENIED/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("その記録、見逃さない。")).toBeVisible();
+  await expect(dialog).not.toContainText(/ゲーム内の演出|SIMULATION ONLY/);
   if (info.project.name === "mobile") expect(await dialog.evaluate(el => getComputedStyle(el).animationName)).toBe("none");
   await expect(dialog.getByRole("button", { name: "画面に戻る" })).toBeFocused();
   await page.keyboard.press("Escape");
