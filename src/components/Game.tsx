@@ -25,6 +25,7 @@ import Leaderboard from "./Leaderboard";
 import { enqueueScore, flushScores, playerName } from "@/lib/score-submission";
 import { read, write } from "@/lib/storage";
 import { sound, startMusic } from "@/effects/audio";
+import { finishReplay, recordInput, type Recorder, type Replay } from "@/game/replay";
 const levelUpMessages = [
   "もっと、壊せる。",
   "本番は、まだ動いている。",
@@ -56,6 +57,8 @@ export default function Game() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [leaderboardName, setLeaderboardName] = useState("");
   const [runId, setRunId] = useState("");
+  const recorder = useRef<Recorder | null>(null);
+  const [finishedReplay, setFinishedReplay] = useState<Replay | null>(null);
   const closeLeaderboard = useCallback(() => setLeaderboardOpen(false), []);
   function openLeaderboard() {
     setLeaderboardName(playerName());
@@ -251,10 +254,11 @@ export default function Game() {
             Number(k.has("w") || k.has("arrowup")),
         };
         const movement = keyboard.x || keyboard.y ? keyboard : input.current;
-        world.current = stepWorld(world.current, {
+        const nextInput = {
           ...movement,
           panic: panicPending.current,
-        });
+        };
+        world.current = stepWorld(world.current, recorder.current ? recordInput(recorder.current, nextInput) : nextInput);
         panicPending.current = false;
         changed = true;
       }
@@ -286,7 +290,12 @@ export default function Game() {
       }
       if (w.phase === "won" || w.phase === "lost") {
         setSnapshot(w);
-        enqueueScore({ runId, duration: w.duration, score: w.score });
+        if (recorder.current) {
+          const replay = finishReplay(recorder.current);
+          setFinishedReplay(replay);
+          enqueueScore({ runId, duration: w.duration, score: w.score, replay });
+          recorder.current = null;
+        }
         setHigh((previous) => {
           const value = Math.max(previous, w.score);
           write(`pb-survivor-high-${w.duration}`, value);
@@ -317,6 +326,8 @@ export default function Game() {
       param !== null && Number.isFinite(Number(param))
         ? Number(param) >>> 0
         : Math.floor(Math.random() * 0xffffffff);
+    recorder.current = { seed, inputs: [], upgrades: [] };
+    setFinishedReplay(null);
     setRunId(crypto.randomUUID());
     world.current = createWorld(seed, duration);
     setSnapshot(world.current);
@@ -328,6 +339,7 @@ export default function Game() {
   }
   function select(id: UpgradeId) {
     if (world.current.phase !== "upgrade") return;
+    recorder.current?.upgrades.push([recorder.current.inputs.length / 3, id]);
     const previous = world.current.evolutions.length;
     const bonus = evolutionBonus(world.current, id);
     world.current = chooseUpgrade(world.current, id);
@@ -787,7 +799,7 @@ export default function Game() {
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
-        {leaderboardOpen && <Leaderboard initialName={leaderboardName} duration={screen === "result" ? w.duration : duration} currentScore={screen === "result" ? { runId, duration: w.duration, score: w.score } : undefined} onClose={closeLeaderboard} />}
+        {leaderboardOpen && <Leaderboard initialName={leaderboardName} duration={screen === "result" ? w.duration : duration} currentScore={screen === "result" && finishedReplay ? { runId, duration: w.duration, score: w.score, replay: finishedReplay } : undefined} onClose={closeLeaderboard} />}
         {modal && (
           <div className="modal-backdrop">
             <section

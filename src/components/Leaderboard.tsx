@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { durations, modeLabel, validName, type ScoreEntry } from "@/lib/leaderboard";
-import { enqueueScore, savePlayerName } from "@/lib/score-submission";
+import { enqueueScore, savePlayerName, type ScoreSubmission } from "@/lib/score-submission";
 
-type Props = { initialName: string; duration: number; currentScore?: { runId: string; duration: number; score: number }; onClose: () => void };
+type Props = { initialName: string; duration: number; currentScore?: ScoreSubmission; onClose: () => void };
 export default function Leaderboard({ initialName, duration, currentScore, onClose }: Props) {
   const dialogRef = useRef<HTMLElement>(null);
   const [name, setName] = useState(initialName);

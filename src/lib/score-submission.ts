@@ -1,7 +1,9 @@
 import { defaultNames, validName } from "./leaderboard";
 import { read, write } from "./storage";
+import type { Replay } from "@/game/replay";
 
-type PendingScore = { name: string; duration: number; score: number; runId: string };
+export type ScoreSubmission = { duration: number; score: number; runId: string; replay: Replay };
+type PendingScore = ScoreSubmission & { name: string };
 const queueKey = "pb-pending-scores";
 let fallbackName = "";
 let fallbackQueue: PendingScore[] = [];
@@ -26,7 +28,7 @@ function setQueue(queue: PendingScore[]) {
   fallbackQueue = queue;
   write(queueKey, queue);
 }
-export function enqueueScore(score: Omit<PendingScore, "name">) {
+export function enqueueScore(score: ScoreSubmission) {
   const queue = getQueue().filter((entry) => entry.runId !== score.runId);
   queue.push({ ...score, name: playerName() });
   setQueue(queue);
@@ -39,7 +41,8 @@ export async function flushScores() {
     while (getQueue().length) {
       const entry = getQueue()[0];
       const response = await fetch("/api/leaderboard", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(entry) });
-      if (!response.ok) break;
+      // Old unverified submissions cannot be accepted, and must not block newer runs.
+      if (!response.ok && response.status !== 400 && response.status !== 413) break;
       setQueue(getQueue().filter((item) => item.runId !== entry.runId || item.name !== entry.name));
     }
   } catch { /* Keep pending scores for the next visit or reconnection. */ }

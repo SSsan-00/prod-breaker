@@ -1,4 +1,11 @@
 /** Pure, fixed-step simulation. No browser, clock, rendering or network access. */
+// Quantize implementation-dependent transcendental results so a recorded run
+// produces the same decisions in browser engines and on the Node server.
+const stable = (value: number) => Math.round(value * 1_000_000) / 1_000_000;
+const stableHypot = (x: number, y: number) => stable(Math.hypot(x, y));
+const stableSin = (x: number) => stable(Math.sin(x));
+const stableCos = (x: number) => stable(Math.cos(x));
+const stableAtan2 = (y: number, x: number) => stable(Math.atan2(y, x));
 export const STEP = 1 / 30;
 export const RUN_SECONDS = 90;
 export const ENDLESS_SECONDS = 1800;
@@ -716,7 +723,7 @@ export function evolutionReady(w: Pick<World, "build" | "evolutions">, id: Upgra
 
 export type Input = { x: number; y: number; panic?: boolean };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
-const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y);
+const distance = (a: Vec, b: Vec) => stableHypot(a.x - b.x, a.y - b.y);
 function random(w: World) {
   w.rng = (Math.imul(w.rng, 1664525) + 1013904223) >>> 0;
   return w.rng / 4294967296;
@@ -745,8 +752,8 @@ function spawnServer(w: World) {
   const angle = random(w) * Math.PI * 2,
     radius = 160 + random(w) * (w.time >= 60 ? 320 : 380);
   server(w, {
-    x: clamp(w.player.x + Math.cos(angle) * radius, 50, 1950),
-    y: clamp(w.player.y + Math.sin(angle) * radius, 50, 1950),
+    x: clamp(w.player.x + stableCos(angle) * radius, 50, 1950),
+    y: clamp(w.player.y + stableSin(angle) * radius, 50, 1950),
   });
 }
 export function createWorld(seed = 42, duration = RUN_SECONDS): World {
@@ -802,8 +809,8 @@ export function createWorld(seed = 42, duration = RUN_SECONDS): World {
   for (let i = 0; i < 7; i++) {
     const a = (i / 7) * Math.PI * 2;
     server(w, {
-      x: 1000 + Math.cos(a) * (110 + (i % 2) * 55),
-      y: 1000 + Math.sin(a) * (110 + (i % 2) * 55),
+      x: 1000 + stableCos(a) * (110 + (i % 2) * 55),
+      y: 1000 + stableSin(a) * (110 + (i % 2) * 55),
     });
   }
   for (let i = 0; i < 19; i++) spawnServer(w);
@@ -1582,7 +1589,7 @@ export function stepWorld(state: World, input: Input): World {
   w.effects = w.effects.filter((e) => (e.life -= dt) > 0);
   const ix = Number.isFinite(input.x) ? input.x : 0,
     iy = Number.isFinite(input.y) ? input.y : 0,
-    length = Math.max(1, Math.hypot(ix, iy));
+    length = Math.max(1, stableHypot(ix, iy));
   w.player.x = clamp(w.player.x + (ix / length) * w.speed * dt, 28, 1972);
   w.player.y = clamp(w.player.y + (iy / length) * w.speed * dt, 28, 1972);
   if (input.panic && w.panicCooldown <= 0) {
@@ -1615,13 +1622,13 @@ export function stepWorld(state: World, input: Input): World {
       for (let i = 0; i < w.multishot; i++) {
         const t = live[i % live.length].entity,
           angle =
-            Math.atan2(t.y - w.player.y, t.x - w.player.x) +
+            stableAtan2(t.y - w.player.y, t.x - w.player.x) +
             (i >= live.length ? (i - (w.multishot - 1) / 2) * 0.12 : 0);
         w.shots.push({
           ...w.player,
           id: id(w),
-          vx: Math.cos(angle) * 540,
-          vy: Math.sin(angle) * 540,
+          vx: stableCos(angle) * 540,
+          vy: stableSin(angle) * 540,
           life: 1.05,
           damage: w.damage,
           pierce: w.pierce,
@@ -1677,8 +1684,8 @@ export function stepWorld(state: World, input: Input): World {
     const hp = Math.max(Math.round(baseHp * difficulty.hp), baseHp + escalationStep(wave(w), w.duration));
     w.entities.push({
       id: id(w),
-      x: clamp(w.player.x + Math.cos(angle) * 460, 20, 1980),
-      y: clamp(w.player.y + Math.sin(angle) * 460, 20, 1980),
+      x: clamp(w.player.x + stableCos(angle) * 460, 20, 1980),
+      y: clamp(w.player.y + stableSin(angle) * 460, 20, 1980),
       hp,
       maxHp: hp,
       kind,
@@ -1689,8 +1696,8 @@ export function stepWorld(state: World, input: Input): World {
     if (w.time >= 30 && w.entities.length < 95) {
       w.entities.push({
         id: id(w),
-        x: clamp(w.player.x - Math.cos(angle) * 460, 20, 1980),
-        y: clamp(w.player.y - Math.sin(angle) * 460, 20, 1980),
+        x: clamp(w.player.x - stableCos(angle) * 460, 20, 1980),
+        y: clamp(w.player.y - stableSin(angle) * 460, 20, 1980),
         hp, maxHp: hp, kind: "drone", label: "WAF", flash: 0,
       });
     }

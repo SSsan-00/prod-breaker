@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { evolutionNames } from "../../src/game/survivor";
+import { verifyReplay } from "../../src/game/verify-replay";
+import type { Replay } from "../../src/game/replay";
 
 test("quick mode raises music pitch at wave two without restarting it", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
@@ -931,7 +933,7 @@ test("scoreboard keeps its height across empty, populated and error states", asy
 
 test("result score is shared automatically", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop");
-  let posted: { name: string; duration: number; score: number; runId: string } | undefined;
+  let posted: { name: string; duration: number; score: number; runId: string; replay: Replay } | undefined;
   await page.route("**/api/leaderboard**", async (route) => {
     if (route.request().method() === "POST") {
       posted = route.request().postDataJSON();
@@ -957,6 +959,7 @@ test("result score is shared automatically", async ({ page }, info) => {
   await expect.poll(() => posted?.name).toBe("本番の破壊神");
   expect(posted?.duration).toBe(90);
   expect(posted?.score).toBeGreaterThan(0);
+  expect(verifyReplay(posted?.replay, posted!.duration, posted!.score)).toBe(true);
   expect(posted?.runId).toMatch(/^[0-9a-f-]{36}$/);
   await page.getByRole("button", { name: /ランキング →/ }).click();
   const resultDialog = page.getByRole("dialog", { name: "スコアボード" });
