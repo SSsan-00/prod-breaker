@@ -69,18 +69,6 @@ describe("leaderboard validation", () => {
       expect((await post(entry)).status).toBe(503);
     } finally { if (saved !== undefined) process.env.DATABASE_URL = saved; else delete process.env.DATABASE_URL; }
   });
-  it("limits the requested cleanup to the identified ENDLESS outlier", async () => {
-    const saved = process.env.DATABASE_URL;
-    process.env.DATABASE_URL = "postgresql://example.invalid/db";
-    sqlMock.mockClear();
-    try {
-      expect((await GET(new Request("http://localhost/api/leaderboard?duration=1800"))).status).toBe(200);
-      expect(sqlMock).toHaveBeenCalledTimes(2);
-      const [query, ...values] = sqlMock.mock.calls[0];
-      expect(query.join("?")).toContain("duration = 1800 AND player_name = ? AND score = 9999999999");
-      expect(values).toEqual(["Stack", "2026-11-01T14:11:22.225Z", "2026-11-01T14:11:22.226Z"]);
-    } finally { if (saved === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = saved; }
-  });
 });
 
 describe("automatic score submission", () => {

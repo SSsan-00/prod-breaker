@@ -15,10 +15,6 @@ export async function GET(request: Request) {
   if (!url) return unavailable();
   try {
     const sql = neon(url);
-    if (duration === 1800) {
-      // Remove the specifically identified outlier; leave all other records intact.
-      await sql`DELETE FROM leaderboard_scores WHERE duration = 1800 AND player_name = ${"Stack"} AND score = 9999999999 AND created_at >= ${"2026-11-01T14:11:22.225Z"}::timestamptz AND created_at < ${"2026-11-01T14:11:22.226Z"}::timestamptz`;
-    }
     const rows = await sql`SELECT player_name, score, created_at FROM leaderboard_scores WHERE duration = ${duration} ORDER BY score DESC, created_at ASC LIMIT 30`;
     return Response.json({ scores: rows }, { headers: { "Cache-Control": "no-store" } });
   } catch { return unavailable(); }
