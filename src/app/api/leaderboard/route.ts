@@ -1,5 +1,5 @@
 import { neon } from "@neondatabase/serverless";
-import { durations, validName } from "@/lib/leaderboard";
+import { durations, validName, REPLAY_REJECTED } from "@/lib/leaderboard";
 import { verifyReplay } from "@/game/verify-replay";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "入力内容を確認してください。" }, { status: 400 });
   const url = available();
   if (!url) return unavailable();
-  if (!verifyReplay(replay, duration, score)) return Response.json({ error: "プレイ記録を検証できませんでした。" }, { status: 400 });
+  if (!verifyReplay(replay, duration, score)) return Response.json({ error: "プレイ記録を検証できませんでした。", code: REPLAY_REJECTED, incident: "THE LOGS ARE WATCHING." }, { status: 400 });
   try {
     const sql = neon(url);
     await sql`INSERT INTO leaderboard_scores (run_id, player_name, duration, score) VALUES (${runId}, ${name}, ${duration}, ${score}) ON CONFLICT (run_id) DO UPDATE SET player_name = EXCLUDED.player_name WHERE leaderboard_scores.duration = EXCLUDED.duration AND leaderboard_scores.score = EXCLUDED.score`;

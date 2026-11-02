@@ -965,6 +965,9 @@ test("result score is shared automatically", async ({ page }, info) => {
   const resultDialog = page.getByRole("dialog", { name: "スコアボード" });
   await expect(resultDialog).toBeVisible();
   const initialRunId = posted?.runId;
+  const previousName = await resultDialog.getByLabel("プレイヤー名").inputValue();
+  await resultDialog.getByRole("button", { name: "名前をランダムに変更" }).click();
+  expect(await resultDialog.getByLabel("プレイヤー名").inputValue()).not.toBe(previousName);
   await resultDialog.getByLabel("プレイヤー名").fill("新しい破壊神");
   await resultDialog.getByRole("button", { name: "名前を保存" }).click();
   await expect.poll(() => posted?.name).toBe("新しい破壊神");

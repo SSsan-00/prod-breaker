@@ -2025,8 +2025,12 @@ footer {
 .leaderboard > :not(.leaderboard-list) { flex-shrink: 0; }
 .leaderboard h2 { margin: 8px 0 14px; }
 .leaderboard .player-name { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
-.leaderboard .player-name span { flex: 0 0 auto; white-space: nowrap; }
+.leaderboard .player-name label { flex: 0 0 auto; white-space: nowrap; }
 .leaderboard .player-name input { min-width: 0; width: 100%; color: #f0f5e9; background: #0c1718; border: 1px solid #657c63; border-radius: 3px; padding: 9px; user-select: text; -webkit-user-select: text; }
+.survivor .leaderboard .random-name { flex: 0 0 40px; display: grid; place-items: center; width: 40px; height: 40px; padding: 9px; border: 1px solid #617b5e; border-radius: 3px; background: #15261f; color: #d4fa53; }
+.survivor .leaderboard .random-name:hover { border-color: #d4fa53; background: #243d2d; }
+.survivor .leaderboard .random-name:focus-visible { outline: 2px solid #d4fa53; outline-offset: 2px; }
+.random-name svg { display: block; width: 100%; height: 100%; }
 .survivor .leaderboard .leaderboard-submit { width: auto; min-width: 0; margin: 10px 0 0; padding: 9px 16px; align-self: flex-start; justify-content: center; }
 .leaderboard .leaderboard-note { margin: 12px 0 14px; font-size: 10px; line-height: 1.5; color: #aabcae; }
 .leaderboard-modes { display: flex; gap: 4px; }
@@ -2042,3 +2046,25 @@ footer {
   .leaderboard { padding: 18px 20px; }
   .leaderboard .player-name { padding: 8px 0; }
 }
+
+/* A fictional security incident, shown only when replay verification fails. */
+.integrity-backdrop { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow: auto; padding: 16px; background: #08070bf5; }
+.integrity-backdrop::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 4px, #ff3e4c0d 5px 6px), radial-gradient(ellipse at center, #64172466, transparent 70%); }
+.integrity-incident { position: relative; width: min(100%, 520px); padding: clamp(22px, 5vh, 42px); text-align: center; border: 1px solid #b84a55; background: linear-gradient(155deg, #210b13, #090c10 65%); box-shadow: 0 0 0 5px #1a0c12, 0 0 64px #ff29423b; animation: integrity-enter .45s cubic-bezier(.15,.8,.25,1) both; }
+.integrity-code, .integrity-footer { color: #f47e88; letter-spacing: .18em; font: 700 10px monospace; }
+.integrity-face { display: block; width: min(220px, 48vw); height: auto; margin: clamp(12px, 3vh, 28px) auto 8px; filter: drop-shadow(0 0 16px #ff344880); }
+.integrity-face-frame { fill: #17090e; stroke: #9e3847; stroke-width: 3; }
+.integrity-eyes { fill: #ff5365; }
+.integrity-mouth { fill: none; stroke: #ff8790; stroke-width: 3; }
+.integrity-kicker { margin: 14px 0 4px; color: #ff8992; font: 700 10px monospace; letter-spacing: .24em; }
+.integrity-incident h2 { margin: 0; color: #fff0ec; font: 900 clamp(30px, 8vw, 52px)/1 monospace; letter-spacing: -.04em; white-space: nowrap; text-shadow: 3px 0 #b62a43, -2px 0 #56b8b8; }
+.integrity-incident h2 span { color: #ff4c5d; }
+.integrity-message { margin: 14px 0 8px; color: #ffe3de; font-weight: 700; }
+.integrity-description { margin: 0; color: #c9a7a6; font-size: 12px; line-height: 1.7; }
+.survivor .integrity-close { margin: 22px auto 18px; padding: 12px 20px; border: 1px solid #ff6874; background: #39141d; color: #fff1ed; font-weight: 700; }
+.survivor .integrity-close:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.integrity-footer { color: #996771; font-size: 9px; }
+@keyframes integrity-enter { from { opacity: 0; transform: scale(.94) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.reduced .integrity-incident { animation: none; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .integrity-incident { animation: none; box-shadow: none; } }
+@media (max-width: 360px) { .leaderboard .player-name { gap: 6px; } .leaderboard .player-name label { font-size: 11px; } }

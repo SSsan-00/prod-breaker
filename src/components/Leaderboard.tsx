@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { durations, modeLabel, validName, type ScoreEntry } from "@/lib/leaderboard";
+import { durations, modeLabel, randomPlayerName, validName, type ScoreEntry } from "@/lib/leaderboard";
 import { enqueueScore, savePlayerName, type ScoreSubmission } from "@/lib/score-submission";
 
 type Props = { initialName: string; duration: number; currentScore?: ScoreSubmission; onClose: () => void };
@@ -41,7 +41,7 @@ export default function Leaderboard({ initialName, duration, currentScore, onClo
   return <div className="modal-backdrop leaderboard-backdrop"><section ref={dialogRef} className="modal leaderboard" role="dialog" aria-modal="true" aria-label="スコアボード">
     <button autoFocus className="close" aria-label="閉じる" onClick={onClose}>×</button>
     <div className="eyebrow">PRODUCTION INCIDENTS / GLOBAL</div><h2>SCOREBOARD</h2>
-    <label className="player-name"><span>プレイヤー名</span><input aria-label="プレイヤー名" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} /></label>
+    <div className="player-name"><label htmlFor="leaderboard-player-name"><span>プレイヤー名</span></label><input id="leaderboard-player-name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} /><button type="button" className="random-name" aria-label="名前をランダムに変更" title="名前をランダムに変更" onClick={() => setName((previous) => randomPlayerName(previous))}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M4 7h3c4 0 5 10 10 10h3m-3-3 3 3-3 3M4 17h3c1.7 0 2.8-1.8 3.9-3.8M13.1 10.8C14.2 8.8 15.3 7 17 7h3m-3-3 3 3-3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button></div>
     <button className="primary leaderboard-submit" onClick={submit}>名前を保存</button>
     <p className="leaderboard-note">プレイ終了時に名前とスコアを自動公開します。</p>
     <div className="leaderboard-modes" role="group" aria-label="ランキングのモード">{durations.map((d) => <button key={d} aria-pressed={mode === d} onClick={() => setMode(d)}>{modeLabel[d]}</button>)}</div>

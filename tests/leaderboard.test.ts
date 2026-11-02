@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { validName } from "../src/lib/leaderboard";
+import { defaultNames, randomPlayerName, REPLAY_REJECTED, validName } from "../src/lib/leaderboard";
 import { GET, POST } from "../src/app/api/leaderboard/route";
 import { finishReplay, recordInput, type Recorder } from "../src/game/replay";
 import { verifyReplay } from "../src/game/verify-replay";
@@ -43,7 +43,9 @@ it("writes only a valid replay and rejects a fabricated score", async () => {
     const body = { name: "本番の破壊神", duration: 90, score: world.score, runId: "1f5f5190-35b4-4009-a15b-3cb46af16213", replay: finishReplay(recorder) };
     const post = (value: unknown) => POST(new Request("http://localhost/api/leaderboard", { method: "POST", body: JSON.stringify(value) }));
     expect((await post({ ...body, replay: undefined })).status).toBe(400);
-    expect((await post({ ...body, score: body.score + 1 })).status).toBe(400);
+    const forged = await post({ ...body, score: body.score + 1 });
+    expect(forged.status).toBe(400);
+    expect((await forged.json()).code).toBe(REPLAY_REJECTED);
     expect(sqlMock).not.toHaveBeenCalled();
     expect((await post(body)).status).toBe(200);
     expect(sqlMock).toHaveBeenCalledTimes(1);
@@ -54,6 +56,14 @@ describe("leaderboard validation", () => {
   it("accepts short names but rejects empty, controls and overlong names", () => {
     expect(validName("本番環境の破壊神")).toBe(true);
     for (const value of ["", "  ", " a", "a\nb", "a\u200bb", "あ".repeat(21)]) expect(validName(value)).toBe(false);
+  });
+  it("always chooses a different valid default name", () => {
+    for (const current of defaultNames) {
+      const next = randomPlayerName(current);
+      expect(defaultNames).toContain(next);
+      expect(next).not.toBe(current);
+      expect(validName(next)).toBe(true);
+    }
   });
   it("rejects invalid data and fails gracefully without Neon", async () => {
     const saved = process.env.DATABASE_URL;

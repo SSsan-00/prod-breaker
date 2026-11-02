@@ -22,7 +22,8 @@ import {
 } from "@/game/survivor";
 import Arena, { type Stick } from "./Arena";
 import Leaderboard from "./Leaderboard";
-import { enqueueScore, flushScores, playerName } from "@/lib/score-submission";
+import { enqueueScore, flushScores, playerName, REPLAY_REJECTED_EVENT } from "@/lib/score-submission";
+import IntegrityIncident from "./IntegrityIncident";
 import { read, write } from "@/lib/storage";
 import { sound, startMusic } from "@/effects/audio";
 import { finishReplay, recordInput, type Recorder, type Replay } from "@/game/replay";
@@ -55,6 +56,8 @@ type Modal = "settings" | "help" | "pause" | null;
 export default function Game() {
   const [duration, setDuration] = useState(180);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [integrityIncident, setIntegrityIncident] = useState(false);
+  const integrityActive = useRef(false);
   const [leaderboardName, setLeaderboardName] = useState("");
   const [runId, setRunId] = useState("");
   const recorder = useRef<Recorder | null>(null);
@@ -87,12 +90,6 @@ export default function Game() {
     [evolutionNotice, setEvolutionNotice] = useState(""),
     [evolutionBonusNotice, setEvolutionBonusNotice] = useState<string[]>([]);
   useEffect(() => {
-    void flushScores();
-    const retry = () => { void flushScores(); };
-    window.addEventListener("online", retry);
-    return () => window.removeEventListener("online", retry);
-  }, []);
-  useEffect(() => {
     if (!evolutionNotice) return;
     const timer = setTimeout(() => setEvolutionNotice(""), 3000);
     return () => clearTimeout(timer);
@@ -103,6 +100,25 @@ export default function Game() {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+  useEffect(() => {
+    const rejected = () => {
+      if (integrityActive.current) return;
+      integrityActive.current = true;
+      keys.current.clear();
+      input.current = { x: 0, y: 0 };
+      stick.current.active = false;
+      panicPending.current = false;
+      setLeaderboardOpen(false);
+      setModal(null);
+      setIntegrityIncident(true);
+      if (!settingsRef.current.mute) sound("destroy", settingsRef.current.volume);
+    };
+    window.addEventListener(REPLAY_REJECTED_EVENT, rejected);
+    void flushScores();
+    const retry = () => { void flushScores(); };
+    window.addEventListener("online", retry);
+    return () => { window.removeEventListener("online", retry); window.removeEventListener(REPLAY_REJECTED_EVENT, rejected); };
+  }, []);
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
@@ -221,7 +237,7 @@ export default function Game() {
     };
   }, []);
   useEffect(() => {
-    if (screen !== "run" || modal) return;
+    if (screen !== "run" || modal || integrityIncident) return;
     let last = 0,
       accumulator = 0,
       lastUi = 0,
@@ -308,12 +324,12 @@ export default function Game() {
     };
     frameRef.current = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [screen, modal, runId]);
+  }, [screen, modal, runId, integrityIncident]);
   const musicPhaseActive = snapshot.phase === "playing" || snapshot.phase === "upgrade";
   useEffect(() => {
-    if (screen !== "run" || modal || !musicPhaseActive || settings.mute) return;
+    if (screen !== "run" || modal || integrityIncident || !musicPhaseActive || settings.mute) return;
     return startMusic(settings.volume, () => wave(world.current), () => world.current.duration);
-  }, [screen, modal, musicPhaseActive, settings.mute, settings.volume]);
+  }, [screen, modal, integrityIncident, musicPhaseActive, settings.mute, settings.volume]);
   function updateSettings(patch: Partial<Settings>) {
     const next = { ...settings, ...patch };
     setSettings(next);
@@ -799,6 +815,7 @@ export default function Game() {
           <span>すべて架空の環境です。実際の本番は大切に。</span>
           <span>BUILD THE BUG. BREAK THE PROD.</span>
         </footer>
+        {integrityIncident && <IntegrityIncident onClose={() => { integrityActive.current = false; setIntegrityIncident(false); }} />}
         {leaderboardOpen && <Leaderboard initialName={leaderboardName} duration={screen === "result" ? w.duration : duration} currentScore={screen === "result" && finishedReplay ? { runId, duration: w.duration, score: w.score, replay: finishedReplay } : undefined} onClose={closeLeaderboard} />}
         {modal && (
           <div className="modal-backdrop">
