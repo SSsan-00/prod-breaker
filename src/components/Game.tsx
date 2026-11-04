@@ -111,7 +111,7 @@ export default function Game() {
       setLeaderboardOpen(false);
       setModal(null);
       setIntegrityIncident(true);
-      if (!settingsRef.current.mute) sound("destroy", settingsRef.current.volume);
+      if (!settingsRef.current.mute) sound("breach", settingsRef.current.volume);
     };
     window.addEventListener(REPLAY_REJECTED_EVENT, rejected);
     void flushScores();

@@ -2,12 +2,27 @@ import { escalationStep } from "../game/survivor";
 
 let context: AudioContext | undefined;
 export function sound(
-  kind: "deploy" | "hit" | "destroy" | "panic" | "milestone",
+  kind: "deploy" | "hit" | "destroy" | "panic" | "milestone" | "breach",
   volume: number,
 ) {
   try {
     context ??= new AudioContext();
     void context.resume().catch(() => {});
+    if (kind === "breach") {
+      const audio = context, now = audio.currentTime;
+      for (const hz of [55, 58.27, 110]) {
+        const oscillator = audio.createOscillator(), gain = audio.createGain();
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(hz, now);
+        oscillator.frequency.exponentialRampToValueAtTime(hz * .65, now + 1.3);
+        gain.gain.setValueAtTime(.0001, now);
+        gain.gain.exponentialRampToValueAtTime(Math.max(.0001, Math.min(1, volume) * .035), now + .16);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + 1.4);
+        oscillator.connect(gain).connect(audio.destination);
+        oscillator.start(now); oscillator.stop(now + 1.45);
+      }
+      return;
+    }
     if (kind === "milestone") {
       const now = context.currentTime;
       [523.25, 659.25, 783.99].forEach((note, i) => {

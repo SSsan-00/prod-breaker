@@ -41,6 +41,7 @@ test("every random name fits the input on narrow phones", async ({ page }, info)
 });
 
 test("shows the hidden incident only for a rejected replay and can be dismissed", async ({ page }, info) => {
+  if (info.project.name === "mobile") await page.setViewportSize({ width: 320, height: 480 });
   await page.addInitScript(() => {
     localStorage.setItem("pb-pending-scores", JSON.stringify([{ name: "本番の破壊神", duration: 90, score: 999, runId: "1f5f5190-35b4-4009-a15b-3cb46af16213", replay: { version: 2, seed: 42, inputs: "AAAA", upgrades: [] } }]));
   });
@@ -49,8 +50,16 @@ test("shows the hidden incident only for a rejected replay and can be dismissed"
   const dialog = page.getByRole("alertdialog", { name: /ACCESS DENIED/ });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("その記録、見逃さない。")).toBeVisible();
+  await expect(dialog.getByText("正しい記録を、持ってこい。", { exact: false })).toBeVisible();
+  expect(await dialog.evaluate(el => {
+    const box = el.getBoundingClientRect();
+    return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight;
+  })).toBe(true);
   await expect(dialog).not.toContainText(/ゲーム内の演出|SIMULATION ONLY/);
-  if (info.project.name === "mobile") expect(await dialog.evaluate(el => getComputedStyle(el).animationName)).toBe("none");
+  if (info.project.name === "mobile") {
+    expect(await dialog.evaluate(el => getComputedStyle(el).animationName)).toBe("none");
+    expect(await dialog.locator(".integrity-face").evaluate(el => getComputedStyle(el).animationName)).toBe("none");
+  }
   await expect(dialog.getByRole("button", { name: "画面に戻る" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();

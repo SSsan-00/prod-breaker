@@ -2047,26 +2047,42 @@ footer {
   .leaderboard .player-name { padding: 8px 0; }
 }
 
-/* A fictional security incident, shown only when replay verification fails. */
-.integrity-backdrop { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow: auto; padding: 16px; background: #08070bf5; }
-.integrity-backdrop::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 4px, #ff3e4c0d 5px 6px), radial-gradient(ellipse at center, #64172466, transparent 70%); }
-.integrity-incident { position: relative; width: min(100%, 520px); padding: clamp(22px, 5vh, 42px); text-align: center; border: 1px solid #b84a55; background: linear-gradient(155deg, #210b13, #090c10 65%); box-shadow: 0 0 0 5px #1a0c12, 0 0 64px #ff29423b; animation: integrity-enter .45s cubic-bezier(.15,.8,.25,1) both; }
-.integrity-code, .integrity-footer { color: #f47e88; letter-spacing: .18em; font: 700 10px monospace; }
-.integrity-face { display: block; width: min(220px, 48vw); height: auto; margin: clamp(12px, 3vh, 28px) auto 8px; filter: drop-shadow(0 0 16px #ff344880); }
-.integrity-face-frame { fill: #17090e; stroke: #9e3847; stroke-width: 3; }
-.integrity-eyes { fill: #ff5365; }
-.integrity-mouth { fill: none; stroke: #ff8790; stroke-width: 3; }
-.integrity-kicker { margin: 14px 0 4px; color: #ff8992; font: 700 10px monospace; letter-spacing: .24em; }
-.integrity-incident h2 { margin: 0; color: #fff0ec; font: 900 clamp(30px, 8vw, 52px)/1 monospace; letter-spacing: -.04em; white-space: nowrap; text-shadow: 3px 0 #b62a43, -2px 0 #56b8b8; }
-.integrity-incident h2 span { color: #ff4c5d; }
-.integrity-message { margin: 14px 0 8px; color: #ffe3de; font-weight: 700; }
-.integrity-description { margin: 0; color: #c9a7a6; font-size: 12px; line-height: 1.7; }
-.survivor .integrity-close { margin: 22px auto 18px; padding: 12px 20px; border: 1px solid #ff6874; background: #39141d; color: #fff1ed; font-weight: 700; }
-.survivor .integrity-close:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-.integrity-footer { color: #996771; font-size: 9px; }
-@keyframes integrity-enter { from { opacity: 0; transform: scale(.94) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-.reduced .integrity-incident { animation: none; box-shadow: none; }
-@media (prefers-reduced-motion: reduce) { .integrity-incident { animation: none; box-shadow: none; } }
+/* The replay rejection scene: broken terminal, mechanical apparition, slow dread. */
+.integrity-backdrop { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow: auto; padding: 16px; background: radial-gradient(ellipse at 50% 35%, #30050cf5, #020305fc 70%); }
+.integrity-backdrop::before { content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .45; background: repeating-linear-gradient(0deg, transparent 0 3px, #ff3e4c13 4px 5px); }
+.integrity-backdrop::after { content: ""; position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 14vw 5vw #000; }
+.integrity-incident { position: relative; isolation: isolate; width: min(100%, 540px); padding: clamp(18px, 3vh, 30px); text-align: center; border: 1px solid #6d2532; border-top: 3px solid #b83d4e; background: linear-gradient(175deg,#16090edb,#050709f5 75%); box-shadow: 0 0 80px #a316263b; animation: integrity-enter .8s cubic-bezier(.15,.8,.25,1) both; }
+.integrity-incident::before { content: ""; position: absolute; inset: 5px; z-index: -1; border: 1px solid #ff546112; pointer-events: none; }
+.integrity-code, .integrity-footer { color: #bd5c6c; letter-spacing: .14em; font: 700 10px monospace; }
+.integrity-code i { display: inline-block; width: 5px; height: 5px; margin-right: 8px; background: #ff5265; box-shadow: 0 0 12px #fa304c; }
+.integrity-apparition { position: relative; margin: 8px auto 0; overflow: hidden; }
+.integrity-face { position: relative; display: block; width: min(280px, 60vw); height: auto; margin: 0 auto; filter: drop-shadow(0 0 18px #d6163c55); animation: integrity-approach 8s ease-in-out infinite alternate; }
+.integrity-face-frame { fill: #11080b; stroke: #692331; stroke-width: 2; }
+.integrity-cracks { fill: none; stroke: #853347; stroke-width: 1; }
+.integrity-eye-sockets { fill: #010203; stroke: #86263c; stroke-width: 1; }
+.integrity-eyes { fill: url(#breach-eye); }
+.integrity-pupils { fill: #180109; }
+.integrity-mouth { fill: #030204; stroke: #a04452; stroke-width: 1.5; }
+.integrity-teeth { fill: none; stroke: #ca737c; stroke-width: 2; }
+.integrity-ghost-text { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-7deg); color: #6f142033; white-space: nowrap; font: 900 clamp(25px,8vw,50px) monospace; letter-spacing: -.06em; }
+.integrity-kicker { margin: 6px 0; color: #d56e7b; font: 700 9px monospace; letter-spacing: .2em; }
+.integrity-incident h2 { margin: 0; color: #f5dce0; font: 900 clamp(28px, 8vw, 50px)/1.1 monospace; letter-spacing: -.05em; white-space: nowrap; text-shadow: 2px 0 #ac1936, -2px 0 #4e6975; }
+.integrity-incident h2 span { color: #be2545; }
+.integrity-message { margin: 12px 0; color: #e6a7b1; font-weight: 700; letter-spacing: .08em; }
+.integrity-terminal { margin: 12px auto; padding: 10px 12px; border-left: 2px solid #963347; background: #080507; text-align: left; font: 10px/1.7 monospace; color: #9c5362; }
+.integrity-terminal span { display: block; }
+.integrity-terminal b { display: inline-block; min-width: 58px; color: #dd8a98; }
+.integrity-terminal .integrity-terminal-last { color: #d3949e; margin-top: 3px; }
+.integrity-description { margin: 0; color: #a8838c; font-size: 12px; line-height: 1.7; }
+.survivor .integrity-close { position: relative; z-index: 1; margin: 16px auto 14px; padding: 10px 20px; border: 1px solid #b45969; background: #230d15; color: #ead9de; font-weight: 700; }
+.survivor .integrity-close:hover { background: #3a1420; border-color: #f1a3af; }
+.survivor .integrity-close:focus-visible { outline: 2px solid #f5c4cc; outline-offset: 3px; }
+.integrity-footer { color: #78434f; font-size: 8px; }
+@keyframes integrity-enter { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes integrity-approach { from { transform: scale(.96) translateY(2px); } to { transform: scale(1.04) translateY(-2px); } }
+.reduced .integrity-incident, .reduced .integrity-face { animation: none; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .integrity-incident, .integrity-face { animation: none; box-shadow: none; } }
+@media (max-height: 600px) { .integrity-incident { padding: 15px 18px; } .integrity-face { width: 170px; } .integrity-message { margin: 8px 0; } .integrity-terminal { margin: 8px auto; padding-block: 6px; } .integrity-description { font-size: 11px; } .survivor .integrity-close { margin: 12px auto 10px; padding: 8px 16px; } }
 @media (max-width: 360px) { .leaderboard .player-name { gap: 6px; } .leaderboard .player-name label { font-size: 11px; } }
 @media (max-width: 480px) {
   .leaderboard .player-name { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; }
