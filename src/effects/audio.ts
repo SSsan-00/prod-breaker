@@ -10,16 +10,16 @@ export function sound(
     void context.resume().catch(() => {});
     if (kind === "breach") {
       const audio = context, now = audio.currentTime;
-      for (const hz of [55, 58.27, 110]) {
+      for (const hz of [41.2, 55, 58.27, 110.7]) {
         const oscillator = audio.createOscillator(), gain = audio.createGain();
         oscillator.type = "triangle";
         oscillator.frequency.setValueAtTime(hz, now);
-        oscillator.frequency.exponentialRampToValueAtTime(hz * .65, now + 1.3);
+        oscillator.frequency.exponentialRampToValueAtTime(hz * .55, now + 2.1);
         gain.gain.setValueAtTime(.0001, now);
-        gain.gain.exponentialRampToValueAtTime(Math.max(.0001, Math.min(1, volume) * .035), now + .16);
-        gain.gain.exponentialRampToValueAtTime(.0001, now + 1.4);
+        gain.gain.exponentialRampToValueAtTime(Math.max(.0001, Math.min(1, volume) * .028), now + .24);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + 2.2);
         oscillator.connect(gain).connect(audio.destination);
-        oscillator.start(now); oscillator.stop(now + 1.45);
+        oscillator.start(now); oscillator.stop(now + 2.25);
       }
       return;
     }

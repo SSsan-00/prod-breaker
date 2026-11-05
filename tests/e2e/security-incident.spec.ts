@@ -51,6 +51,7 @@ test("shows the hidden incident only for a rejected replay and can be dismissed"
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("その記録、見逃さない。")).toBeVisible();
   await expect(dialog.getByText("正しい記録を、持ってこい。", { exact: false })).toBeVisible();
+  await expect(dialog.getByText("その数字は、ここには存在しない。", { exact: false })).toBeVisible();
   expect(await dialog.evaluate(el => {
     const box = el.getBoundingClientRect();
     return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight;
@@ -59,6 +60,7 @@ test("shows the hidden incident only for a rejected replay and can be dismissed"
   if (info.project.name === "mobile") {
     expect(await dialog.evaluate(el => getComputedStyle(el).animationName)).toBe("none");
     expect(await dialog.locator(".integrity-face").evaluate(el => getComputedStyle(el).animationName)).toBe("none");
+    expect(await dialog.locator(".integrity-eyes").evaluate(el => getComputedStyle(el).animationName)).toBe("none");
   }
   await expect(dialog.getByRole("button", { name: "画面に戻る" })).toBeFocused();
   await page.keyboard.press("Escape");
