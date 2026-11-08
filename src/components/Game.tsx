@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, MotionConfig } from "motion/react";
 import {
   createWorld,
@@ -20,6 +20,7 @@ import {
   type Vec,
   type UpgradeId,
 } from "@/game/survivor";
+import { upgradePreview } from "@/game/upgrade-preview";
 import Arena, { type Stick } from "./Arena";
 import Leaderboard from "./Leaderboard";
 import { enqueueScore, flushScores, playerName, REPLAY_REJECTED_EVENT } from "@/lib/score-submission";
@@ -94,6 +95,15 @@ export default function Game() {
     const timer = setTimeout(() => setEvolutionNotice(""), 3000);
     return () => clearTimeout(timer);
   }, [evolutionNotice]);
+  const [upgradeNotice, setUpgradeNotice] = useState<{ name: string; stats: string[] } | null>(null);
+  useEffect(() => {
+    if (!upgradeNotice) return;
+    const timer = setTimeout(() => setUpgradeNotice(null), 2200);
+    return () => clearTimeout(timer);
+  }, [upgradeNotice]);
+  const previews = useMemo(() => snapshot.phase === "upgrade"
+    ? new Map(snapshot.choices.map(id => [id, upgradePreview(snapshot, id)]))
+    : new Map<UpgradeId, string[]>(), [snapshot]);
   const settingsRef = useRef(settings);
   const screenRef = useRef(screen);
   const modalRef = useRef(modal);
@@ -349,6 +359,7 @@ export default function Game() {
     world.current = createWorld(seed, duration);
     setSnapshot(world.current);
     setEvolutionNotice("");
+    setUpgradeNotice(null);
     setEvolutionBonusNotice([]);
     setModal(null);
     setScreen("run");
@@ -359,10 +370,14 @@ export default function Game() {
     recorder.current?.upgrades.push([recorder.current.inputs.length / 3, id]);
     const previous = world.current.evolutions.length;
     const bonus = evolutionBonus(world.current, id);
+    const stats = upgradePreview(world.current, id);
     world.current = chooseUpgrade(world.current, id);
     if (world.current.evolutions.length > previous) {
       setEvolutionBonusNotice(bonus);
       setEvolutionNotice(world.current.evolutions.at(-1)!);
+      setUpgradeNotice(null);
+    } else {
+      setUpgradeNotice({ name: upgrades.find(card => card.id === id)!.name, stats });
     }
     clearInput();
     setSnapshot(world.current);
@@ -614,6 +629,12 @@ export default function Game() {
                   <small>{effect.text === "10000 CHAIN" ? "PRODUCTION MELTDOWN" : "CHAIN REACTION"}</small><strong>{effect.text}</strong><span>本番、炎上中。</span>
                 </div>
               ))}
+              {upgradeNotice && !evolutionNotice && w.phase === "playing" && !modal && !w.effects.some(effect => effect.kind === "wave" || effect.kind === "milestone") && (
+                <div className="upgrade-receipt" role="status">
+                  <b>INSTALLED / {upgradeNotice.name}</b>
+                  <span>{upgradeNotice.stats.join(" / ")}</span>
+                </div>
+              )}
               {evolutionNotice && (
                 <div className="evolution-notice" role="status">
                   <small>EVOLUTION UNLOCKED</small>
@@ -720,6 +741,7 @@ export default function Game() {
                     {w.choices.map((id) => {
                       const u = upgrades.find((u) => u.id === id)!;
                       const ready = evolutionReady(w, id);
+                      const stacks = w.build.filter(owned => owned === id).length;
                       const overflow = upgradeOverflowBonus(w, id);
                       const evolved = !!evolutionNames[id] && w.evolutions.includes(evolutionNames[id]!);
                       return (
@@ -732,11 +754,14 @@ export default function Game() {
                         >
                           <div className="card-top">
                             <span className={u.type}>{u.type}</span>
-                            <small>{ready ? "✦ 選ぶと進化！" : evolved ? "進化済み" : "STACKABLE"}</small>
+                            <small>{ready ? "✦ 選ぶと進化！" : evolved ? "進化済み" : stacks ? `重ねて強化 ×${stacks + 1}` : "NEW / 初取得"}</small>
                           </div>
                           <div className="card-art">{u.icon}</div>
                           <h3>{u.name}</h3>
                           <p>{u.description}</p>
+                          <div className="upgrade-stats" aria-label="選択後の能力上昇">
+                            {(previews.get(id) ?? []).map(stat => <span key={stat}>{stat}</span>)}
+                          </div>
                           {overflow > 0 && <small className="evolution-hint">上限分を変換: 攻撃+{overflow}</small>}
                           {ready ? (
                             <small className="evolution-hint evolution-bonus">進化: {evolutionBonus(w, id).join(" / ")}</small>

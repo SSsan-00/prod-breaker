@@ -501,7 +501,7 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
   test.skip(info.project.name !== "mobile");
   await page.setViewportSize({ width: 320, height: 568 });
   await page.clock.install();
-  await page.goto("/?seed=99");
+  await page.goto("/?seed=14");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
@@ -531,7 +531,7 @@ test("long upgrade names fit a compact touch screen without vertical scrolling",
 test("capped upgrade conversion fits on compact and landscape touch screens", async ({ page }, info) => {
   test.skip(info.project.name !== "mobile");
   await page.clock.install();
-  await page.goto("/?seed=99");
+  await page.goto("/?seed=14");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
@@ -735,14 +735,19 @@ test("chain milestone triggers a visible overdrive without another pause", async
 
 test("available evolution is highlighted and selecting it unlocks the combination", async ({ page }, info) => {
   await page.clock.install();
-  await page.goto("/?seed=99");
+  await page.goto("/?seed=14");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /GAME START/ }).click();
   await page.clock.runFor(100);
   await page.locator(".panic").click();
   await page.clock.runFor(300);
   const dialog = page.getByRole("dialog", { name: "レベルアップ" });
-  await dialog.getByRole("button", { name: /プリペアドステートメントって何？/ }).click();
+  const starter = dialog.getByRole("button", { name: /プリペアドステートメントって何？/ });
+  await expect(starter).toContainText("NEW / 初取得");
+  await expect(starter.locator(".upgrade-stats")).toContainText("+");
+  await starter.click();
+  await expect(page.locator(".upgrade-receipt")).toContainText("プリペアドステートメントって何？");
+  await expect(page.locator(".upgrade-receipt")).toContainText("+");
   await page.clock.runFor(8200);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("強化を1つ選択。選択中はゲームが止まります。" )).toHaveCount(0);

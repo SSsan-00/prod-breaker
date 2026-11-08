@@ -2093,3 +2093,15 @@ footer {
   .leaderboard .player-name input { font-size: 16px; }
 }
 @media (max-width: 360px) { .leaderboard { padding-inline: 12px; } }
+
+/* Show the reward before choosing, then confirm it without covering the arena. */
+.upgrade-stats { display:flex; flex-wrap:wrap; gap:3px 6px; margin:4px 0; color:#d4ffac; font-size:10px; font-weight:700; line-height:1.4; }
+.upgrade-stats span { white-space:nowrap; }
+.evolution-ready .upgrade-stats { color:#ffe09d; }
+.upgrade-receipt { position:absolute; z-index:8; bottom:0; left:50%; transform:translateX(-50%); width:max-content; max-width:92%; padding:7px 12px; border-left:2px solid var(--lime); background:linear-gradient(90deg,#11221bed,#11221b80); pointer-events:none; text-align:center; animation:reward-entrance 200ms ease-out; }
+.upgrade-receipt b,.upgrade-receipt span { display:block; font-size:10px; line-height:1.5; }
+.upgrade-receipt b { color:var(--lime); }
+.upgrade-receipt span { color:#e1eadb; }
+.reduced .upgrade-receipt { animation:none; }
+@media (prefers-reduced-motion:reduce) { .upgrade-receipt { animation:none; } }
+@media (max-height:650px) { .upgrade-stats { font-size:8px; margin:2px 0; gap:1px 5px; } .upgrade-card p { margin:3px 0; } }
