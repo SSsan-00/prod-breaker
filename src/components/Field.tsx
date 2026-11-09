@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, type RefObject } from "react";
 import { SIZE, type World, type Point, type EnemyKind } from "@/game/engine";
+import { createCharacterSprites } from "@/lib/character-sprites";
 const colors: Record<EnemyKind, string> = {
   brute: "#e9a36c",
   phish: "#d8b2fc",
@@ -33,6 +34,7 @@ export default function Field({
     const canvas = ref.current!,
       c = canvas.getContext("2d");
     if (!c) return;
+    const sprites = createCharacterSprites();
     let frame = 0,
       width = 0,
       height = 0;
@@ -219,43 +221,15 @@ export default function Field({
         c.save();
         c.translate(e.x, e.y);
         const r = e.kind === "zero" ? 29 : e.kind === "ransom" ? 19 : 12;
-        c.fillStyle =
-          e.hitAt > w.time - 0.08 && !reduced ? "#e8f3da" : "#211e28";
-        c.strokeStyle = color;
-        c.lineWidth = e.kind === "zero" ? 3 : 1.8;
-        if (e.kind === "phish") {
-          c.beginPath();
-          c.rect(-13, -9, 26, 18);
-          c.fill();
-          c.stroke();
-          c.beginPath();
-          c.moveTo(-13, -9);
-          c.lineTo(0, 2);
-          c.lineTo(13, -9);
-          c.stroke();
-        } else if (e.kind === "inject") {
-          c.beginPath();
-          c.moveTo(0, -17);
-          c.lineTo(10, 12);
-          c.lineTo(0, 7);
-          c.lineTo(-10, 12);
-          c.closePath();
-          c.fill();
-          c.stroke();
-        } else {
-          hex(c, 0, 0, r);
-          c.fill();
-          c.stroke();
-          c.fillStyle = color;
-          c.fillRect(-6, -3, 3, 3);
-          c.fillRect(3, -3, 3, 3);
-          if (e.kind === "zero") {
-            hex(c, 0, 0, r + 7);
-            c.stroke();
-            c.font = "bold 9px monospace";
-            c.textAlign = "center";
-            c.fillText("ZERO DAY", 0, -44);
-          }
+        const size = e.kind === "zero" ? 100 : e.kind === "ransom" ? 70 : 49;
+        c.drawImage(sprites[e.kind], -size / 2, -size / 2, size, size);
+        if (e.hitAt > w.time - 0.08 && !reduced) {
+          c.strokeStyle = "#f8ffdc"; c.lineWidth = 1.5;
+          hex(c, 0, 0, r + 3); c.stroke();
+        }
+        if (e.kind === "zero") {
+          c.font = "bold 9px monospace"; c.textAlign = "center"; c.fillStyle = color;
+          c.fillText("ZERO DAY", 0, -48);
         }
         if (e.hp < e.maxHp) {
           c.fillStyle = "#303131";
@@ -312,26 +286,11 @@ export default function Field({
         c.arc(0, 0, 28 + Math.sin(w.time * 8) * 3, 0, Math.PI * 2);
         c.stroke();
       }
-      c.fillStyle = "#0b1f20";
-      c.strokeStyle = w.time < p.invuln ? "#ffb6b8" : "#daefc6";
-      c.lineWidth = 2.5;
-      hex(c, 0, 0, 19);
-      c.fill();
-      c.stroke();
-      c.fillStyle = "#c3f28b";
-      c.fillRect(-9, -5, 6, 4);
-      c.fillRect(3, -5, 6, 4);
-      c.strokeStyle = "#a8c7b7";
-      c.beginPath();
-      c.moveTo(-4, 7);
-      c.lineTo(0, 10);
-      c.lineTo(4, 7);
-      c.stroke();
-      c.fillStyle = "#285b49";
-      c.strokeStyle = "#c1eb9d";
-      hex(c, -20, 10, 11);
-      c.fill();
-      c.stroke();
+      c.drawImage(sprites.sentinel, -38, -38, 76, 76);
+      if (w.time < p.invuln) {
+        c.strokeStyle = "#ffb6b8"; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(0, 0, 30, 0, Math.PI * 2); c.stroke();
+      }
       c.restore();
       if (active) {
         c.setTransform(dpr, 0, 0, dpr, 0, 0);

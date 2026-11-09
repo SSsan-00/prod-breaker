@@ -16,6 +16,9 @@ import { load, save } from "@/lib/storage";
 import { tone, music } from "@/lib/audio";
 import Sentry from "./Sentry";
 import Field from "./Field";
+import Leaderboard from "./Leaderboard";
+import { recordInput, finishReplay, type Recorder } from "@/game/replay";
+import { enqueueScore, flushScores, playerName, type ScoreSubmission } from "@/lib/score-submission";
 const modes = [
   { seconds: 90, name: "QUICK", time: "90 SEC", desc: "短いシフト" },
   { seconds: 180, name: "STANDARD", time: "3 MIN", desc: "いつもの本番" },
@@ -37,6 +40,24 @@ export default function Game() {
       volume: 0.5,
     }),
     [high, setHigh] = useState(0);
+  const [scoreboard, setScoreboard] = useState(false);
+  const [name, setName] = useState("");
+  const [scoreStatus, setScoreStatus] = useState("登録待ち");
+  const recorder = useRef<Recorder>({ seed: 1, bytes: [], upgrades: [] });
+  const runId = useRef("");
+  const lastScore = useRef<ScoreSubmission | undefined>(undefined);
+  const [currentScore, setCurrentScore] = useState<ScoreSubmission>();
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => { setName(playerName()); void flushScores(); });
+    const retry = () => { void flushScores(); };
+    const submitted = (event: Event) => {
+      const detail = (event as CustomEvent<{ runId: string; ok: boolean }>).detail;
+      if (detail.runId === lastScore.current?.runId) setScoreStatus(detail.ok ? "スコア登録済み" : "記録を検証できませんでした");
+    };
+    window.addEventListener("online", retry);
+    window.addEventListener("pk:score-saved", submitted);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("online", retry); window.removeEventListener("pk:score-saved", submitted); };
+  }, []);
   const dialogRef = useRef<HTMLElement>(null);
   const dialogOpen = !!modal || (screen === "run" && w.phase === "upgrade");
   useEffect(() => {
@@ -180,10 +201,10 @@ export default function Game() {
             Number(k.has("KeyS") || k.has("ArrowDown")) -
             Number(k.has("KeyW") || k.has("ArrowUp")),
         };
-        world.current = step(before, {
+        world.current = step(before, recordInput(recorder.current, {
           ...(keyboard.x || keyboard.y ? keyboard : input.current),
           panic: panic.current,
-        });
+        }));
         panic.current = false;
         acc -= STEP;
         changed = true;
@@ -212,6 +233,12 @@ export default function Game() {
         const best = Math.max(load<number>("pk-best", 0), world.current.score);
         save("pk-best", best);
         setHigh(best);
+        if (!lastScore.current) {
+          lastScore.current = { duration: world.current.duration, score: world.current.score, runId: runId.current, replay: finishReplay(recorder.current) };
+          setCurrentScore(lastScore.current);
+          setScoreStatus("自動登録中・未接続時は再送");
+          void enqueueScore(lastScore.current);
+        }
         setScreen("result");
         clear();
       }
@@ -226,6 +253,10 @@ export default function Game() {
       param !== null && Number.isFinite(Number(param))
         ? Number(param) >>> 0
         : crypto.getRandomValues(new Uint32Array(1))[0];
+    recorder.current = { seed, bytes: [], upgrades: [] };
+    runId.current = crypto.randomUUID();
+    lastScore.current = undefined;
+    setScoreboard(false);
     world.current = createWorld(seed, duration);
     setW(world.current);
     setModal(null);
@@ -234,6 +265,7 @@ export default function Game() {
   };
   const install = (id: SkillId) => {
     if (world.current.phase !== "upgrade") return;
+    recorder.current.upgrades.push([recorder.current.bytes.length / 3, id]);
     world.current = choose(world.current, id);
     setW(world.current);
     clear();
@@ -285,6 +317,7 @@ export default function Game() {
           <span className="system-status">
             <i /> SYSTEM OPERATIONAL
           </span>
+          {screen !== "run" && <button className="score-button" onClick={() => setScoreboard(true)} aria-label="スコアボードを開く"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Zm0 2H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 1v5m-5 2h10" stroke="currentColor" strokeWidth="1.5"/></svg><span>SCORE</span></button>}
           <button
             className="icon-button"
             aria-label="ミュート切替"
@@ -410,7 +443,7 @@ export default function Game() {
           </div>
           <footer className="home-footer">
             <span>PROD UNIVERSE / VOL. 02</span>
-            <span>ALL THREATS ARE FICTIONAL.</span>
+            <span>名前とスコアは自動公開されます。</span>
           </footer>
         </section>
       ) : screen === "run" ? (
@@ -626,6 +659,7 @@ export default function Game() {
             </p>
             <blockquote>{incident.comment}</blockquote>
           </div>
+          <button className="result-identity" onClick={() => setScoreboard(true)} aria-label="プレイヤー名を変更・スコアボード"><span>{name}</span><small>{scoreStatus}</small><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14v6Z" stroke="currentColor" strokeWidth="1.4"/></svg></button>
           <div className="result-actions">
             <button className="primary" onClick={start}>
               もう一度、守る。
@@ -648,6 +682,7 @@ export default function Game() {
           </p>
         </section>
       )}
+      {scoreboard && <Leaderboard duration={duration} currentScore={screen === "result" ? currentScore : undefined} onClose={() => setScoreboard(false)} onName={setName} />}
       {(modal || (screen === "run" && w.phase === "upgrade")) && (
         <div className="backdrop">
           <section

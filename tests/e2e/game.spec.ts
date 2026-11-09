@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import { verifyReplay } from "../../src/game/replay";
+import type { ScoreSubmission } from "../../src/lib/score-submission";
 async function install(page: Page) {
   const dialog = page.getByRole("dialog", { name: "レベルアップ" });
   if (await dialog.isVisible()) {
@@ -42,7 +44,8 @@ async function travel(page: Page, x: number, y: number) {
 test("home, settings and upgrades fit compact and landscape screens", async ({
   page,
 }, info) => {
-  await page.clock.install();
+  await page.clock.install({time:new Date("2026-11-09T00:00:00Z")});
+  await page.clock.pauseAt(new Date("2026-11-09T00:00:01Z"));
   await page.goto("/?seed=42");
   await page.clock.runFor(100);
   for (const size of info.project.name === "mobile"
@@ -75,9 +78,17 @@ test("home, settings and upgrades fit compact and landscape screens", async ({
 test("rescues the network, upgrades, survives a shift and retries without errors", async ({
   page,
 }, info) => {
+  const posted: (ScoreSubmission & {name:string})[] = [];
+  await page.route("**/api/leaderboard",async route=>{
+    const body=route.request().postDataJSON() as ScoreSubmission & {name:string};
+    posted.push(body);
+    await route.fulfill({status:verifyReplay(body.replay,body.duration,body.score)?200:400,json:{ok:true}});
+  });
+  await page.route("**/api/leaderboard?*",route=>route.fulfill({json:{scores:[]}}));
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.clock.install();
+  await page.clock.install({time:new Date("2026-11-09T00:00:00Z")});
+  await page.clock.pauseAt(new Date("2026-11-09T00:00:01Z"));
   await page.goto("/?seed=42");
   await page.clock.runFor(100);
   await page.getByRole("button", { name: /QUICK/ }).click();
@@ -103,6 +114,17 @@ test("rescues the network, upgrades, survives a shift and retries without errors
     await page.clock.runFor(1200);
   }
   await expect(page.locator(".result-content")).toBeVisible();
+  await expect(page.locator(".result-identity")).toContainText("スコア登録済み");
+  expect(posted).toHaveLength(1);
+  expect(verifyReplay(posted[0].replay,90,posted[0].score)).toBe(true);
+  await page.getByRole("button",{name:"プレイヤー名を変更・スコアボード"}).click();
+  await page.getByLabel("プレイヤー名",{exact:true}).fill("無事故の守護神");
+  await page.getByRole("button",{name:"名前を保存",exact:true}).click();
+  await expect.poll(()=>posted.length).toBe(2);
+  expect(posted[1].runId).toBe(posted[0].runId);
+  expect(posted[1].name).toBe("無事故の守護神");
+  await page.getByRole("button",{name:"閉じる"}).click();
+  await expect(page.locator(".result-identity")).toContainText("無事故の守護神");
   await page.screenshot({ path: info.outputPath("result.png") });
   await expect(page.locator(".result-content h1")).toContainText("動いている");
   if (info.project.name === "mobile") {
