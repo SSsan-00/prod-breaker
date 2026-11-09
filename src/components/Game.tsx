@@ -42,11 +42,8 @@ export default function Game() {
   useEffect(() => {
     if (!dialogOpen) return;
     const previous = document.activeElement as HTMLElement | null;
-    const frame = requestAnimationFrame(() =>
-      dialogRef.current?.querySelector<HTMLButtonElement>("button")?.focus(),
-    );
+    dialogRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
     return () => {
-      cancelAnimationFrame(frame);
       if (previous?.isConnected) previous.focus();
     };
   }, [dialogOpen, modal]);
@@ -379,6 +376,10 @@ export default function Game() {
               <button onClick={() => open("help")}>
                 FIELD MANUAL <span>遊び方 ↗</span>
               </button>
+              <a className="sister-link" href="https://prod-breaker.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="姉妹作 PROD BREAKER を開く（壊す側へ）">
+                <span><small>姉妹作 / 壊す側へ</small><b>PROD BREAKER</b></span>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12" stroke="currentColor" strokeWidth="1.5"/></svg>
+              </a>
               <div>
                 PERSONAL BEST{" "}
                 <b>
@@ -408,16 +409,7 @@ export default function Game() {
             </div>
           </div>
           <footer className="home-footer">
-            <span>
-              A SISTER GAME OF{" "}
-              <a
-                href="https://prod-breaker.vercel.app/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                PROD BREAKER ↗
-              </a>
-            </span>
+            <span>PROD UNIVERSE / VOL. 02</span>
             <span>ALL THREATS ARE FICTIONAL.</span>
           </footer>
         </section>
