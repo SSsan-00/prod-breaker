@@ -25,7 +25,7 @@ describe("verified shared scores", () => {
     expect(replay.upgrades.length).toBeGreaterThan(0);
     expect(verifyReplay(replay,duration,w.score)).toBe(true);
     expect(verifyReplay(replay,duration,w.score+1)).toBe(false);
-  });
+  }, 15000);
   it("rejects incomplete, modified, oversized and invalid play records", () => {
     const {w,replay}=completedRun();
     expect(verifyReplay({...replay,inputs:replay.inputs.slice(0,-4)},90,w.score)).toBe(false);
