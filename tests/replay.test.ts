@@ -49,8 +49,8 @@ describe("verified shared scores", () => {
   });
 });
 
-it.each([1, 2] as const)("continues to verify pre-adjustment runs with version %i", async (version) => {
-  const old = version === 1 ? await import("../src/game/replay-engine-v1") : await import("../src/game/replay-engine-v2");
+it.each([1, 2, 3] as const)("continues to verify pre-adjustment runs with version %i", async (version) => {
+  const old = version === 1 ? await import("../src/game/replay-engine-v1") : version === 2 ? await import("../src/game/replay-engine-v2") : await import("../src/game/replay-engine-v3");
   const step = old.step as typeof import("../src/game/replay-engine-v1").step;
   const choose = old.choose as typeof import("../src/game/replay-engine-v1").choose;
   let w=old.createWorld(42,90);

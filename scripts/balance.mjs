@@ -1,9 +1,10 @@
-import { createWorld, step, choose, ready } from "../src/game/engine.ts";
+const { createWorld, step, choose, ready } = await import(process.argv.includes("--baseline") ? "../src/game/replay-engine-v3.ts" : "../src/game/engine.ts");
 for (const duration of [90, 180, 300]) {
   const results = [];
   for (const seed of [1, 14, 42, 99, 123]) {
     let w = createWorld(seed, duration),
       frames = 0;
+    let lateEnemies = 0, lateFrames = 0, peak = 0, minCore = 100;
     const started = performance.now();
     while (w.phase === "playing" || w.phase === "upgrade") {
       if (w.phase === "upgrade") {
@@ -39,10 +40,14 @@ for (const duration of [90, 180, 300]) {
         panic: w.time >= w.panicAt && w.enemies.length > 8,
       });
       frames++;
+      peak = Math.max(peak, w.enemies.length);
+      minCore = Math.min(minCore, w.core);
+      if (w.time > duration * 2 / 3) { lateEnemies += w.enemies.length; lateFrames++; }
       if (frames > duration * 31) throw Error("Run did not end");
     }
     results.push({
       seed,
+      lateEnemies: +(lateEnemies / lateFrames).toFixed(1), peak, minCore: Math.round(minCore),
       time: +w.time.toFixed(1),
       phase: w.phase,
       core: Math.round(w.core),

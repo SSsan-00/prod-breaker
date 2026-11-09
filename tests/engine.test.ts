@@ -151,3 +151,17 @@ it("raises movement speed and enemy pressure without removing the object cap", a
   for(const enemy of w.enemies){const previous=before.enemies.find(e=>e.kind===enemy.kind);if(previous)expect(enemy.maxHp).toBeGreaterThan(previous.maxHp);}
   expect(w.enemies.length).toBeLessThanOrEqual(150);
 });
+
+it("keeps wave one intact and progressively increases later HP and reinforcements", async () => {
+  const old=await import("../src/game/replay-engine-v3");
+  for(const wave of [1,3,6,10]){
+    let w=createWorld(99,300), before=old.createWorld(99,300);
+    w.wave=before.wave=wave; w.time=before.time=(wave-1)*30;
+    w=step(w,{x:0,y:0});before=old.step(before,{x:0,y:0});
+    const enemy=w.enemies[0],previous=before.enemies.find(e=>e.kind===enemy.kind)!;
+    const ratio=enemy.maxHp/previous.maxHp;
+    if(wave===1)expect(ratio).toBe(1);
+    else {expect(ratio).toBeGreaterThan(wave===10?8:wave===6?3.6:1.5);expect(w.enemies.length+w.kills).toBeGreaterThan(before.enemies.length+before.kills);}
+    expect(w.speed).toBe(before.speed);
+  }
+});

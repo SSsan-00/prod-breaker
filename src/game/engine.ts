@@ -553,7 +553,8 @@ function spawn(w: World, kind?: EnemyKind) {
     ddos: [17, 48],
     zero: [880, 22],
   }[kind];
-  const hp = stats[0] * (1 + (w.wave - 1) * 0.38);
+  const stage = w.wave - 1;
+  const hp = stats[0] * (1 + stage * 0.38 + stage ** 2 * 0.18 + stage ** 3 * 0.025);
   w.enemies.push({
     id: ++w.serial,
     x: 450 + Math.cos(angle) * r,
@@ -679,7 +680,7 @@ export function step(state: World, input: Input): World {
     );
   if (w.regen) w.core = Math.min(100, w.core + STEP * 1.2);
   if (w.time >= w.spawnAt) {
-    const count = 3 + Math.floor(w.wave * 0.8);
+    const count = 3 + Math.floor(w.wave * 0.8) + Math.floor((w.wave - 1) / 2);
     for (let i = 0; i < count; i++) spawn(w);
     w.spawnAt = w.time + Math.max(0.55, 1.55 - w.wave * 0.12);
   }
