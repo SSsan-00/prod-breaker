@@ -517,9 +517,15 @@ export default function Game() {
             <button className="primary start" onClick={start}>
               GAME START <span className="start-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6 18 18 6M8 6h10v10" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter" /></svg></span>
             </button>
-            <button className="text-button" onClick={() => setModal("help")}>
-              HOW TO PLAY <span>→</span>
-            </button>
+            <div className="home-links">
+              <button className="text-button" onClick={() => setModal("help")}>
+                HOW TO PLAY <span>→</span>
+              </button>
+              <a className="sister-link" href="https://prod-keeper.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="姉妹作 PROD KEEPER を開く（守る側へ）">
+                <span><small>姉妹作 / 守る側へ</small><b>PROD KEEPER</b></span>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12" stroke="currentColor" strokeWidth="1.5"/></svg>
+              </a>
+            </div>
             <div className="title-meta">
               <span>MOVE TO SURVIVE</span>
               <span>AUTO FIRE</span>
