@@ -1,5 +1,7 @@
-import { createWorld, step, choose, type Input, type SkillId } from "./engine";
-export type Replay = { version: 1; seed: number; inputs: string; upgrades: [number, SkillId][] };
+import * as current from "./engine";
+import * as legacy from "./replay-engine-v1";
+import type { Input, SkillId } from "./engine";
+export type Replay = { version: 1 | 2; seed: number; inputs: string; upgrades: [number, SkillId][] };
 export type Recorder = { seed: number; bytes: number[]; upgrades: [number, SkillId][] };
 export function recordInput(record: Recorder, input: Input): Input {
   const rawX = Number.isFinite(input.x) ? input.x : 0, rawY = Number.isFinite(input.y) ? input.y : 0;
@@ -12,17 +14,21 @@ export function recordInput(record: Recorder, input: Input): Input {
 export function finishReplay(record: Recorder): Replay {
   let binary = "";
   for (const byte of record.bytes) binary += String.fromCharCode(byte);
-  return { version: 1, seed: record.seed, inputs: btoa(binary), upgrades: record.upgrades.map(([frame, id]) => [frame, id]) };
+  return { version: 2, seed: record.seed, inputs: btoa(binary), upgrades: record.upgrades.map(([frame, id]) => [frame, id]) };
 }
 /** Re-simulate only bounded, valid inputs. Never accept a client-supplied score on its own. */
 export function verifyReplay(value: unknown, duration: number, score: number): boolean {
   try {
     if (![90, 180, 300].includes(duration) || !Number.isSafeInteger(score) || score < 0 || !value || typeof value !== "object") return false;
     const r = value as Replay;
-    if (r.version !== 1 || !Number.isInteger(r.seed) || r.seed < 0 || r.seed > 0xffffffff || typeof r.inputs !== "string" || r.inputs.length > (duration * 30 + 2) * 4 || !/^(?:[A-Za-z0-9+/]{4})*$/.test(r.inputs) || !Array.isArray(r.upgrades) || r.upgrades.length > 500) return false;
+    if ((r.version !== 1 && r.version !== 2) || !Number.isInteger(r.seed) || r.seed < 0 || r.seed > 0xffffffff || typeof r.inputs !== "string" || r.inputs.length > (duration * 30 + 2) * 4 || !/^(?:[A-Za-z0-9+/]{4})*$/.test(r.inputs) || !Array.isArray(r.upgrades) || r.upgrades.length > 500) return false;
     if (r.upgrades.some((u, i) => !Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || u[0] < 1 || typeof u[1] !== "string" || (i > 0 && u[0] <= r.upgrades[i - 1][0]))) return false;
     const bytes = atob(r.inputs);
     if (!bytes.length || bytes.length % 3) return false;
+    const engine = r.version === 1 ? legacy : current;
+    const createWorld = engine.createWorld;
+    const step = engine.step as typeof legacy.step;
+    const choose = engine.choose as typeof legacy.choose;
     let w = createWorld(r.seed, duration), upgrade = 0;
     for (let offset = 0; offset < bytes.length; offset += 3) {
       const frame = offset / 3;

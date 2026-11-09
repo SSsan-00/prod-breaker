@@ -56,6 +56,7 @@ describe("deterministic defense simulation", () => {
   });
   it("offers three distinct cards and an evolution partner when available", () => {
     let w = createWorld(5);
+    w.time = 8;
     w.build = ["input"];
     w.xp = w.nextXp;
     w = step(w, { x: 0, y: 0 });
@@ -124,4 +125,19 @@ describe("deterministic defense simulation", () => {
     expect(choose(w, "rate").interval).toBe(0.12);
     expect(choose(w, "rate").damage).toBeGreaterThan(w.damage + 3);
   });
+});
+
+it("spaces burst XP upgrades by eight active seconds without losing XP", () => {
+  let w = createWorld(42);
+  w.xp = 1000;
+  w = step(w, {x:0,y:0,panic:true});
+  expect(w.phase).toBe("playing");
+  while(w.phase === "playing" && w.time < 9) w=step(w,{x:0,y:0});
+  expect(w.phase).toBe("upgrade");
+  expect(w.time).toBeGreaterThanOrEqual(8);
+  w=choose(w,w.choices[0]);
+  const xp=w.xp;
+  for(let i=0;i<210;i++)w=step(w,{x:0,y:0});
+  expect(w.phase).toBe("playing");
+  expect(w.xp).toBeGreaterThanOrEqual(xp);
 });

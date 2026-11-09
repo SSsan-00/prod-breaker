@@ -238,6 +238,7 @@ export type World = {
   level: number;
   xp: number;
   nextXp: number;
+  upgradeReadyAt: number;
   damage: number;
   interval: number;
   shootAt: number;
@@ -333,6 +334,7 @@ export function createWorld(seed: number, duration = 180): World {
     level: 1,
     xp: 0,
     nextXp: 6,
+    upgradeReadyAt: 8,
     damage: 19,
     interval: 0.48,
     shootAt: 0,
@@ -770,7 +772,8 @@ export function step(state: World, input: Input): World {
     w.phase = "lost";
     return w;
   }
-  if (w.xp >= w.nextXp) {
+  if (w.xp >= w.nextXp && w.time >= w.upgradeReadyAt) {
+    w.upgradeReadyAt = w.time + 8;
     w.xp -= w.nextXp;
     w.level++;
     w.nextXp = Math.min(100, 6 + w.level * 3);
