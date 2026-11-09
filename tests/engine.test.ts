@@ -141,3 +141,13 @@ it("spaces burst XP upgrades by eight active seconds without losing XP", () => {
   expect(w.phase).toBe("playing");
   expect(w.xp).toBeGreaterThanOrEqual(xp);
 });
+
+it("raises movement speed and enemy pressure without removing the object cap", async () => {
+  const old=await import("../src/game/replay-engine-v2");
+  let w=createWorld(42), before=old.createWorld(42);
+  expect(w.speed).toBe(before.speed*1.2);
+  w=step(w,{x:0,y:0});before=old.step(before,{x:0,y:0});
+  expect(w.enemies.length+w.kills).toBeGreaterThan(before.enemies.length+before.kills);
+  for(const enemy of w.enemies){const previous=before.enemies.find(e=>e.kind===enemy.kind);if(previous)expect(enemy.maxHp).toBeGreaterThan(previous.maxHp);}
+  expect(w.enemies.length).toBeLessThanOrEqual(150);
+});

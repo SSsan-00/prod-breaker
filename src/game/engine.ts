@@ -343,7 +343,7 @@ export function createWorld(seed: number, duration = 180): World {
     chain: 8,
     range: 115,
     slow: 1,
-    speed: 175,
+    speed: 210,
     magnet: 105,
     rescueSpeed: 1,
     turret: 1,
@@ -546,14 +546,14 @@ function spawn(w: World, kind?: EnemyKind) {
             ? "ddos"
             : "brute";
   const stats = {
-    brute: [26, 39],
-    phish: [18, 58],
-    inject: [35, 66],
-    ransom: [65, 30],
-    ddos: [12, 48],
-    zero: [440, 22],
+    brute: [46, 39],
+    phish: [30, 58],
+    inject: [60, 66],
+    ransom: [115, 30],
+    ddos: [17, 48],
+    zero: [880, 22],
   }[kind];
-  const hp = stats[0] * (1 + (w.wave - 1) * 0.25);
+  const hp = stats[0] * (1 + (w.wave - 1) * 0.38);
   w.enemies.push({
     id: ++w.serial,
     x: 450 + Math.cos(angle) * r,
@@ -679,9 +679,9 @@ export function step(state: World, input: Input): World {
     );
   if (w.regen) w.core = Math.min(100, w.core + STEP * 1.2);
   if (w.time >= w.spawnAt) {
-    const count = 2 + Math.floor(w.wave * 0.7);
+    const count = 3 + Math.floor(w.wave * 0.8);
     for (let i = 0; i < count; i++) spawn(w);
-    w.spawnAt = w.time + Math.max(0.6, 1.7 - w.wave * 0.12);
+    w.spawnAt = w.time + Math.max(0.55, 1.55 - w.wave * 0.12);
   }
   const od = w.time < w.overdriveUntil;
   if (w.time >= w.shootAt) {
