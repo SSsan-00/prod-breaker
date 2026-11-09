@@ -149,7 +149,8 @@ test("real-time movement, auto fire, upgrades, panic, pause, saved settings and 
 }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.clock.install();
+  await page.clock.install({time:new Date("2026-11-09T00:00:00Z")});
+  await page.clock.pauseAt(new Date("2026-11-09T00:00:01Z"));
   await page.goto("/?seed=42");
   await page.clock.runFor(100);
   await expect(page.getByText("SURVIVOR EDITION")).toBeVisible();

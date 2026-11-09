@@ -66,10 +66,66 @@ export default function Arena({
     core.fillRect(6, -7, 4, 2);
     core.fillStyle = "#773b43";
     core.fillRect(-9, 5, 18, 2);
+    core.strokeStyle = "#ffb8bf70"; core.lineWidth = 1;
+    core.beginPath(); core.moveTo(-24,-24); core.lineTo(0,-34); core.lineTo(24,-24); core.stroke();
+    for (const x of [-27,27]) { core.fillStyle="#140d19";core.fillRect(x-2,-9,4,18);core.fillStyle="#bc6a77";for(let y=-6;y<10;y+=5)core.fillRect(x-1,y,2,2); }
+    core.fillStyle="#5f829222";core.beginPath();core.moveTo(-16,-14);core.lineTo(16,-14);core.lineTo(-16,8);core.fill();
     core.font = "bold 10px monospace";
     core.textAlign = "center";
     core.fillStyle = "#ff9aa7";
     core.fillText("SRE CORE", 0, -49);
+    const robotSprite = document.createElement("canvas");
+    robotSprite.width = robotSprite.height = 192;
+    const robot = robotSprite.getContext("2d");
+    if (!robot) return;
+    robot.translate(96, 96); robot.scale(3, 3);
+    // Bake the mascot with metallic lighting once, just like the SRE sprite.
+        robot.fillStyle = "#0008";
+        robot.beginPath();
+        robot.ellipse(0, 22, 19, 5, 0, 0, Math.PI * 2);
+        robot.fill();
+        robot.strokeStyle = "#6a9845";
+        robot.lineWidth = 4;
+        robot.lineCap = "round";
+        for (const y of [-6, 5]) {
+          robot.beginPath();
+          robot.moveTo(-13, y); robot.lineTo(-20, y);
+          robot.moveTo(13, y); robot.lineTo(20, y);
+          robot.stroke();
+        }
+        robot.beginPath(); robot.moveTo(0, -17); robot.lineTo(0, -24); robot.stroke();
+        robot.fillStyle = "#dfff9d";
+        robot.beginPath(); robot.arc(0, -25, 2, 0, Math.PI * 2); robot.fill();
+        const shell = robot.createLinearGradient(-14, -18, 14, 19);
+        shell.addColorStop(0, "#e6ffa5");
+        shell.addColorStop(0.3, "#b8da70");
+        shell.addColorStop(0.46, "#709a3f");
+        shell.addColorStop(0.55, "#c2e884");
+        shell.addColorStop(0.65, "#8eb747");
+        shell.addColorStop(1, "#52782d");
+        robot.fillStyle = shell;
+        robot.strokeStyle = "#294b2c";
+        robot.lineWidth = 2;
+        robot.beginPath(); robot.roundRect(-14, -18, 28, 38, 7); robot.fill(); robot.stroke();
+        robot.fillStyle = "#142e25";
+        robot.beginPath(); robot.roundRect(-11, -12, 22, 17, 4); robot.fill();
+        robot.fillStyle = "#e5ffa8";
+        robot.beginPath();
+        robot.moveTo(-8, -9); robot.lineTo(-3, -7); robot.lineTo(-3, -3); robot.lineTo(-8, -3); robot.closePath();
+        robot.moveTo(8, -9); robot.lineTo(3, -7); robot.lineTo(3, -3); robot.lineTo(8, -3); robot.closePath();
+        robot.fill();
+        robot.strokeStyle = "#b4e77e";
+        robot.lineWidth = 1;
+        robot.beginPath(); robot.moveTo(-3, 1); robot.quadraticCurveTo(0, 4, 4, 0); robot.stroke();
+        robot.fillStyle = "#588e3e";
+        robot.fillRect(-8, 11, 9, 2);
+        robot.fillStyle = "#a9f2ed";
+        robot.fillRect(6, 11, 3, 3);
+
+    robot.strokeStyle = "#f4ffd080"; robot.lineWidth = .7;
+    robot.beginPath(); robot.moveTo(-10,-16); robot.lineTo(7,-16); robot.lineTo(11,-13); robot.stroke();
+    robot.fillStyle = "#9fcfbd30"; robot.beginPath(); robot.moveTo(-10,-11); robot.lineTo(9,-11); robot.lineTo(-10,0); robot.fill();
+    robot.fillStyle = "#355a32"; for (const x of [-11,11]) {robot.fillRect(x,8,1.5,1.5); robot.fillRect(x,16,1.5,1.5);}
     let frame = 0;
     let width = 0, height = 0;
     let renderedWorld: World | undefined;
@@ -317,45 +373,7 @@ export default function Arena({
           ctx.stroke();
           ctx.setLineDash([]);
         }
-        // Compact robot silhouette matches the home-screen mascot.
-        ctx.fillStyle = "#0008";
-        ctx.beginPath();
-        ctx.ellipse(0, 22, 19, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#6a9845";
-        ctx.lineWidth = 4;
-        ctx.lineCap = "round";
-        for (const y of [-6, 5]) {
-          ctx.beginPath();
-          ctx.moveTo(-13, y); ctx.lineTo(-20, y);
-          ctx.moveTo(13, y); ctx.lineTo(20, y);
-          ctx.stroke();
-        }
-        ctx.beginPath(); ctx.moveTo(0, -17); ctx.lineTo(0, -24); ctx.stroke();
-        ctx.fillStyle = "#dfff9d";
-        ctx.beginPath(); ctx.arc(0, -25, 2, 0, Math.PI * 2); ctx.fill();
-        const shell = ctx.createLinearGradient(-14, -18, 14, 19);
-        shell.addColorStop(0, "#e6ffa5");
-        shell.addColorStop(0.5, "#a2d54f");
-        shell.addColorStop(1, "#52782d");
-        ctx.fillStyle = shell;
-        ctx.strokeStyle = "#294b2c";
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(-14, -18, 28, 38, 7); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#142e25";
-        ctx.beginPath(); ctx.roundRect(-11, -12, 22, 17, 4); ctx.fill();
-        ctx.fillStyle = "#e5ffa8";
-        ctx.beginPath();
-        ctx.moveTo(-8, -9); ctx.lineTo(-3, -7); ctx.lineTo(-3, -3); ctx.lineTo(-8, -3); ctx.closePath();
-        ctx.moveTo(8, -9); ctx.lineTo(3, -7); ctx.lineTo(3, -3); ctx.lineTo(8, -3); ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "#b4e77e";
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(-3, 1); ctx.quadraticCurveTo(0, 4, 4, 0); ctx.stroke();
-        ctx.fillStyle = "#588e3e";
-        ctx.fillRect(-8, 11, 9, 2);
-        ctx.fillStyle = "#a9f2ed";
-        ctx.fillRect(6, 11, 3, 3);
+        ctx.drawImage(robotSprite, -32, -32, 64, 64);
         ctx.restore();
         let brightBursts = 0;
         for (const e of w.effects) {

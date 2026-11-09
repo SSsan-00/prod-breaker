@@ -2117,3 +2117,20 @@ footer {
 .sister-link:focus-visible { outline:2px solid var(--lime); outline-offset:3px; }
 @media (max-width:700px), (hover:none) and (pointer:coarse) { .survivor .home-links { gap:15px; } .survivor .sister-link { padding:5px 9px; min-height:32px; gap:9px; } .survivor .sister-link small { font-size:7px; } .survivor .sister-link b { font-size:9px; letter-spacing:.5px; margin-top:2px; } }
 @media (hover:none) and (pointer:coarse) and (orientation:landscape) and (max-height:500px) { .survivor .home-links { grid-area:4 / 2; gap:16px; } }
+/* Precision hardware surfaces, shared with the defender sister app. */
+.survivor .title-screen{background:radial-gradient(ellipse at 85% 40%,#bed7530b,transparent 50%)}
+.survivor .title-screen h1>span{background:linear-gradient(115deg,#efffb4,#d4fa53 60%,#94b85b);background-clip:text;color:transparent}
+.survivor .title-screen .edition{border-radius:4px;background:linear-gradient(115deg,#b9d95a16,#0f211b);border-color:#bddf6445;box-shadow:inset 0 1px #e3ffb410}
+.survivor .title-screen .duration-options button{border-radius:8px;background:linear-gradient(145deg,#deffc508,#deffc501);box-shadow:inset 0 1px #e8ffd509}
+.survivor .title-screen .duration-options button[aria-pressed=true]{background:linear-gradient(130deg,#d4fa5323,#91ad4509);border-color:#d4fa537a;box-shadow:inset 0 1px #ecffb233,0 5px 20px #0002}
+.survivor .title-screen .start,.survivor .result-actions .primary,.survivor .modal>.primary{border-radius:8px;background:linear-gradient(110deg,#e4ff89,#cdeb56 65%,#a9cf5c);box-shadow:inset 0 1px #f4ffcb,0 8px 28px #b3d54b14}
+.survivor .title-screen .start .start-icon{border-radius:50%;background:#2440120c}
+.survivor .modal{border-radius:14px;background:radial-gradient(ellipse at 100% 0,#71894626,transparent 60%),#101c20;border-color:#b7cb8d36;box-shadow:0 28px 100px #0009,inset 0 1px #e9ffcf0c}
+.survivor .header-right button,.survivor .modal .close,.survivor .result-actions button{border-radius:7px}
+.survivor .sister-link{border-radius:7px;background:linear-gradient(140deg,#c4ed940c,#c4ed9402)}
+.survivor .leaderboard-modes button{border-radius:5px;background:linear-gradient(145deg,#def6bc08,#def6bc02)}
+.survivor .leaderboard-modes button[aria-pressed=true]{background:#c4ed9410}
+.survivor .leaderboard-list li:first-child{background:linear-gradient(90deg,#c4ed9411,transparent)}
+.survivor .leaderboard-list li:first-child>span{color:var(--lime)}
+.survivor .leaderboard-submit{border-radius:6px}
+@media(min-width:1000px) and (min-height:650px){.survivor .title-screen .hero-art{border:1px solid #c4ed941c;border-radius:28px 5px;background:radial-gradient(ellipse at 45% 40%,#a4d45f1a,transparent 65%),linear-gradient(135deg,#efffc704,#071318);box-shadow:inset 0 1px #e1ffb508,0 30px 60px #0002}}
