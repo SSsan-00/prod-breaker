@@ -51,11 +51,13 @@ describe("verified shared scores", () => {
 
 it.each([1, 2] as const)("continues to verify pre-adjustment runs with version %i", async (version) => {
   const old = version === 1 ? await import("../src/game/replay-engine-v1") : await import("../src/game/replay-engine-v2");
+  const step = old.step as typeof import("../src/game/replay-engine-v1").step;
+  const choose = old.choose as typeof import("../src/game/replay-engine-v1").choose;
   let w=old.createWorld(42,90);
   const record:Recorder={seed:42,bytes:[],upgrades:[]};
   while(w.phase==="playing"||w.phase==="upgrade"){
-    if(w.phase==="upgrade"){const id=w.choices[0];record.upgrades.push([record.bytes.length/3,id]);w=old.choose(w,id);}
-    else w=old.step(w,recordInput(record,{x:0,y:0}));
+    if(w.phase==="upgrade"){const id=w.choices[0];record.upgrades.push([record.bytes.length/3,id]);w=choose(w,id);}
+    else w=step(w,recordInput(record,{x:0,y:0}));
   }
   expect(verifyReplay({...finishReplay(record),version},90,w.score)).toBe(true);
 });
